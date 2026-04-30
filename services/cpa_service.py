@@ -105,18 +105,22 @@ def _first_text(*values: object) -> str:
     return ""
 
 
-def _payload_account_id(*payloads: dict) -> str:
-    keys = (
-        "https://api.openai.com/auth.chatgpt_account_id",
-        "https://api.openai.com/auth/account_id",
-        "chatgpt_account_id",
-        "account_id",
-        "sub",
-    )
+def _openai_auth_info(payload: dict) -> dict:
+    if not isinstance(payload, dict):
+        return {}
+    auth_info = payload.get("https://api.openai.com/auth")
+    return auth_info if isinstance(auth_info, dict) else {}
+
+
+def _payload_value(keys: tuple[str, ...], *payloads: dict) -> str:
     for payload in payloads:
         if not isinstance(payload, dict):
             continue
+        auth_info = _openai_auth_info(payload)
         for key in keys:
+            value = _clean_text(auth_info.get(key))
+            if value:
+                return value
             value = _clean_text(payload.get(key))
             if value:
                 return value
@@ -130,26 +134,52 @@ def build_registered_cpa_auth_payload(record: dict) -> dict:
     access_token = _clean_text(record.get("access_token"))
     if not access_token:
         raise ValueError("access_token is required")
+    id_token = _clean_text(record.get("id_token"))
+    if not id_token:
+        raise ValueError("id_token is required for CPA Codex auth")
 
     access_payload = _decode_jwt_payload(access_token)
-    id_payload = _decode_jwt_payload(record.get("id_token"))
+    id_payload = _decode_jwt_payload(id_token)
     expired = _first_text(
         record.get("expired"),
         _expiration_from_payload(access_payload),
         _expiration_from_payload(id_payload),
     )
     email = _first_text(record.get("email"), id_payload.get("email"), access_payload.get("email"))
-    account_id = _first_text(record.get("account_id"), _payload_account_id(access_payload, id_payload))
+    chatgpt_user_id = _first_text(
+        record.get("chatgpt_user_id"),
+        _payload_value(("chatgpt_user_id", "user_id"), id_payload, access_payload),
+        record.get("user_id"),
+    )
+    auth_subject_id = _payload_value(("sub",), id_payload, access_payload)
+    record_account_id = _clean_text(record.get("account_id"))
+    if record_account_id.startswith("auth0|"):
+        record_account_id = ""
+    chatgpt_account_id = _first_text(
+        record.get("chatgpt_account_id"),
+        _payload_value(("chatgpt_account_id", "account_id"), id_payload, access_payload),
+        record_account_id,
+        chatgpt_user_id,
+    )
+    account_id = _first_text(chatgpt_account_id, record.get("account_id"), auth_subject_id)
+    plan_type = _payload_value(("chatgpt_plan_type",), id_payload, access_payload)
 
     payload = {
         "type": "codex",
         "access_token": access_token,
         "refresh_token": _clean_text(record.get("refresh_token")),
-        "id_token": _clean_text(record.get("id_token")),
+        "id_token": id_token,
         "account_id": account_id,
         "last_refresh": _first_text(record.get("last_refresh"), record.get("created_at"), _now_iso()),
         "email": email,
     }
+    if chatgpt_account_id:
+        payload["chatgpt_account_id"] = chatgpt_account_id
+    if chatgpt_user_id:
+        payload["chatgpt_user_id"] = chatgpt_user_id
+        payload["user_id"] = chatgpt_user_id
+    if plan_type:
+        payload["plan_type"] = plan_type
     if expired:
         payload["expired"] = expired
     return payload

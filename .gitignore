@@ -33,3 +33,10 @@ git_cache/
 standalone/win-cpa-register/package/
 standalone/win-cpa-register/spec/
 standalone/win-cpa-register/*.zip
+
+# Standalone registrar sensitive outputs
+standalone/codex-*.json
+standalone/raw_results.jsonl
+standalone/summary.jsonl
+standalone/win-cpa-register/cpa_auth_files/
+standalone/win-cpa-register/dist/config.json

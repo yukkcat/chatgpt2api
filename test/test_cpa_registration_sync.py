@@ -60,7 +60,12 @@ class RegisteredCPASyncTests(unittest.TestCase):
         access_token = _jwt(
             {
                 "exp": 1893456000,
-                "https://api.openai.com/auth.chatgpt_account_id": "acc_123",
+                "sub": "auth0|subject-123",
+                "https://api.openai.com/auth": {
+                    "chatgpt_account_id": "acc_123",
+                    "chatgpt_user_id": "user_123",
+                    "chatgpt_plan_type": "plus",
+                },
             }
         )
         id_token = _jwt({"email": "alice@example.com"})
@@ -80,14 +85,46 @@ class RegisteredCPASyncTests(unittest.TestCase):
         self.assertEqual(payload["id_token"], id_token)
         self.assertEqual(payload["email"], "alice@example.com")
         self.assertEqual(payload["account_id"], "acc_123")
+        self.assertEqual(payload["chatgpt_account_id"], "acc_123")
+        self.assertEqual(payload["chatgpt_user_id"], "user_123")
+        self.assertEqual(payload["user_id"], "user_123")
+        self.assertEqual(payload["plan_type"], "plus")
         self.assertEqual(payload["last_refresh"], "2026-04-30T00:00:00+00:00")
         self.assertEqual(payload["expired"], "2030-01-01T00:00:00+00:00")
+
+    def test_build_registered_cpa_auth_payload_falls_back_to_chatgpt_user_id(self) -> None:
+        access_token = _jwt(
+            {
+                "sub": "auth0|subject-123",
+                "https://api.openai.com/auth": {
+                    "user_id": "user_fallback",
+                },
+            }
+        )
+        id_token = _jwt({"email": "alice@example.com"})
+
+        payload = build_registered_cpa_auth_payload(
+            {
+                "access_token": access_token,
+                "refresh_token": "refresh-1",
+                "id_token": id_token,
+            }
+        )
+
+        self.assertEqual(payload["account_id"], "user_fallback")
+        self.assertEqual(payload["chatgpt_account_id"], "user_fallback")
+        self.assertEqual(payload["chatgpt_user_id"], "user_fallback")
+
+    def test_build_registered_cpa_auth_payload_requires_id_token(self) -> None:
+        with self.assertRaises(ValueError):
+            build_registered_cpa_auth_payload({"access_token": "access-1"})
 
     def test_registered_cpa_auth_filename_is_safe_json_name(self) -> None:
         name = registered_cpa_auth_filename(
             {
                 "email": "alice/example@example.com",
                 "access_token": "access-1",
+                "id_token": _jwt({"email": "alice@example.com"}),
             }
         )
 

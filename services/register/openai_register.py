@@ -46,6 +46,8 @@ platform_oauth_client_id = "app_2SKx67EdpoN0G6j64rFvigXD"
 platform_oauth_redirect_uri = f"{platform_base}/auth/callback"
 platform_oauth_audience = "https://api.openai.com/v1"
 platform_auth0_client = "eyJuYW1lIjoiYXV0aDAtc3BhLWpzIiwidmVyc2lvbiI6IjEuMjEuMCJ9"
+codex_oauth_client_id = "app_EMoamEEZ73f0CkXaXp7hrann"
+codex_oauth_redirect_uri = "http://localhost:1455/auth/callback"
 user_agent = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -175,6 +177,52 @@ def _decode_jwt_payload(token: str) -> dict:
         return json.loads(base64.urlsafe_b64decode(payload))
     except Exception:
         return {}
+
+
+def _openai_auth_info(payload: dict) -> dict:
+    if not isinstance(payload, dict):
+        return {}
+    auth_info = payload.get("https://api.openai.com/auth")
+    return auth_info if isinstance(auth_info, dict) else {}
+
+
+def _first_text(*values: object) -> str:
+    for value in values:
+        text = str(value or "").strip()
+        if text:
+            return text
+    return ""
+
+
+def _token_identity_fields(id_token: str, access_token: str) -> dict[str, str]:
+    id_payload = _decode_jwt_payload(id_token)
+    access_payload = _decode_jwt_payload(access_token)
+    id_auth = _openai_auth_info(id_payload)
+    access_auth = _openai_auth_info(access_payload)
+    raw_chatgpt_account_id = _first_text(
+        id_auth.get("chatgpt_account_id"),
+        access_auth.get("chatgpt_account_id"),
+        id_auth.get("account_id"),
+        access_auth.get("account_id"),
+    )
+    chatgpt_user_id = _first_text(
+        id_auth.get("chatgpt_user_id"),
+        access_auth.get("chatgpt_user_id"),
+        id_auth.get("user_id"),
+        access_auth.get("user_id"),
+    )
+    plan_type = _first_text(id_auth.get("chatgpt_plan_type"), access_auth.get("chatgpt_plan_type"))
+    subject_id = _first_text(id_payload.get("sub"), access_payload.get("sub"))
+    chatgpt_account_id = _first_text(raw_chatgpt_account_id, chatgpt_user_id)
+    return {
+        "email": _first_text(id_payload.get("email"), access_payload.get("email")),
+        "account_id": _first_text(chatgpt_account_id, subject_id),
+        "auth_subject_id": subject_id,
+        "chatgpt_account_id": chatgpt_account_id,
+        "chatgpt_user_id": chatgpt_user_id,
+        "user_id": chatgpt_user_id,
+        "plan_type": plan_type,
+    }
 
 
 def create_mailbox(username: str | None = None) -> dict:
@@ -384,21 +432,15 @@ def extract_oauth_callback_params_from_consent_session(session: requests.Session
     return extract_oauth_callback_params_from_url(str(org_resp.headers.get("Location") or "").strip())
 
 
-def exchange_platform_tokens(session: requests.Session, device_id: str, code_verifier: str, consent_url: str) -> dict | None:
-    callback_params = extract_oauth_callback_params_from_consent_session(session, consent_url, device_id)
-    if not callback_params:
-        return None
-    code = str(callback_params.get("code") or "").strip()
-    if not code:
-        return None
+def _oauth_token_request(code: str, code_verifier: str, client_id: str, redirect_uri: str) -> dict | None:
     resp = create_session(config["proxy"]).post(
         f"{auth_base}/oauth/token",
         headers={"Content-Type": "application/x-www-form-urlencoded"},
         data={
             "grant_type": "authorization_code",
             "code": code,
-            "redirect_uri": platform_oauth_redirect_uri,
-            "client_id": platform_oauth_client_id,
+            "redirect_uri": redirect_uri,
+            "client_id": client_id,
             "code_verifier": code_verifier,
         },
         verify=False,
@@ -407,13 +449,50 @@ def exchange_platform_tokens(session: requests.Session, device_id: str, code_ver
     data = _response_json(resp)
     if resp.status_code != 200 or not data.get("access_token") or not data.get("refresh_token") or not data.get("id_token"):
         return None
-    payload = _decode_jwt_payload(str(data.get("id_token") or "")) or _decode_jwt_payload(str(data.get("access_token") or ""))
+    access_token = str(data.get("access_token") or "").strip()
+    id_token = str(data.get("id_token") or "").strip()
+    identity = _token_identity_fields(id_token, access_token)
     return {
-        "email": str(payload.get("email") or "").strip(),
-        "access_token": str(data.get("access_token") or "").strip(),
+        **{key: value for key, value in identity.items() if value},
+        "access_token": access_token,
         "refresh_token": str(data.get("refresh_token") or "").strip(),
-        "id_token": str(data.get("id_token") or "").strip(),
+        "id_token": id_token,
     }
+
+
+def exchange_platform_tokens(session: requests.Session, device_id: str, code_verifier: str, consent_url: str) -> dict | None:
+    callback_params = extract_oauth_callback_params_from_consent_session(session, consent_url, device_id)
+    if not callback_params:
+        return None
+    code = str(callback_params.get("code") or "").strip()
+    if not code:
+        return None
+    return _oauth_token_request(code, code_verifier, platform_oauth_client_id, platform_oauth_redirect_uri)
+
+
+def exchange_codex_tokens(session: requests.Session, device_id: str, email: str) -> dict | None:
+    code_verifier, code_challenge = _generate_pkce()
+    params = {
+        "client_id": codex_oauth_client_id,
+        "response_type": "code",
+        "redirect_uri": codex_oauth_redirect_uri,
+        "scope": "openid profile email offline_access",
+        "state": secrets.token_urlsafe(32),
+        "code_challenge": code_challenge,
+        "code_challenge_method": "S256",
+        "id_token_add_organizations": "true",
+        "codex_cli_simplified_flow": "true",
+        "prompt": "login",
+        "login_hint": email,
+    }
+    authorize_url = f"{auth_base}/oauth/authorize?{urlencode(params)}"
+    callback_params = extract_oauth_callback_params_from_consent_session(session, authorize_url, device_id)
+    if not callback_params:
+        return None
+    code = str(callback_params.get("code") or "").strip()
+    if not code:
+        return None
+    return _oauth_token_request(code, code_verifier, codex_oauth_client_id, codex_oauth_redirect_uri)
 
 
 class PlatformRegistrar:
@@ -560,6 +639,19 @@ class PlatformRegistrar:
         tokens = exchange_platform_tokens(self.session, self.device_id, code_verifier, continue_url)
         if not tokens:
             raise RuntimeError("token换取失败")
+        try:
+            codex_tokens = exchange_codex_tokens(self.session, self.device_id, email)
+        except Exception as exc:
+            step(index, f"Codex token 换取失败，使用 platform token: {exc}", "yellow")
+            codex_tokens = None
+        if codex_tokens:
+            tokens = {**tokens, **codex_tokens}
+            if codex_tokens.get("chatgpt_account_id"):
+                step(index, f"Codex token 换取完成: {codex_tokens.get('chatgpt_account_id')}", "green")
+            else:
+                step(index, "Codex token 已换取，但未解析到 chatgpt_account_id", "yellow")
+        else:
+            step(index, "Codex token 未换取，CPA 可能无法刷新额度", "yellow")
         step(index, "token 换取完成")
         return tokens
 
@@ -589,6 +681,12 @@ class PlatformRegistrar:
             "access_token": str(tokens.get("access_token") or "").strip(),
             "refresh_token": str(tokens.get("refresh_token") or "").strip(),
             "id_token": str(tokens.get("id_token") or "").strip(),
+            "account_id": str(tokens.get("account_id") or "").strip(),
+            "auth_subject_id": str(tokens.get("auth_subject_id") or "").strip(),
+            "chatgpt_account_id": str(tokens.get("chatgpt_account_id") or "").strip(),
+            "chatgpt_user_id": str(tokens.get("chatgpt_user_id") or "").strip(),
+            "user_id": str(tokens.get("user_id") or "").strip(),
+            "plan_type": str(tokens.get("plan_type") or "").strip(),
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
 
@@ -605,10 +703,15 @@ def worker(index: int) -> dict:
 
         account_service.add_account_records([result])
         account_service.refresh_accounts([access_token])
+        stored_account = account_service.get_account(access_token) or {}
+        result_for_cpa = {
+            **result,
+            **{key: value for key, value in stored_account.items() if value not in (None, "")},
+        }
         try:
             from services.cpa_service import sync_registered_account_to_cpa
 
-            sync_result = sync_registered_account_to_cpa(result)
+            sync_result = sync_registered_account_to_cpa(result_for_cpa)
             if int(sync_result.get("total") or 0) == 0:
                 step(index, "CPA sync skipped: no pools configured", "yellow")
             elif int(sync_result.get("failed") or 0) > 0:
