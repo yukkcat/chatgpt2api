@@ -139,6 +139,13 @@ class AccountService:
         normalized["image_quota_unknown"] = bool(normalized.get("image_quota_unknown"))
         normalized["email"] = self._clean_token(normalized.get("email")) or None
         normalized["user_id"] = self._clean_token(normalized.get("user_id")) or None
+        normalized["refresh_token"] = self._clean_token(normalized.get("refresh_token")) or None
+        normalized["id_token"] = self._clean_token(normalized.get("id_token")) or None
+        normalized["account_id"] = self._clean_token(normalized.get("account_id")) or None
+        normalized["expired"] = self._clean_token(normalized.get("expired")) or None
+        normalized["last_refresh"] = self._clean_token(normalized.get("last_refresh")) or None
+        normalized["password"] = self._clean_token(normalized.get("password")) or None
+        normalized["created_at"] = self._clean_token(normalized.get("created_at")) or None
         limits_progress = normalized.get("limits_progress")
         normalized["limits_progress"] = limits_progress if isinstance(limits_progress, list) else []
         normalized["default_model_slug"] = self._clean_token(normalized.get("default_model_slug")) or None
@@ -353,6 +360,58 @@ class AccountService:
             self._save_accounts()
             items = self._public_items(self._accounts)
             log_service.add(LOG_TYPE_ACCOUNT, f"新增 {added} 个账号，跳过 {skipped} 个", {"added": added, "skipped": skipped})
+        return {"added": added, "skipped": skipped, "items": items}
+
+    def add_account_records(self, records: list[dict]) -> dict:
+        cleaned_records: list[dict] = []
+        seen = set()
+        for item in records:
+            if not isinstance(item, dict):
+                continue
+            access_token = self._clean_token(item.get("access_token"))
+            if not access_token or access_token in seen:
+                continue
+            seen.add(access_token)
+            cleaned_records.append({**item, "access_token": access_token})
+
+        if not cleaned_records:
+            return {"added": 0, "skipped": 0, "items": self.list_accounts()}
+
+        with self._lock:
+            indexed = {self._clean_token(item.get("access_token")): dict(item) for item in self._accounts}
+            added = 0
+            skipped = 0
+            for record in cleaned_records:
+                access_token = self._clean_token(record.get("access_token"))
+                current = indexed.get(access_token)
+                if current is None:
+                    added += 1
+                    current = {}
+                else:
+                    skipped += 1
+
+                merged = {**current, **record}
+                if self._clean_token(record.get("type")).lower() == "codex":
+                    merged["type"] = self._clean_token(current.get("type")) or "Free"
+                else:
+                    merged["type"] = (
+                        self._clean_token(merged.get("type"))
+                        or self._clean_token(current.get("type"))
+                        or "Free"
+                    )
+
+                account = self._normalize_account(merged)
+                if account is not None:
+                    indexed[access_token] = account
+
+            self._accounts = list(indexed.values())
+            self._save_accounts()
+            items = self._public_items(self._accounts)
+            log_service.add(
+                LOG_TYPE_ACCOUNT,
+                f"Added {added} account records, skipped {skipped}",
+                {"added": added, "skipped": skipped},
+            )
         return {"added": added, "skipped": skipped, "items": items}
 
     def delete_accounts(self, tokens: list[str]) -> dict:

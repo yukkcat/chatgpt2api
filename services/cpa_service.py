@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import json
+import re
 import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -64,6 +67,161 @@ def _management_headers(secret_key: str) -> dict[str, str]:
         "Authorization": f"Bearer {secret_key}",
         "Accept": "application/json",
     }
+
+
+def _clean_text(value: object) -> str:
+    return str(value or "").strip()
+
+
+def _decode_jwt_payload(token: object) -> dict:
+    parts = _clean_text(token).split(".")
+    if len(parts) < 2:
+        return {}
+    payload = parts[1]
+    payload += "=" * (-len(payload) % 4)
+    try:
+        decoded = base64.urlsafe_b64decode(payload.encode("utf-8"))
+        data = json.loads(decoded.decode("utf-8"))
+    except Exception:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _expiration_from_payload(payload: dict) -> str | None:
+    try:
+        exp = int(payload.get("exp") or 0)
+    except (TypeError, ValueError):
+        return None
+    if exp <= 0:
+        return None
+    return datetime.fromtimestamp(exp, timezone.utc).isoformat()
+
+
+def _first_text(*values: object) -> str:
+    for value in values:
+        cleaned = _clean_text(value)
+        if cleaned:
+            return cleaned
+    return ""
+
+
+def _payload_account_id(*payloads: dict) -> str:
+    keys = (
+        "https://api.openai.com/auth.chatgpt_account_id",
+        "https://api.openai.com/auth/account_id",
+        "chatgpt_account_id",
+        "account_id",
+        "sub",
+    )
+    for payload in payloads:
+        if not isinstance(payload, dict):
+            continue
+        for key in keys:
+            value = _clean_text(payload.get(key))
+            if value:
+                return value
+    return ""
+
+
+def build_registered_cpa_auth_payload(record: dict) -> dict:
+    if not isinstance(record, dict):
+        raise ValueError("record must be a dict")
+
+    access_token = _clean_text(record.get("access_token"))
+    if not access_token:
+        raise ValueError("access_token is required")
+
+    access_payload = _decode_jwt_payload(access_token)
+    id_payload = _decode_jwt_payload(record.get("id_token"))
+    expired = _first_text(
+        record.get("expired"),
+        _expiration_from_payload(access_payload),
+        _expiration_from_payload(id_payload),
+    )
+    email = _first_text(record.get("email"), id_payload.get("email"), access_payload.get("email"))
+    account_id = _first_text(record.get("account_id"), _payload_account_id(access_payload, id_payload))
+
+    payload = {
+        "type": "codex",
+        "access_token": access_token,
+        "refresh_token": _clean_text(record.get("refresh_token")),
+        "id_token": _clean_text(record.get("id_token")),
+        "account_id": account_id,
+        "last_refresh": _first_text(record.get("last_refresh"), record.get("created_at"), _now_iso()),
+        "email": email,
+    }
+    if expired:
+        payload["expired"] = expired
+    return payload
+
+
+def registered_cpa_auth_filename(record: dict) -> str:
+    payload = build_registered_cpa_auth_payload(record)
+    digest = hashlib.sha1(payload["access_token"].encode("utf-8")).hexdigest()[:8]
+    email = re.sub(r"[^A-Za-z0-9@._-]+", "-", payload.get("email") or "").strip(".-_")
+    if email:
+        return f"codex-{email[:120]}-{digest}.json"
+    return f"codex-{digest}.json"
+
+
+def upload_auth_file(pool: dict, file_name: str, payload: dict) -> tuple[bool, str | None]:
+    base_url = _clean_text(pool.get("base_url") if isinstance(pool, dict) else "")
+    secret_key = _clean_text(pool.get("secret_key") if isinstance(pool, dict) else "")
+    file_name = _clean_text(file_name)
+    if not base_url or not secret_key or not file_name:
+        return False, "invalid CPA pool or file name"
+    if not file_name.endswith(".json"):
+        return False, "CPA auth file name must end with .json"
+
+    url = f"{base_url.rstrip('/')}/v0/management/auth-files"
+    headers = {
+        **_management_headers(secret_key),
+        "Content-Type": "application/json",
+    }
+    session = Session(**proxy_settings.build_session_kwargs(verify=True))
+    try:
+        response = session.post(
+            url,
+            headers=headers,
+            params={"name": file_name},
+            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            timeout=30,
+        )
+        if response.ok:
+            return True, None
+        detail = _clean_text(getattr(response, "text", ""))[:300]
+        return False, f"HTTP {response.status_code}{': ' + detail if detail else ''}"
+    except Exception as exc:
+        return False, str(exc)
+    finally:
+        session.close()
+
+
+def sync_registered_account_to_cpa(record: dict, pools: list[dict] | None = None) -> dict:
+    payload = build_registered_cpa_auth_payload(record)
+    file_name = registered_cpa_auth_filename(record)
+    target_pools = list(cpa_config.list_pools() if pools is None else pools)
+    result = {
+        "file_name": file_name,
+        "total": len(target_pools),
+        "success": 0,
+        "failed": 0,
+        "errors": [],
+    }
+    for pool in target_pools:
+        ok, error = upload_auth_file(pool, file_name, payload)
+        if ok:
+            result["success"] += 1
+            continue
+        result["failed"] += 1
+        result["errors"].append(
+            {
+                "pool_id": _clean_text(pool.get("id") if isinstance(pool, dict) else ""),
+                "pool_name": _clean_text(pool.get("name") if isinstance(pool, dict) else ""),
+                "error": error or "unknown error",
+            }
+        )
+    return result
 
 
 class CPAConfig:

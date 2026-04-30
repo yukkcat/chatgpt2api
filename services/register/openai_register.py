@@ -18,7 +18,6 @@ import urllib3
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from services.account_service import account_service
 from services.register import mail_provider
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -602,8 +601,26 @@ def worker(index: int) -> dict:
         result = registrar.register(index)
         cost = time.time() - start
         access_token = str(result["access_token"])
-        account_service.add_accounts([access_token])
+        from services.account_service import account_service
+
+        account_service.add_account_records([result])
         account_service.refresh_accounts([access_token])
+        try:
+            from services.cpa_service import sync_registered_account_to_cpa
+
+            sync_result = sync_registered_account_to_cpa(result)
+            if int(sync_result.get("total") or 0) == 0:
+                step(index, "CPA sync skipped: no pools configured", "yellow")
+            elif int(sync_result.get("failed") or 0) > 0:
+                step(
+                    index,
+                    f"CPA sync partial: {sync_result.get('success')}/{sync_result.get('total')} uploaded",
+                    "yellow",
+                )
+            else:
+                step(index, f"CPA sync success: {sync_result.get('file_name')}", "green")
+        except Exception as exc:
+            step(index, f"CPA sync failed, registration kept locally: {exc}", "yellow")
         with stats_lock:
             stats["done"] += 1
             stats["success"] += 1
