@@ -1,0 +1,28 @@
+{
+  "proxy": "",
+  "total": 1,
+  "threads": 1,
+  "export_dir": "cpa_auth_files",
+  "save_raw_results": true,
+  "mail": {
+    "request_timeout": 30,
+    "wait_timeout": 30,
+    "wait_interval": 2,
+    "providers": [
+      {
+        "enable": false,
+        "type": "tempmail_lol",
+        "api_key": "",
+        "domain": []
+      }
+    ]
+  },
+  "cpa_pools": [
+    {
+      "enable": false,
+      "name": "local-cpa",
+      "base_url": "http://127.0.0.1:8317",
+      "secret_key": ""
+    }
+  ]
+}

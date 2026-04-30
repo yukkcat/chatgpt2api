@@ -1,0 +1,74 @@
+name: Build Windows CPA Registrar
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/build-win-cpa-register.yml"
+      - "standalone/win-cpa-register/**"
+      - "services/register/**"
+  pull_request:
+    paths:
+      - ".github/workflows/build-win-cpa-register.yml"
+      - "standalone/win-cpa-register/**"
+      - "services/register/**"
+  release:
+    types:
+      - published
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build EXE
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Build Windows executables
+        shell: pwsh
+        env:
+          PYTHON: python
+        run: .\standalone\win-cpa-register\build_exe.ps1
+
+      - name: Smoke test executables
+        shell: pwsh
+        run: |
+          .\standalone\win-cpa-register\dist\cpa-register-win.exe --help
+          .\standalone\win-cpa-register\dist\cpa-register-win-gui.exe --smoke
+
+      - name: Package artifact
+        shell: pwsh
+        run: |
+          $PackageDir = "standalone\win-cpa-register\package"
+          New-Item -ItemType Directory -Force -Path $PackageDir | Out-Null
+          Copy-Item "standalone\win-cpa-register\dist\cpa-register-win.exe" $PackageDir
+          Copy-Item "standalone\win-cpa-register\dist\cpa-register-win-gui.exe" $PackageDir
+          Copy-Item "standalone\win-cpa-register\dist\config.json" $PackageDir
+          Copy-Item "standalone\win-cpa-register\README.md" $PackageDir
+          Compress-Archive -Path "$PackageDir\*" -DestinationPath "standalone\win-cpa-register\cpa-register-win.zip" -Force
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpa-register-win
+          path: standalone/win-cpa-register/cpa-register-win.zip
+          if-no-files-found: error
+
+      - name: Upload to GitHub Release
+        if: github.event_name == 'release'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" "standalone\win-cpa-register\cpa-register-win.zip" --clobber

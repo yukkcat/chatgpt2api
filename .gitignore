@@ -28,3 +28,8 @@ docker-compose-local.yml
 
 # Git cache
 git_cache/
+
+# Standalone Windows registrar build outputs
+standalone/win-cpa-register/package/
+standalone/win-cpa-register/spec/
+standalone/win-cpa-register/*.zip
