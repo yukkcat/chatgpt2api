@@ -25,6 +25,7 @@ export type RegisterProvider = {
   label?: string
   api_base?: string
   api_key?: string
+  admin_key?: string
   admin_email?: string
   admin_password?: string
   ddg_token?: string

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
++ [新增] 注册账号新增 DoneMail 邮箱来源，支持通过公开 API Key 读取指定收件地址的验证码邮件。
+
 ## 2.6.2 - 2026-07-08
 
 + [修复] OpenAI 注册流程 `create_account` 阶段的 `registration_disallowed` 错误，补齐 Turnstile SO Token 生成与双 Sentinel header 发送，对齐官方 SDK 5000ms 采集行为，预计成功率从 0% 提升至 50% 左右。

@@ -1214,6 +1214,112 @@ class GptMailProvider(BaseMailProvider):
         self.session.close()
 
 
+class DoneMailProvider(BaseMailProvider):
+    name = "donemail"
+
+    def __init__(self, entry: dict, conf: dict):
+        super().__init__(conf, str(entry.get("provider_ref") or ""))
+        api_base = str(entry["api_base"]).rstrip("/")
+        for suffix in ("/api/overview", "/api/view-mails", "/api"):
+            if api_base.endswith(suffix):
+                api_base = api_base[: -len(suffix)].rstrip("/")
+                break
+        self.api_base = api_base
+        self.admin_key = str(entry.get("admin_key") or entry.get("admin_password") or entry.get("api_key") or "").strip()
+        self.domain = _normalize_string_list(entry.get("domain") or entry.get("default_domain"))
+        self.email_prefix = str(entry.get("email_prefix") or "").strip()
+        self.message_limit = max(1, min(50, int(entry.get("message_limit") or 20)))
+        self.session = _create_session(conf)
+        self.session.headers.update({
+            "User-Agent": conf["user_agent"],
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "X-Admin-Key": self.admin_key,
+        })
+
+    def _request(self, method: str, path: str, params: dict | None = None, payload: dict | None = None, expected: tuple[int, ...] = (200,)):
+        if not self.admin_key:
+            raise RuntimeError("DoneMail 缺少 X-Admin-Key")
+        resp = self.session.request(
+            method.upper(),
+            f"{self.api_base}{path}",
+            params=params,
+            json=payload,
+            timeout=self.conf["request_timeout"],
+            verify=False,
+        )
+        if resp.status_code not in expected:
+            raise RuntimeError(f"DoneMail 请求失败: {method} {path}, HTTP {resp.status_code}, body={resp.text[:300]}")
+        data = resp.json()
+        if isinstance(data, dict) and data.get("ok") is False:
+            error = data.get("error") if isinstance(data.get("error"), dict) else {}
+            message = error.get("message") or error.get("code") or "DoneMail 返回失败"
+            raise RuntimeError(f"DoneMail 请求失败: {message}")
+        return data
+
+    @staticmethod
+    def _items(data: Any) -> list:
+        if isinstance(data, list):
+            return data
+        if isinstance(data, dict):
+            items = data.get("data") or data.get("mails") or data.get("messages") or data.get("items") or []
+            return items if isinstance(items, list) else []
+        return []
+
+    def _resolve_address(self, username: str | None = None) -> str:
+        if username and "@" in username:
+            return username.strip()
+        if not self.domain:
+            raise RuntimeError("DoneMail 需要至少配置一个 domain")
+        local_part = username or (f"{self.email_prefix}_{_random_mailbox_name()}" if self.email_prefix else _random_mailbox_name())
+        return f"{local_part}@{_next_domain(self.domain)}"
+
+    def create_mailbox(self, username: str | None = None) -> dict[str, Any]:
+        address = self._resolve_address(username)
+        return {"provider": self.name, "provider_ref": self.provider_ref, "address": address}
+
+    def get_existing_mailbox(self, email: str) -> dict[str, Any]:
+        address = str(email or "").strip()
+        if not address:
+            raise RuntimeError("DoneMail 缺少 email")
+        return {"provider": self.name, "provider_ref": self.provider_ref, "address": address}
+
+    def fetch_latest_message(self, mailbox: dict[str, Any]) -> dict[str, Any] | None:
+        address = str(mailbox.get("address") or "").strip()
+        if not address:
+            raise RuntimeError("DoneMail 缺少 address")
+        data = self._request("GET", "/api/mails", params={"limit": self.message_limit, "to": address})
+        messages = [item for item in self._items(data) if isinstance(item, dict) and _message_matches_email(item, address)]
+        if not messages:
+            return None
+        item = max(
+            messages,
+            key=lambda value: (
+                (_parse_received_at(value.get("receivedAt") or value.get("received_at") or value.get("createdAt") or value.get("created_at") or value.get("date") or value.get("timestamp")) or datetime.fromtimestamp(0, tz=timezone.utc)).timestamp(),
+                str(value.get("id") or value.get("_id") or ""),
+            ),
+        )
+        text_content, html_content = _extract_content(item)
+        sender = item.get("from") or item.get("sender") or ""
+        if isinstance(sender, dict):
+            sender = sender.get("address") or sender.get("email") or sender.get("name") or ""
+        return {
+            "provider": self.name,
+            "mailbox": address,
+            "message_id": str(item.get("id") or item.get("_id") or item.get("messageId") or ""),
+            "subject": str(item.get("subject") or ""),
+            "sender": str(sender),
+            "text_content": text_content or str(item.get("preview") or ""),
+            "html_content": html_content,
+            "received_at": _parse_received_at(item.get("receivedAt") or item.get("received_at") or item.get("createdAt") or item.get("created_at") or item.get("date") or item.get("timestamp")),
+            "to": item.get("to") or item.get("toEmail") or item.get("mailTo"),
+            "raw": item,
+        }
+
+    def close(self) -> None:
+        self.session.close()
+
+
 class MoEmailProvider(BaseMailProvider):
     name = "moemail"
 
@@ -2048,6 +2154,8 @@ def _create_provider(mail_config: dict, provider: str = "", provider_ref: str = 
         return DuckMailProvider(entry, conf)
     if entry["type"] == "gptmail":
         return GptMailProvider(entry, conf)
+    if entry["type"] in {"donemail", "done_mail"}:
+        return DoneMailProvider(entry, conf)
     if entry["type"] == "moemail":
         return MoEmailProvider(entry, conf)
     if entry["type"] == "inbucket":
