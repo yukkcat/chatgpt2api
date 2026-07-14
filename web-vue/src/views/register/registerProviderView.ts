@@ -44,6 +44,7 @@ export const providerTypeOptions = [
   { value: 'yyds_mail', label: 'YYDS Mail' },
   { value: 'ddg_mail', label: 'DDG + CF 收件箱' },
   { value: 'outlook_token', label: 'Microsoft 邮箱凭据池' },
+  { value: 'mailnest' , label: 'mailnest.top Outlook 临时邮箱' },
 ]
 
 export const providerTypeGroups = [{ options: providerTypeOptions }]
@@ -103,6 +104,7 @@ export const providerTypeKeys: Record<string, string[]> = {
   yyds_mail: ['api_base', 'api_key', 'domain', 'subdomain', 'wildcard'],
   ddg_mail: ['api_base', 'ddg_token', 'cf_inbox_jwt', 'admin_password', 'cf_api_key', 'cf_auth_mode', 'cf_create_path', 'cf_messages_path'],
   outlook_token: ['mailboxes', 'mode', 'imap_host', 'message_limit', 'alias_enabled', 'alias_per_email', 'alias_prefix', 'alias_include_original'],
+  mailnest: ['api_key', 'project_code'],
 }
 
 export const providerLocalOnlyKeys: Record<string, string[]> = {
@@ -196,6 +198,8 @@ export function defaultProvider(type = 'cloudmail_gen'): RegisterProvider {
         alias_prefix: 'c2api',
         alias_include_original: true,
       }
+    case 'mailnest':
+      return { ...base, api_key: '', project_code: '' }
     default:
       return base
   }
@@ -466,6 +470,10 @@ export function providerRequirementMessages(provider: RegisterProvider) {
       if (savedCount <= 0 && pendingOutlookCount(provider) <= 0) missing.push('Microsoft 邮箱凭据池')
       break
     }
+    case 'mailnest':
+      requireValue(provider.api_key, 'API Key')
+      requireValue(provider.project_code, 'Project Code')
+      break
     default:
       break
   }
@@ -478,7 +486,7 @@ export function providerUsesApiBase(provider: RegisterProvider) {
 }
 
 export function providerUsesApiKey(provider: RegisterProvider) {
-  return ['tempmail_lol', 'moemail', 'duckmail', 'gptmail', 'yyds_mail'].includes(providerType(provider))
+  return ['tempmail_lol', 'moemail', 'duckmail', 'gptmail', 'yyds_mail', 'mailnest'].includes(providerType(provider))
 }
 
 export function providerUsesAdminPassword(provider: RegisterProvider) {

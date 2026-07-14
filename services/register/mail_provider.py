@@ -1538,6 +1538,63 @@ class YydsMailProvider(BaseMailProvider):
         self.session.close()
 
 
+class MailNestProvider(BaseMailProvider):
+    name = "mailnest"
+
+    def __init__(self, entry: dict, conf: dict):
+        super().__init__(conf, str(entry.get("provider_ref") or ""))
+        self.api_key = str(entry["api_key"]).strip()
+        self.project_code = str(entry["project_code"]).strip()
+        self.session = _create_session(conf)
+        self.session.headers.update({
+            "Authorization": f"Bearer {self.api_key}",
+            "Accept": "application/json",
+            "Content-Type": "application/json"
+        })
+        self.api_url = "https://mailnest.top"
+
+    def __req(self, method, url, params=None, json=None):
+        resp = self.session.request(
+            method,
+            url,
+            params=params,
+            json=json,
+        )
+        if resp.status_code == 401:
+            raise Exception('api key 不存在')
+        resp.raise_for_status()
+        resp_json = resp.json()
+        if resp_json['code'] != '00000':
+            raise Exception(f'{resp_json}')
+        return resp_json['data']
+
+    def __receive(self, email):
+        return self.__req(
+            'POST',
+            f'{self.api_url}/api/v1/email/receive',
+            json={
+                "email": email,
+            },
+        )
+
+    def wait_for_code(self, mailbox: dict[str, Any]) -> str | None:
+        return self.wait_for(mailbox, lambda item: item.get("code_match"))
+
+    def create_mailbox(self, _):
+        address = self.__req(
+            'POST', f"{self.api_url}/api/v1/email/temporary/buy",
+            json={
+                "project_code": self.project_code,
+                "count": 1,
+            }
+        )[0]['email']
+        return {"provider": self.name, "provider_ref": self.provider_ref, "address": address}
+
+    def fetch_latest_message(self, mailbox: dict[str, Any]) -> dict[str, Any] | None:
+        mails = self.__receive(email=mailbox["address"])
+        return mails[0] if mails else None
+
+
 OUTLOOK_TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
 OUTLOOK_GRAPH_MESSAGES_URL = "https://graph.microsoft.com/v1.0/me/messages"
 OUTLOOK_GRAPH_SCOPE = "offline_access https://graph.microsoft.com/Mail.Read"
@@ -2164,6 +2221,8 @@ def _create_provider(mail_config: dict, provider: str = "", provider_ref: str = 
         return YydsMailProvider(entry, conf)
     if entry["type"] == "outlook_token":
         return OutlookTokenProvider(entry, conf)
+    if entry['type'] == "mailnest":
+        return MailNestProvider(entry, conf)
     raise RuntimeError(f"不支持的 mail.provider: {entry['type']}")
 
 

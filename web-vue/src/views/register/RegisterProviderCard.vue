@@ -126,6 +126,17 @@
           />
         </label>
 
+        <label v-if="currentType === 'mailnest'" class="register-field">
+          <span class="register-label">Project Code</span>
+          <Input
+              :model-value="provider.project_code"
+              block
+              root-class="font-mono"
+              :disabled="disabled"
+              @update:model-value="value => emit('update-field', index, 'project_code', String(value || '').trim())"
+          />
+        </label>
+
         <label v-if="providerUsesDefaultDomain(provider)" class="register-field">
           <span class="register-label">默认域名</span>
           <Input
