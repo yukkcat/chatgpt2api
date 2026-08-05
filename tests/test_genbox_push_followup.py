@@ -133,7 +133,7 @@ def test_registered_gallery_push_carries_metadata_and_retains_source(monkeypatch
     )
     post = next(call for call in calls if call[0] == "post")
     assert post[2]["data"] == {
-        "remote_path": "generated.png",
+        "remote_path": "registered.png",
         "source_sha256": sha,
         "prompt": "a red square",
         "created_at": "2026-08-05T10:00:00Z",
