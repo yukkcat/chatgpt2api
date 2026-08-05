@@ -1,0 +1,79 @@
+.help-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 1px solid hsl(var(--border));
+  font-size: 10px;
+  line-height: 1;
+  color: hsl(var(--muted-foreground));
+  cursor: default;
+}
+
+@media (min-width: 1024px) {
+  .dashboard-split {
+    flex-direction: row;
+    flex-wrap: nowrap;
+  }
+
+  .dashboard-split .dashboard-main {
+    flex: 0 0 66.6667%;
+    max-width: 66.6667%;
+  }
+
+  .dashboard-split .dashboard-side {
+    flex: 0 0 33.3333%;
+    max-width: 33.3333%;
+  }
+}
+
+@keyframes logo-float {
+  0% {
+    transform: translateY(0);
+  }
+  25% {
+    transform: translateY(6px);
+  }
+  50% {
+    transform: translateY(0);
+  }
+  75% {
+    transform: translateY(-6px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes logo-blink {
+  0%,
+  45%,
+  55%,
+  100% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scaleY(0.1);
+    opacity: 0.6;
+  }
+}
+
+.logo-mark .logo-cat-wrapper {
+  animation: logo-float 4s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.logo-mark {
+  transform: translateY(2px);
+}
+
+.logo-mark .logo-eye {
+  fill: #00bcd4;
+  filter: drop-shadow(0 0 2px #00bcd4);
+  animation: logo-blink 5s infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}

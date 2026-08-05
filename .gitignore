@@ -1,0 +1,57 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+web_dist
+# Virtual environments
+.venv
+.idea
+data
+config.json
+config.local*.json
+edit
+
+docker-compose-local.yml
+
+.claude/settings.local.json
+
+# Environment variables
+.env
+.env.local
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Git cache
+git_cache/
+
+# 调试/测试输出目录
+.codex/run-logs/
+.codex_tmp/
+.playwright-mcp/
+/logs/
+*.log
+/logs.jsonl
+runtime/
+loginwithpassword_*/
+logwithemailverifycode_*/
+test_batch_output/
+/test-isolated/
+/test-run2/
+/output/
+
+# 本地实验/生成物
+skills/
+standalone/
+test/
+tests/
+web-vue/tests/
+scripts/test_*.py
+scripts/image_upscale/node_modules/
+web/
+.playwright-cli/
