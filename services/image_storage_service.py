@@ -465,11 +465,16 @@ class ImageStorageService:
         safe_rel = normalize_image_relative_path(rel)
         if not _is_image_rel(safe_rel):
             raise HTTPException(status_code=404, detail="image not found")
+        # File paths are not an authorization boundary: only assets registered
+        # in the Gallery index may be read through this service.
+        with self._index_guard():
+            item = self._load_clean_index().get(safe_rel)
+        if not isinstance(item, dict):
+            raise HTTPException(status_code=404, detail="image not found")
         path = image_local_path(safe_rel)
-        if path.is_file():
+        if bool(item.get("local")) and path.is_file():
             return path.read_bytes()
-        item = self._load_clean_index().get(safe_rel, {})
-        if item.get("webdav"):
+        if bool(item.get("webdav")):
             client = WebDAVClient(self.settings())
             try:
                 return client.get(safe_rel)
