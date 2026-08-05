@@ -10,6 +10,8 @@ from urllib.parse import urlsplit
 
 from curl_cffi import requests
 from fastapi import HTTPException
+from PIL import Image
+import io
 
 from services.config import config
 from services.image_storage_service import image_storage_service, normalize_image_relative_path
@@ -90,11 +92,11 @@ def _spawn_thread(target: Any, name: str) -> threading.Thread:
     return thread
 
 
-def _run_auto_push(rel: str) -> None:
+def _run_auto_push(rel: str, *, metadata: Mapping[str, Any] | None = None) -> None:
     def worker() -> None:
         _auto_push_slots.acquire()
         try:
-            push_gallery_image(rel)
+            push_gallery_image(rel, metadata=metadata)
             logger.info({"event": "genbox_auto_push_succeeded", "path": rel})
         except HTTPException as exc:
             detail = exc.detail
@@ -112,7 +114,7 @@ def _run_auto_push(rel: str) -> None:
     _spawn_thread(worker, name="genbox-auto-push")
 
 
-def auto_push_gallery_urls(urls: list[str]) -> None:
+def auto_push_gallery_urls(urls: list[str], *, metadata: Mapping[str, Any] | None = None) -> None:
     try:
         if _auto_push_settings() is None:
             return
@@ -128,7 +130,7 @@ def auto_push_gallery_urls(urls: list[str]) -> None:
                 continue
             rels.append(rel)
         for rel in rels:
-            _run_auto_push(rel)
+            _run_auto_push(rel, metadata=metadata)
     except Exception as exc:
         logger.warning({
             "event": "genbox_auto_push_dispatch_failed",
@@ -168,10 +170,15 @@ def _validate_receipt(value: Mapping[str, Any], source_id: str, sha256: str) -> 
     return str(status)
 
 
-def push_gallery_image(relative_path: str) -> dict[str, object]:
+def push_gallery_image(relative_path: str, *, metadata: Mapping[str, Any] | None = None) -> dict[str, object]:
     settings = _settings()
     rel = normalize_image_relative_path(relative_path)
     payload = image_storage_service.get_bytes(rel)
+    try:
+        with Image.open(io.BytesIO(payload)) as image:
+            image.verify()
+    except Exception as exc:
+        raise _error(404, "image not found") from exc
     sha256 = hashlib.sha256(payload).hexdigest()
     headers = {
         "X-GenBox-Source": str(settings["source_id"]),
@@ -190,11 +197,16 @@ def push_gallery_image(relative_path: str) -> dict[str, object]:
             if not 200 <= int(probe.status_code) < 300:
                 raise _error(502, "genbox_unavailable")
             _validate_probe(_json_object(probe), str(settings["source_id"]), len(payload))
+            data: dict[str, str] = {"remote_path": rel, "source_sha256": sha256}
+            for key in ("prompt", "created_at", "date", "model"):
+                value = metadata.get(key) if isinstance(metadata, Mapping) else None
+                if value is not None and str(value).strip():
+                    data[key] = str(value)
             response = session.post(
                 f"{str(settings['base_url']).rstrip('/')}/api/sync/push",
                 headers=headers,
                 files={"image": (Path(rel).name, payload, "application/octet-stream")},
-                data={"remote_path": rel, "source_sha256": sha256},
+                data=data,
                 timeout=timeout,
                 allow_redirects=False,
             )
