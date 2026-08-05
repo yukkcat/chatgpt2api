@@ -19,6 +19,7 @@ os.environ.setdefault("CHATGPT2API_AUTH_KEY", "unit-test-auth-key")
 import services.genbox_push_service as push
 import services.image_storage_service as storage_module
 import services.config as config_module
+import services.image_task_service as image_tasks
 
 
 class FakeResponse:
@@ -195,3 +196,42 @@ def test_receipt_and_http_errors_keep_source(monkeypatch, response: FakeResponse
 def test_external_url_is_not_eligible_for_studio_auto_push(monkeypatch):
     configure(monkeypatch)
     assert push._rel_from_stored_url("https://evil.invalid/images/old.png") is None
+
+
+def test_studio_task_passes_only_result_urls_and_real_metadata(monkeypatch, tmp_path: Path):
+    captured: list[tuple[list[str], dict[str, object]]] = []
+    monkeypatch.setattr(
+        image_tasks,
+        "auto_push_gallery_urls",
+        lambda urls, *, metadata=None: captured.append((urls, dict(metadata or {}))),
+    )
+    monkeypatch.setattr(image_tasks.realtime_monitor_service, "start", lambda *args, **kwargs: None)
+    monkeypatch.setattr(image_tasks.realtime_monitor_service, "stage", lambda *args, **kwargs: None)
+    service = image_tasks.ImageTaskService(
+        tmp_path / "tasks.json",
+        generation_handler=lambda payload: {
+            "created": 1722852000,
+            "data": [{"url": "http://app.invalid/images/current.png"}],
+            "_image_urls": ["http://app.invalid/images/current.png"],
+        },
+    )
+    key = "owner:task"
+    service._tasks[key] = {"id": "task", "owner_id": "owner", "status": "queued"}
+    monkeypatch.setattr(service, "_log_call", lambda *args, **kwargs: None)
+    import time
+
+    service._run_task(
+        key,
+        "generate",
+        {"prompt": "current generation prompt"},
+        {"id": "owner", "name": "unit", "role": "admin"},
+        "gpt-image-2",
+        time.time(),
+        time.perf_counter(),
+    )
+    assert captured == [
+        (
+            ["http://app.invalid/images/current.png"],
+            {"prompt": "current generation prompt", "created_at": 1722852000, "model": "gpt-image-2"},
+        )
+    ]
