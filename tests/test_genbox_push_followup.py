@@ -128,7 +128,7 @@ def test_registered_gallery_push_carries_metadata_and_retains_source(monkeypatch
     monkeypatch.setattr(push.requests, "Session", lambda **kwargs: session)
     result = push.push_gallery_image(
         "generated.png",
-        metadata={"prompt": "a red square", "created_at": "2026-08-05T10:00:00Z", "model": "gpt-image-2"},
+        metadata={"prompt": "a red square", "date": "2026-08-05", "created_at": "2026-08-05T10:00:00Z", "model": "gpt-image-2"},
     )
     post = next(call for call in calls if call[0] == "post")
     assert post[2]["data"] == {
@@ -136,6 +136,7 @@ def test_registered_gallery_push_carries_metadata_and_retains_source(monkeypatch
         "source_sha256": sha,
         "prompt": "a red square",
         "created_at": "2026-08-05T10:00:00Z",
+        "date": "2026-08-05",
         "model": "gpt-image-2",
     }
     assert post[2]["headers"]["X-GenBox-Key"] == "test-secret"
@@ -249,7 +250,7 @@ def test_studio_task_passes_only_result_urls_and_real_metadata(monkeypatch, tmp_
     service = image_tasks.ImageTaskService(
         tmp_path / "tasks.json",
         generation_handler=lambda payload: {
-            "created": 1722852000,
+            "date": "2026-08-05",
             "data": [{"url": "http://app.invalid/images/current.png"}],
             "_image_urls": ["http://app.invalid/images/current.png"],
         },
@@ -271,6 +272,6 @@ def test_studio_task_passes_only_result_urls_and_real_metadata(monkeypatch, tmp_
     assert captured == [
         (
             ["http://app.invalid/images/current.png"],
-            {"prompt": "current generation prompt", "created_at": 1722852000, "model": "gpt-image-2"},
+            {"prompt": "current generation prompt", "date": "2026-08-05", "model": "gpt-image-2"},
         )
     ]
