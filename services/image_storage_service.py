@@ -495,6 +495,22 @@ class ImageStorageService:
             self._save_index(items)
         return dict(item["genbox_push"])
 
+    def get_genbox_push_state(self, rel: str) -> dict[str, str] | None:
+        safe_rel = normalize_image_relative_path(rel)
+        if not _is_image_rel(safe_rel):
+            return None
+        with self._index_guard():
+            items = self._load_clean_index()
+            raw = items.get(safe_rel, {}).get("genbox_push")
+        if not isinstance(raw, dict):
+            return None
+        status = _clean(raw.get("status"))
+        sha256 = _clean(raw.get("sha256"))
+        updated_at = _clean(raw.get("updated_at"))
+        if not status or not sha256 or not updated_at:
+            return None
+        return {"status": status, "sha256": sha256, "updated_at": updated_at}
+
     def exists(self, rel: str) -> bool:
         return bool(self.existing_paths([rel]))
 

@@ -17,6 +17,7 @@ from uuid import uuid4
 from services.bounded_task_runner import BoundedTaskRunner, TaskReservation, env_int
 from services.config import DATA_DIR, config
 from services.content_filter import request_text
+from services.genbox_push_service import auto_push_gallery_urls
 from services.image_failure import (
     ImageFailureError,
     ImageGenerationError,
@@ -771,6 +772,7 @@ class ImageTaskService:
                 duration_ms=duration_ms,
                 **_clear_task_details(),
             )
+            auto_push_gallery_urls(_collect_image_urls(result))
             image_attempts = collect_image_attempts(result)
             self._log_call(
                 identity,
@@ -1105,6 +1107,7 @@ class ImageTaskService:
                 duration_ms=int((time.time() - started) * 1000),
                 **_clear_task_details(),
             )
+            auto_push_gallery_urls(_collect_image_urls(formatted))
             self._log_call(
                 identity,
                 mode,

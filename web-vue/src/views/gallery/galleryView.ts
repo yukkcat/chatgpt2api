@@ -73,6 +73,13 @@ export function storageLabel(file: GalleryFile): string {
   return '本地'
 }
 
+export function genboxStatusLabel(file: GalleryFile): string {
+  if (file.genbox_push?.status === 'imported') return '已推送 GenBox'
+  if (file.genbox_push?.status === 'already-imported') return 'GenBox 已存在'
+  if (file.genbox_push?.status === 'duplicate-local') return 'GenBox 本地重复'
+  return ''
+}
+
 export function galleryFileCardSignature(file: GalleryFile, input: GalleryFileCardSignatureInput): string {
   return [
     file.path,

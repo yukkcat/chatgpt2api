@@ -271,6 +271,7 @@ _FIELD_SPECS: dict[str, dict[str, Any]] = {
     "genbox_push.source_id": _field_metadata(""),
     "genbox_push.push_key": _field_metadata("", sensitive=True),
     "genbox_push.timeout_secs": _field_metadata(20, min=5, max=120, unit="seconds"),
+    "genbox_push.auto_push_after_studio": _field_metadata(False),
     "backup.enabled": _field_metadata(False),
     "backup.provider": _field_metadata("cloudflare_r2", options=("cloudflare_r2",), read_only=True),
     "backup.account_id": _field_metadata(""),
@@ -560,6 +561,7 @@ class SettingsManagementService:
                 push_key="",
                 has_push_key=bool(_text(stored_genbox_push.get("push_key"))),
                 timeout_secs=max(5, min(120, int(genbox_push.get("timeout_secs") or DEFAULT_GENBOX_PUSH["timeout_secs"]))),
+                auto_push_after_studio=_bool(genbox_push.get("auto_push_after_studio"), False),
             ),
             backup=BackupSettings(
                 enabled=_bool(backup.get("enabled"), False),

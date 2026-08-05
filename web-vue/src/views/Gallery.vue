@@ -129,6 +129,7 @@
             :dimensions="formatDimensions(file)"
             :time-remaining="galleryCardTimeRemaining(file)"
             :genbox-busy="genboxPushBusyPath === file.path"
+            :genbox-status-label="genboxStatusLabel(file)"
             @preview="openPreview"
             @select="handleCardSelect"
             @image-error="handleCardImageError"
@@ -323,6 +324,7 @@ import {
   formatStorageUsagePercent,
   formatTimeRemaining,
   galleryFileCardSignature,
+  genboxStatusLabel,
   galleryPageSizeOptions,
   storageUsageBarWidth as getStorageUsageBarWidth,
   storageLabel,
