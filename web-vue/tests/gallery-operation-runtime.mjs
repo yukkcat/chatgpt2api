@@ -23,6 +23,9 @@ try {
   const { useGalleryOperationsRuntime } = await server.ssrLoadModule(
     '/src/views/gallery/galleryOperationsRuntime.ts',
   )
+  const { genboxStatusLabel } = await server.ssrLoadModule(
+    '/src/views/gallery/galleryView.ts',
+  )
   const originalDeleteFiles = galleryApi.deleteFiles
   const request = deferred()
   const notifications = []
@@ -135,6 +138,12 @@ try {
     } finally {
       galleryApi.pushToGenBox = originalPushToGenBox
     }
+
+    assert.equal(genboxStatusLabel({ genbox_push: { status: 'imported' } }), '已推送 GenBox')
+    assert.equal(genboxStatusLabel({ genbox_push: { status: 'already-imported' } }), 'GenBox 已存在')
+    assert.equal(genboxStatusLabel({ genbox_push: { status: 'duplicate-local' } }), 'GenBox 本地重复')
+    assert.equal(genboxStatusLabel({ genbox_push: null }), '')
+    assert.equal(genboxStatusLabel({}), '')
   }
 } finally {
   await server.close()

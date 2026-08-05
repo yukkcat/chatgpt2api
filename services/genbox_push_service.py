@@ -4,16 +4,22 @@ from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
+import threading
 from typing import Any, Mapping
+from urllib.parse import urlsplit
 
 from curl_cffi import requests
 from fastapi import HTTPException
 
 from services.config import config
 from services.image_storage_service import image_storage_service, normalize_image_relative_path
+from utils.log import logger
 
 
 _ALLOWED_STATUSES = {"imported", "already-imported", "duplicate-local"}
+
+_AUTO_PUSH_MAX_CONCURRENCY = 8
+_auto_push_slots = threading.BoundedSemaphore(_AUTO_PUSH_MAX_CONCURRENCY)
 
 
 def _error(status_code: int, code: str) -> HTTPException:
@@ -38,6 +44,96 @@ def _json_object(response: Any) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise _error(502, "genbox_invalid_receipt")
     return value
+
+
+def _rel_from_stored_url(url: str) -> str | None:
+    raw = str(url or "").strip()
+    if not raw:
+        return None
+    try:
+        parsed = urlsplit(raw)
+    except ValueError:
+        return None
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return None
+    path = parsed.path or ""
+    if "/images/" in path:
+        rel = path.split("/images/", 1)[1]
+    else:
+        rel = ""
+        public_base_url = str(config.get_image_storage_settings().get("public_base_url") or "").strip().rstrip("/")
+        for prefix in (public_base_url, str(config.base_url or "").strip().rstrip("/")):
+            if prefix and raw.startswith(f"{prefix}/"):
+                rel = raw[len(prefix) + 1 :]
+                break
+        if not rel:
+            return None
+    try:
+        return normalize_image_relative_path(rel)
+    except HTTPException:
+        return None
+
+
+def _auto_push_settings() -> dict[str, object] | None:
+    settings = config.get_genbox_push_settings()
+    if not settings.get("enabled") or not settings.get("auto_push_after_studio"):
+        return None
+    required = ("base_url", "source_id", "push_key")
+    if any(not str(settings.get(key) or "").strip() for key in required):
+        return None
+    return settings
+
+
+def _spawn_thread(target: Any, name: str) -> threading.Thread:
+    thread = threading.Thread(target=target, name=name, daemon=True)
+    thread.start()
+    return thread
+
+
+def _run_auto_push(rel: str) -> None:
+    def worker() -> None:
+        _auto_push_slots.acquire()
+        try:
+            push_gallery_image(rel)
+            logger.info({"event": "genbox_auto_push_succeeded", "path": rel})
+        except HTTPException as exc:
+            detail = exc.detail
+            code = detail.get("error") if isinstance(detail, dict) else ""
+            logger.warning({"event": "genbox_auto_push_failed", "path": rel, "code": code})
+        except Exception as exc:
+            logger.warning({
+                "event": "genbox_auto_push_failed",
+                "path": rel,
+                "error": type(exc).__name__,
+            })
+        finally:
+            _auto_push_slots.release()
+
+    _spawn_thread(worker, name="genbox-auto-push")
+
+
+def auto_push_gallery_urls(urls: list[str]) -> None:
+    try:
+        if _auto_push_settings() is None:
+            return
+        rels: list[str] = []
+        seen: set[str] = set()
+        for url in urls:
+            rel = _rel_from_stored_url(url)
+            if not rel or rel in seen:
+                continue
+            seen.add(rel)
+            state = image_storage_service.get_genbox_push_state(rel)
+            if state is not None and str(state.get("status")) in _ALLOWED_STATUSES:
+                continue
+            rels.append(rel)
+        for rel in rels:
+            _run_auto_push(rel)
+    except Exception as exc:
+        logger.warning({
+            "event": "genbox_auto_push_dispatch_failed",
+            "error": type(exc).__name__,
+        })
 
 
 def _settings() -> dict[str, object]:

@@ -79,6 +79,7 @@ class _GenBoxPushFields(_StrictModel):
     source_id: str = ""
     push_key: str = ""
     timeout_secs: int = Field(default=20, ge=5, le=120)
+    auto_push_after_studio: bool = False
 
 
 class GenBoxPushSettings(_GenBoxPushFields):

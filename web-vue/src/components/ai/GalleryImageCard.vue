@@ -62,6 +62,10 @@
       <div class="file-meta">
         <span>{{ sizeLabel }}</span>
         <span v-if="dimensions">{{ dimensions }}</span>
+        <span v-if="genboxStatusLabel" class="genbox-badge" :title="genboxStatusLabel">
+          <Icon icon="lucide:cloud-check" />
+          {{ genboxStatusLabel }}
+        </span>
         <Tooltip
           v-if="file.expires_in_seconds !== null && !file.expired && timeRemaining"
           :text="'将在 ' + timeRemaining + ' 后自动删除'"
@@ -101,6 +105,7 @@ const props = defineProps<{
   dimensions: string
   timeRemaining: string
   genboxBusy: boolean
+  genboxStatusLabel: string
 }>()
 
 const emit = defineEmits<{
@@ -341,6 +346,20 @@ function handleTagClick(tag: string) {
   min-height: 16px;
   font-size: 11px;
   color: hsl(var(--muted-foreground));
+}
+
+.genbox-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: hsl(142 71% 35%);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.genbox-badge svg {
+  width: 12px;
+  height: 12px;
 }
 
 .file-countdown {

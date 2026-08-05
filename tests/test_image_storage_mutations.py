@@ -64,6 +64,36 @@ class ImageStorageMutationTests(unittest.TestCase):
                         with self.assertRaisesRegex(HTTPException, "image not found"):
                             image_storage_module.normalize_image_relative_path(invalid)
 
+    def test_genbox_push_state_is_read_back_without_mutation(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            index_path = root / "image_index.json"
+            storage = ImageStorageService(index_path)
+            rel = "2026/07/27/pushed.png"
+            write_json_file(index_path, {
+                "items": {
+                    rel: {
+                        "path": rel,
+                        "genbox_push": {
+                            "status": "imported",
+                            "sha256": "a" * 64,
+                            "updated_at": "2026-07-27T00:00:00Z",
+                        },
+                    },
+                    "2026/07/27/bad.png": {
+                        "path": "2026/07/27/bad.png",
+                        "genbox_push": {"status": "pending"},
+                    },
+                }
+            })
+            self.assertEqual(storage.get_genbox_push_state(rel), {
+                "status": "imported",
+                "sha256": "a" * 64,
+                "updated_at": "2026-07-27T00:00:00Z",
+            })
+            self.assertIsNone(storage.get_genbox_push_state("2026/07/27/missing.png"))
+            self.assertIsNone(storage.get_genbox_push_state("2026/07/27/bad.png"))
+
     def test_compression_updates_catalog_and_marks_remote_copy_stale(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

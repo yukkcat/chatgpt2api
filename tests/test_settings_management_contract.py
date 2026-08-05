@@ -230,6 +230,8 @@ class SettingsManagementContractTests(unittest.TestCase):
         self.assertEqual(view.fields["genbox_push.timeout_secs"].min, 5)
         self.assertEqual(view.fields["genbox_push.timeout_secs"].max, 120)
         self.assertTrue(view.fields["genbox_push.push_key"].sensitive)
+        self.assertFalse(view.settings.genbox_push.auto_push_after_studio)
+        self.assertFalse(view.fields["genbox_push.auto_push_after_studio"].default)
 
     def test_retired_register_backup_setting_is_not_exposed(self) -> None:
         view = SettingsManagementService(_ConfigStore({
@@ -334,6 +336,23 @@ class SettingsManagementContractTests(unittest.TestCase):
         self.assertFalse(mutation.settings.genbox_push.has_push_key)
         self.assertEqual(mutation.settings.genbox_push.push_key, "")
         self.assertIn("genbox_push.push_key", mutation.changed_fields)
+
+    def test_genbox_auto_push_flag_can_be_enabled_without_leaking_key(self) -> None:
+        store = _ConfigStore(_sensitive_settings())
+        service = SettingsManagementService(store)
+        before = service.view()
+
+        mutation = service.update(SettingsPatch.model_validate({
+            "revision": before.revision,
+            "genbox_push": {"auto_push_after_studio": True},
+        }))
+
+        self.assertTrue(store.data["genbox_push"]["auto_push_after_studio"])
+        self.assertTrue(mutation.settings.genbox_push.auto_push_after_studio)
+        self.assertEqual(mutation.changed_fields, ["genbox_push.auto_push_after_studio"])
+        self.assertEqual(mutation.settings.genbox_push.push_key, "")
+        self.assertTrue(mutation.settings.genbox_push.has_push_key)
+        self.assertNotIn("push-secret", repr(mutation.model_dump(mode="python")))
 
     def test_contract_rejects_unknown_fields_nested_unknowns_ranges_and_enums(self) -> None:
         invalid_payloads = [
@@ -662,6 +681,7 @@ class SettingsConfigStoreIntegrationTests(unittest.TestCase):
                 self.assertEqual(normalized["source_id"], "source-a")
                 self.assertEqual(normalized["timeout_secs"], 120)
                 self.assertEqual(normalized["push_key"], "k")
+                self.assertEqual(normalized["auto_push_after_studio"], False)
                 self.assertNotIn("has_push_key", normalized)
 
     def test_changed_fields_reflect_persisted_normalized_values(self) -> None:
