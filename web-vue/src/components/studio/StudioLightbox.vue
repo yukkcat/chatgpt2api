@@ -51,6 +51,7 @@ const lightboxFile = computed<GalleryFile | null>(() => {
     available: true,
     width: null,
     height: null,
+    genbox_push: null,
   }
 })
 

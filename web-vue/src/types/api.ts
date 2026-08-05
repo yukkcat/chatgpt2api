@@ -53,6 +53,15 @@ export interface ClearanceTestResult {
   runtime?: ProxyRuntimeStatus
 }
 
+export interface SettingsGenBoxPush {
+  enabled: boolean
+  base_url: string
+  source_id: string
+  push_key: string
+  has_push_key: boolean
+  timeout_secs: number
+}
+
 export interface Settings {
   proxy_runtime: SettingsProxyRuntimeSettings
   base_url: string
@@ -93,6 +102,7 @@ export interface Settings {
     webdav_root_path: string
     public_base_url: string
   }
+  genbox_push: SettingsGenBoxPush
   backup: {
     enabled: boolean
     provider: string

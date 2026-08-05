@@ -42,6 +42,7 @@ export function useGalleryOperationsRuntime(options: GalleryOperationsRuntimeOpt
   const storageActionError = ref('')
   const targetFreeMb = ref('500')
   const batchBusy = ref(false)
+  const genboxPushBusyPath = ref<string | null>(null)
   const progressRuntime = useOperationProgressRuntime()
   const operationProgress = progressRuntime.state
 
@@ -257,6 +258,31 @@ export function useGalleryOperationsRuntime(options: GalleryOperationsRuntimeOpt
     }
   }
 
+  function genboxErrorMessage(error: any): string {
+    const code = error?.data?.error
+    if (code === 'genbox_not_configured') return 'GenBox 尚未配置'
+    if (code === 'genbox_request_failed') return 'GenBox 请求失败或超时'
+    if (code) return 'GenBox 未接受该图片'
+    return error?.message || '推送到 GenBox 失败'
+  }
+
+  async function handleGenBoxPush(file: GalleryFile) {
+    if (genboxPushBusyPath.value) return
+    genboxPushBusyPath.value = file.path
+    try {
+      const result = await galleryApi.pushToGenBox(file.path)
+      options.toast.success(
+        result.status === 'imported' ? '已推送到 GenBox' : '图片已存在于 GenBox',
+        'Push 成功',
+      )
+      await options.loadGallery()
+    } catch (error: any) {
+      options.toast.error(genboxErrorMessage(error), 'Push 失败')
+    } finally {
+      genboxPushBusyPath.value = null
+    }
+  }
+
   function deactivate() {
     storageStatsQuery.invalidate()
     isStorageBusy.value = false
@@ -264,6 +290,7 @@ export function useGalleryOperationsRuntime(options: GalleryOperationsRuntimeOpt
 
   return {
     batchBusy,
+    genboxPushBusyPath,
     isStorageModalOpen,
     isStorageBusy,
     storageActionMessage,
@@ -280,6 +307,7 @@ export function useGalleryOperationsRuntime(options: GalleryOperationsRuntimeOpt
     handleDelete,
     handleDeleteSelected,
     handleBatchDownload,
+    handleGenBoxPush,
     deactivate,
   }
 }

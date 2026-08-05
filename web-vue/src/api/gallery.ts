@@ -4,6 +4,19 @@ export type GalleryMediaType = 'all' | 'image'
 export type GalleryFileMediaType = Exclude<GalleryMediaType, 'all'>
 export type GalleryStorage = 'local' | 'webdav' | 'both'
 
+export type GalleryGenBoxPushStatus = 'imported' | 'already-imported' | 'duplicate-local'
+
+export interface GalleryGenBoxPushState {
+  status: GalleryGenBoxPushStatus
+  sha256: string
+  updated_at: string
+}
+
+export interface GalleryGenBoxPushResult extends GalleryGenBoxPushState {
+  path: string
+  source_retained: boolean
+}
+
 export interface GalleryRow {
   id: string
   path: string
@@ -24,6 +37,7 @@ export interface GalleryRow {
   available: boolean
   width: number | null
   height: number | null
+  genbox_push: GalleryGenBoxPushState | null
 }
 
 export type GalleryFile = Omit<GalleryRow, 'storage'> & {
@@ -158,4 +172,9 @@ export const galleryApi = {
 
   cleanupExpired: () =>
     apiClient.post<never, GalleryCleanupResult>('/api/images/retention-cleanup'),
+
+  pushToGenBox: (path: string) =>
+    apiClient.post<{ path: string }, GalleryGenBoxPushResult>('/api/images/genbox-push', {
+      path,
+    }),
 }

@@ -8,6 +8,15 @@ from pydantic import BaseModel, ConfigDict, Field
 GalleryMediaType = Literal["image"]
 GalleryMediaFilter = Literal["all", "image"]
 GalleryStorage = Literal["local", "webdav", "both"]
+GenBoxPushStatus = Literal["imported", "already-imported", "duplicate-local"]
+
+
+class GalleryGenBoxPushState(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: GenBoxPushStatus
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    updated_at: str
 
 
 class GalleryRow(BaseModel):
@@ -32,6 +41,18 @@ class GalleryRow(BaseModel):
     available: bool
     width: int | None = Field(default=None, ge=1)
     height: int | None = Field(default=None, ge=1)
+    genbox_push: GalleryGenBoxPushState | None = None
+
+
+class GalleryGenBoxPushRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    path: str = Field(min_length=1, max_length=1024)
+
+
+class GalleryGenBoxPushResult(GalleryGenBoxPushState):
+    path: str
+    source_retained: bool = True
 
 
 class GalleryMediaFacets(BaseModel):

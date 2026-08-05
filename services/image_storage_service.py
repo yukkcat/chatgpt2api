@@ -477,6 +477,24 @@ class ImageStorageService:
                 client.session.close()
         raise HTTPException(status_code=404, detail="image not found")
 
+    def record_genbox_push(self, rel: str, *, status: str, sha256: str, updated_at: str) -> dict[str, str]:
+        safe_rel = normalize_image_relative_path(rel)
+        if not _is_image_rel(safe_rel):
+            raise HTTPException(status_code=404, detail="image not found")
+        with self._item_guard(safe_rel), self._index_guard():
+            items = self._load_clean_index()
+            item = items.get(safe_rel)
+            if item is None:
+                raise HTTPException(status_code=404, detail="image not found")
+            item["genbox_push"] = {
+                "status": status,
+                "sha256": sha256,
+                "updated_at": updated_at,
+            }
+            items[safe_rel] = item
+            self._save_index(items)
+        return dict(item["genbox_push"])
+
     def exists(self, rel: str) -> bool:
         return bool(self.existing_paths([rel]))
 

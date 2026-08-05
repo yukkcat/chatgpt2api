@@ -13,6 +13,7 @@ from contracts.settings import (
     AIReviewSettings,
     BackupIncludeSettings,
     BackupSettings,
+    GenBoxPushSettings,
     ImageStorageSettings,
     InfiniteCanvasSettings,
     PublicInfiniteCanvasSettings,
@@ -34,6 +35,7 @@ from contracts.settings_specification import (
 )
 from services.config import (
     DEFAULT_BACKUP_INCLUDE,
+    DEFAULT_GENBOX_PUSH,
     DEFAULT_IMAGE_STORAGE,
     DEFAULT_PROXY_RUNTIME,
     DEFAULT_PROXY_RUNTIME_USER_AGENT,
@@ -68,6 +70,7 @@ _MANAGED_TOP_LEVEL_FIELDS = (
     "sensitive_words",
     "ai_review",
     "image_storage",
+    "genbox_push",
     "backup",
     "third_party_apps",
 )
@@ -75,6 +78,7 @@ _MANAGED_TOP_LEVEL_FIELDS = (
 _SENSITIVE_PATHS = (
     ("ai_review", "api_key"),
     ("image_storage", "webdav_password"),
+    ("genbox_push", "push_key"),
     ("backup", "secret_access_key"),
     ("backup", "passphrase"),
     ("proxy_runtime", "clearance", "cf_cookies"),
@@ -262,6 +266,11 @@ _FIELD_SPECS: dict[str, dict[str, Any]] = {
     "image_storage.webdav_password": _field_metadata("", sensitive=True),
     "image_storage.webdav_root_path": _field_metadata(DEFAULT_IMAGE_STORAGE["webdav_root_path"]),
     "image_storage.public_base_url": _field_metadata(""),
+    "genbox_push.enabled": _field_metadata(False),
+    "genbox_push.base_url": _field_metadata(""),
+    "genbox_push.source_id": _field_metadata(""),
+    "genbox_push.push_key": _field_metadata("", sensitive=True),
+    "genbox_push.timeout_secs": _field_metadata(20, min=5, max=120, unit="seconds"),
     "backup.enabled": _field_metadata(False),
     "backup.provider": _field_metadata("cloudflare_r2", options=("cloudflare_r2",), read_only=True),
     "backup.account_id": _field_metadata(""),
@@ -312,6 +321,7 @@ class SettingsManagementService:
     def update(self, patch: SettingsPatch) -> SettingsMutationResult:
         values = patch.model_dump(mode="python", exclude_unset=True)
         expected_revision = _text(values.pop("revision"))
+        clear_genbox_push = bool(_path_value(values, ("genbox_push", "clear_push_key")))
         self._drop_blank_sensitive_values(values)
 
         with self._mutation_lock, self._config_lock():
@@ -324,6 +334,14 @@ class SettingsManagementService:
                 raise ValueError("base_url is read-only while CHATGPT2API_BASE_URL is configured")
 
             updates = self._storage_updates(values, effective, stored)
+            if clear_genbox_push:
+                genbox_updates = updates.get("genbox_push")
+                if isinstance(genbox_updates, dict):
+                    genbox_updates.pop("clear_push_key", None)
+                    incoming_genbox = values.get("genbox_push")
+                    incoming_push_key = incoming_genbox.get("push_key") if isinstance(incoming_genbox, Mapping) else None
+                    if not _text(incoming_push_key):
+                        genbox_updates.pop("push_key", None)
             requested_paths = _leaf_paths(values)
             current_values = self._project_settings(effective, stored).model_dump(mode="python")
             candidate_paths = [
@@ -332,6 +350,8 @@ class SettingsManagementService:
                 if self._comparison_value(current_values, stored, path) != self._comparison_value(updates, updates, path)
             ]
             changed_roots = {path[0] for path in candidate_paths}
+            if clear_genbox_push:
+                changed_roots.add("genbox_push")
             changed_updates = {
                 key: value for key, value in updates.items()
                 if key in changed_roots
@@ -349,6 +369,9 @@ class SettingsManagementService:
                 != self._comparison_value(next_values, next_stored, path)
             ]
             changed_fields = sorted(".".join(path) for path in changed_paths)
+            if clear_genbox_push:
+                changed_fields.append("genbox_push.push_key")
+                changed_fields = sorted(set(changed_fields))
             restart_required = any(
                 view.fields.get(path, SettingsFieldMetadata(source="configured")).restart_required
                 for path in changed_fields
@@ -412,6 +435,8 @@ class SettingsManagementService:
         stored_ai_review = _dict(stored.get("ai_review"))
         image_storage = _dict(effective.get("image_storage"))
         stored_image_storage = _dict(stored.get("image_storage"))
+        genbox_push = _dict(effective.get("genbox_push"))
+        stored_genbox_push = _dict(stored.get("genbox_push"))
         backup = _dict(effective.get("backup"))
         stored_backup = _dict(stored.get("backup"))
         backup_include = _dict(backup.get("include"))
@@ -527,6 +552,14 @@ class SettingsManagementService:
                     or str(DEFAULT_IMAGE_STORAGE["webdav_root_path"])
                 ),
                 public_base_url=_url(image_storage.get("public_base_url")),
+            ),
+            genbox_push=GenBoxPushSettings(
+                enabled=_bool(genbox_push.get("enabled"), False),
+                base_url=_url(genbox_push.get("base_url")),
+                source_id=_text(genbox_push.get("source_id")),
+                push_key="",
+                has_push_key=bool(_text(stored_genbox_push.get("push_key"))),
+                timeout_secs=max(5, min(120, int(genbox_push.get("timeout_secs") or DEFAULT_GENBOX_PUSH["timeout_secs"]))),
             ),
             backup=BackupSettings(
                 enabled=_bool(backup.get("enabled"), False),

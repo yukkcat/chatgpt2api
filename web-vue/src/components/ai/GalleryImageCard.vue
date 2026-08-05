@@ -39,6 +39,18 @@
         <button class="overlay-btn" title="下载" @click.stop="handleDownload">
           <Icon icon="lucide:download" />
         </button>
+        <button
+          class="overlay-btn"
+          :class="{ 'is-busy': genboxBusy }"
+          :disabled="genboxBusy"
+          :title="genboxBusy ? '正在推送 GenBox' : '推送到 GenBox'"
+          @click.stop="handleGenBoxPush"
+        >
+          <Icon
+            :icon="genboxBusy ? 'lucide:loader-circle' : 'lucide:cloud-upload'"
+            :class="{ 'animate-spin': genboxBusy }"
+          />
+        </button>
         <button class="overlay-btn danger" title="删除" @click.stop="handleDelete">
           <Icon icon="lucide:trash-2" />
         </button>
@@ -88,6 +100,7 @@ const props = defineProps<{
   sizeLabel: string
   dimensions: string
   timeRemaining: string
+  genboxBusy: boolean
 }>()
 
 const emit = defineEmits<{
@@ -97,6 +110,7 @@ const emit = defineEmits<{
   (e: 'copy', file: GalleryFile): void
   (e: 'edit-tags', file: GalleryFile): void
   (e: 'download', file: GalleryFile): void
+  (e: 'genbox-push', file: GalleryFile): void
   (e: 'delete', file: GalleryFile): void
   (e: 'tag-click', tag: string): void
 }>()
@@ -123,6 +137,10 @@ function handleEditTags() {
 
 function handleDownload() {
   emit('download', props.file)
+}
+
+function handleGenBoxPush() {
+  emit('genbox-push', props.file)
 }
 
 function handleDelete() {
@@ -278,6 +296,17 @@ function handleTagClick(tag: string) {
 .overlay-btn.danger:hover {
   background: hsl(0 84.2% 60.2%);
   color: white;
+}
+
+.overlay-btn:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.overlay-btn:disabled:hover {
+  transform: none;
+  background: var(--gallery-float-bg);
+  color: var(--gallery-float-fg);
 }
 
 .overlay-btn svg {

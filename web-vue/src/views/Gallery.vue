@@ -128,12 +128,14 @@
             :size-label="formatSize(file.size_bytes)"
             :dimensions="formatDimensions(file)"
             :time-remaining="galleryCardTimeRemaining(file)"
+            :genbox-busy="genboxPushBusyPath === file.path"
             @preview="openPreview"
             @select="handleCardSelect"
             @image-error="handleCardImageError"
             @copy="copyFileLink"
             @edit-tags="openTagEditor"
             @download="downloadFile"
+            @genbox-push="handleGenBoxPush"
             @delete="handleDelete"
             @tag-click="setTagFilter"
           />
@@ -438,6 +440,8 @@ const {
   handleDelete,
   handleDeleteSelected,
   handleBatchDownload,
+  genboxPushBusyPath,
+  handleGenBoxPush,
 } = galleryOperations
 
 function getFileUrl(url: string) {
@@ -462,6 +466,7 @@ function galleryCardSignature(file: GalleryFile) {
     sizeLabel: formatSize(file.size_bytes),
     dimensions: formatDimensions(file),
     timeRemaining: galleryCardTimeRemaining(file),
+    genboxBusy: genboxPushBusyPath.value === file.path,
   })
 }
 

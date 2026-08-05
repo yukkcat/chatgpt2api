@@ -112,6 +112,14 @@ def _sensitive_settings() -> dict:
             "webdav_password": "webdav-secret",
             "future_flag": "preserve-image-storage",
         },
+        "genbox_push": {
+            "enabled": True,
+            "base_url": "https://push.example.test/api/sync/push",
+            "source_id": "source-a",
+            "push_key": "push-secret",
+            "timeout_secs": 30,
+            "future_flag": "preserve-genbox",
+        },
         "backup": {
             "enabled": True,
             "secret_access_key": "r2-secret",
@@ -191,6 +199,9 @@ class SettingsManagementContractTests(unittest.TestCase):
         self.assertNotIn("backup-secret", repr(payload))
         self.assertNotIn("cookie-secret", repr(payload))
         self.assertNotIn("clearance-secret", repr(payload))
+        self.assertEqual(settings["genbox_push"]["push_key"], "")
+        self.assertTrue(settings["genbox_push"]["has_push_key"])
+        self.assertNotIn("push-secret", repr(payload))
 
     def test_defaults_and_metadata_match_runtime_defaults(self) -> None:
         view = SettingsManagementService(_ConfigStore()).view()
@@ -210,6 +221,15 @@ class SettingsManagementContractTests(unittest.TestCase):
             ["sharp_lanczos3", "pillow_lanczos"],
         )
         self.assertEqual(view.fields["image_retention_days"].source, "default")
+        self.assertFalse(view.settings.genbox_push.enabled)
+        self.assertEqual(view.settings.genbox_push.base_url, "")
+        self.assertEqual(view.settings.genbox_push.source_id, "")
+        self.assertEqual(view.settings.genbox_push.push_key, "")
+        self.assertFalse(view.settings.genbox_push.has_push_key)
+        self.assertEqual(view.settings.genbox_push.timeout_secs, 20)
+        self.assertEqual(view.fields["genbox_push.timeout_secs"].min, 5)
+        self.assertEqual(view.fields["genbox_push.timeout_secs"].max, 120)
+        self.assertTrue(view.fields["genbox_push.push_key"].sensitive)
 
     def test_retired_register_backup_setting_is_not_exposed(self) -> None:
         view = SettingsManagementService(_ConfigStore({
@@ -261,6 +281,7 @@ class SettingsManagementContractTests(unittest.TestCase):
             "image_storage": {"webdav_password": "   "},
             "backup": {"secret_access_key": "", "passphrase": ""},
             "proxy_runtime": {"clearance": {"cf_cookies": "", "cf_clearance": ""}},
+            "genbox_push": {"push_key": ""},
         }))
 
         self.assertEqual(store.data["ai_review"]["api_key"], "review-secret")
@@ -269,6 +290,7 @@ class SettingsManagementContractTests(unittest.TestCase):
         self.assertEqual(store.data["backup"]["passphrase"], "backup-secret")
         self.assertEqual(store.data["proxy_runtime"]["clearance"]["cf_cookies"], "cookie-secret")
         self.assertEqual(store.data["proxy_runtime"]["clearance"]["cf_clearance"], "clearance-secret")
+        self.assertEqual(store.data["genbox_push"]["push_key"], "push-secret")
         self.assertEqual(mutation.changed_fields, [])
 
     def test_non_empty_sensitive_patch_replaces_values_without_returning_them(self) -> None:
@@ -282,6 +304,7 @@ class SettingsManagementContractTests(unittest.TestCase):
             "image_storage": {"webdav_password": "new-webdav"},
             "backup": {"secret_access_key": "new-r2", "passphrase": "new-passphrase"},
             "proxy_runtime": {"clearance": {"cf_cookies": "new-cookie", "cf_clearance": "new-clearance"}},
+            "genbox_push": {"push_key": "new-push"},
         }))
 
         self.assertEqual(store.data["ai_review"]["api_key"], "new-review")
@@ -290,9 +313,27 @@ class SettingsManagementContractTests(unittest.TestCase):
         self.assertEqual(store.data["backup"]["passphrase"], "new-passphrase")
         self.assertEqual(store.data["proxy_runtime"]["clearance"]["cf_cookies"], "new-cookie")
         self.assertEqual(store.data["proxy_runtime"]["clearance"]["cf_clearance"], "new-clearance")
+        self.assertEqual(store.data["genbox_push"]["push_key"], "new-push")
         self.assertNotEqual(before_revision, mutation.revision)
         self.assertNotIn("new-review", repr(mutation.model_dump(mode="python")))
         self.assertNotIn("new-webdav", repr(mutation.model_dump(mode="python")))
+        self.assertNotIn("new-push", repr(mutation.model_dump(mode="python")))
+
+    def test_genbox_push_key_can_be_explicitly_cleared_without_echoing(self) -> None:
+        store = _ConfigStore(_sensitive_settings())
+        service = SettingsManagementService(store)
+        before = service.view()
+        self.assertTrue(before.settings.genbox_push.has_push_key)
+
+        mutation = service.update(SettingsPatch.model_validate({
+            "revision": before.revision,
+            "genbox_push": {"enabled": False, "clear_push_key": True},
+        }))
+
+        self.assertFalse(store.data["genbox_push"].get("push_key"))
+        self.assertFalse(mutation.settings.genbox_push.has_push_key)
+        self.assertEqual(mutation.settings.genbox_push.push_key, "")
+        self.assertIn("genbox_push.push_key", mutation.changed_fields)
 
     def test_contract_rejects_unknown_fields_nested_unknowns_ranges_and_enums(self) -> None:
         invalid_payloads = [
@@ -581,6 +622,47 @@ class SettingsConfigStoreIntegrationTests(unittest.TestCase):
                 self.assertNotIn("future_flag", public_runtime["clearance"])
                 self.assertEqual(public_runtime["clearance"]["cf_cookies"], "")
                 self.assertTrue(public_runtime["clearance"]["has_cf_cookies"])
+
+    def test_genbox_push_real_store_normalizes_url_timeout_and_requires_key_when_enabled(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            config_path = Path(temp_dir) / "config.json"
+            config_path.write_text(json.dumps({"auth-key": "test-key"}), encoding="utf-8")
+            with _database_config_store(config_path) as store:
+                with self.assertRaises(ValueError):
+                    store.update({
+                        "genbox_push": {
+                            "enabled": True,
+                            "base_url": "ftp://push.example.test",
+                            "source_id": "source-a",
+                            "push_key": "k",
+                        }
+                    })
+                with self.assertRaises(ValueError):
+                    store.update({
+                        "genbox_push": {
+                            "enabled": True,
+                            "base_url": "https://push.example.test/api/sync/push",
+                            "source_id": "source-a",
+                            "push_key": "   ",
+                        }
+                    })
+
+                store.update({
+                    "genbox_push": {
+                        "enabled": True,
+                        "base_url": "https://push.example.test/api/sync/push/",
+                        "source_id": "source-a",
+                        "push_key": "k",
+                        "timeout_secs": 999,
+                    }
+                })
+
+                normalized = store.get()["genbox_push"]
+                self.assertEqual(normalized["base_url"], "https://push.example.test")
+                self.assertEqual(normalized["source_id"], "source-a")
+                self.assertEqual(normalized["timeout_secs"], 120)
+                self.assertEqual(normalized["push_key"], "k")
+                self.assertNotIn("has_push_key", normalized)
 
     def test_changed_fields_reflect_persisted_normalized_values(self) -> None:
         with TemporaryDirectory() as temp_dir:

@@ -21,6 +21,7 @@ from api.gallery_contract import (
     GalleryCleanupResult,
     GalleryCleanupTargetResult,
     GalleryCompressResult,
+    GalleryGenBoxPushResult,
     GalleryPage,
     GalleryRow,
 )
@@ -79,6 +80,18 @@ class FakeImageStorage:
             return self.payloads[relative_path]
         except KeyError as exc:
             raise HTTPException(status_code=404, detail="image not found") from exc
+
+    def record_genbox_push(self, relative_path: str, *, status: str, sha256: str, updated_at: str) -> dict[str, str]:
+        item = self._item(relative_path)
+        if item is None:
+            raise HTTPException(status_code=404, detail="image not found")
+        state = {
+            "status": status,
+            "sha256": sha256,
+            "updated_at": updated_at,
+        }
+        item["genbox_push"] = state
+        return dict(state)
 
     def delete(self, relative_path: str) -> bool:
         self.delete_calls.append(relative_path)
@@ -300,6 +313,55 @@ class GalleryContractApiTests(unittest.TestCase):
             self.assertEqual(archive.namelist(), ["hero-beta.webp"])
             self.assertEqual(archive.read("hero-beta.webp"), b"webdav-only-image")
         self.assertEqual(self.storage.get_calls, [relative_path])
+
+    def test_genbox_push_endpoint_returns_state_and_source_retained(self) -> None:
+        relative_path = "2026/07/24/hero-alpha.png"
+        state = {
+            "status": "imported",
+            "sha256": "a" * 64,
+            "updated_at": "2026-07-25T12:00:00Z",
+        }
+        seen: list[str] = []
+
+        def fake_push(path: str) -> dict[str, object]:
+            seen.append(path)
+            return {"path": path, **state, "source_retained": True}
+
+        with mock.patch.object(system_module, "push_gallery_image", side_effect=fake_push):
+            response = self.client.post("/api/images/genbox-push", json={"path": relative_path})
+
+        self.assertEqual(response.status_code, 200, response.text)
+        payload = GalleryGenBoxPushResult.model_validate(response.json()).model_dump()
+        self.assertEqual(payload, {
+            "path": relative_path,
+            **state,
+            "source_retained": True,
+        })
+        self.assertEqual(seen, [relative_path])
+
+    def test_genbox_push_state_is_projected_only_when_valid(self) -> None:
+        self.storage.items[0]["genbox_push"] = {
+            "status": "imported",
+            "sha256": "b" * 64,
+            "updated_at": "2026-07-25T12:00:00Z",
+        }
+        self.storage.items[1]["genbox_push"] = {
+            "status": "pending",
+            "sha256": "c" * 64,
+            "updated_at": "2026-07-25T12:00:00Z",
+        }
+
+        response = self.client.get("/api/images")
+
+        self.assertEqual(response.status_code, 200, response.text)
+        payload = GalleryPage.model_validate(response.json()).model_dump()
+        rows = {item["id"]: item for item in payload["items"]}
+        self.assertEqual(rows["2026/07/24/hero-alpha.png"]["genbox_push"], {
+            "status": "imported",
+            "sha256": "b" * 64,
+            "updated_at": "2026-07-25T12:00:00Z",
+        })
+        self.assertIsNone(rows["2026/06/01/hero-beta.webp"]["genbox_push"])
 
     def test_retention_cleanup_runs_entirely_on_backend(self) -> None:
         self.assertEqual(image_service_module.preview_image_retention_cleanup(), {

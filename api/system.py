@@ -12,6 +12,8 @@ from api.gallery_contract import (
     GalleryCleanupResult,
     GalleryCleanupTargetResult,
     GalleryCompressResult,
+    GalleryGenBoxPushRequest,
+    GalleryGenBoxPushResult,
     GalleryMediaFilter,
     GalleryPage,
 )
@@ -45,6 +47,7 @@ from services.gallery_view import (
     gallery_cleanup_target_result,
     gallery_compress_result,
 )
+from services.genbox_push_service import push_gallery_image
 from services.image_service import (
     cleanup_expired_images,
     compress_images,
@@ -293,6 +296,14 @@ def create_router(app_version: str) -> APIRouter:
     async def download_single_image_endpoint(image_path: str, authorization: str | None = Header(default=None)):
         require_admin(authorization)
         return get_image_download_response(image_path)
+
+    @router.post("/api/images/genbox-push", response_model=GalleryGenBoxPushResult)
+    async def push_image_to_genbox(
+        body: GalleryGenBoxPushRequest,
+        authorization: str | None = Header(default=None),
+    ):
+        require_admin(authorization)
+        return await run_in_threadpool(push_gallery_image, body.path)
 
     @router.get("/api/logs", response_model=CallSummaryPage)
     async def get_logs(
