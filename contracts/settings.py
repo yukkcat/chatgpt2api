@@ -73,6 +73,22 @@ class ImageStoragePatch(_ImageStorageFields):
     pass
 
 
+class _GenBoxPushFields(_StrictModel):
+    enabled: bool = False
+    base_url: str = ""
+    source_id: str = ""
+    push_key: str = ""
+    timeout_secs: int = Field(default=20, ge=5, le=120)
+
+
+class GenBoxPushSettings(_GenBoxPushFields):
+    has_push_key: bool = False
+
+
+class GenBoxPushPatch(_GenBoxPushFields):
+    clear_push_key: bool = False
+
+
 class BackupIncludeSettings(_StrictModel):
     image_tasks: bool = True
     editable_files: bool = True
@@ -185,6 +201,7 @@ class _SettingsEditableFields(_StrictModel):
     sensitive_words: list[str] = Field(default_factory=list)
     ai_review: AIReviewPatch = Field(default_factory=AIReviewPatch)
     image_storage: ImageStoragePatch = Field(default_factory=ImageStoragePatch)
+    genbox_push: GenBoxPushPatch = Field(default_factory=GenBoxPushPatch)
     backup: BackupPatch = Field(default_factory=BackupPatch)
     third_party_apps: ThirdPartyAppsSettings = Field(default_factory=ThirdPartyAppsSettings)
 
@@ -198,6 +215,7 @@ class SettingsValues(_SettingsEditableFields):
     proxy_runtime: ProxyRuntimeSettings = Field(default_factory=ProxyRuntimeSettings)
     ai_review: AIReviewSettings = Field(default_factory=AIReviewSettings)
     image_storage: ImageStorageSettings = Field(default_factory=ImageStorageSettings)
+    genbox_push: GenBoxPushSettings = Field(default_factory=GenBoxPushSettings)
     backup: BackupSettings = Field(default_factory=BackupSettings)
 
 

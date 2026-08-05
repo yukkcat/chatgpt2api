@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import copy
 import os
+import re
 import threading
 from time import monotonic
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
 from contracts.settings_specification import (
     normalize_float_setting,
@@ -47,6 +49,14 @@ DEFAULT_IMAGE_STORAGE = {
     "webdav_password": "",
     "webdav_root_path": "chatgpt2api/images",
     "public_base_url": "",
+}
+
+DEFAULT_GENBOX_PUSH = {
+    "enabled": False,
+    "base_url": "",
+    "source_id": "",
+    "push_key": "",
+    "timeout_secs": 20,
 }
 
 DEFAULT_CHAT_COMPLETION_CACHE = {
@@ -172,6 +182,39 @@ def _normalize_image_storage_settings(value: object) -> dict[str, object]:
         "webdav_password": str(source.get("webdav_password") or "").strip(),
         "webdav_root_path": root_path or str(DEFAULT_IMAGE_STORAGE["webdav_root_path"]),
         "public_base_url": str(source.get("public_base_url") or "").strip().rstrip("/"),
+    })
+    return normalized
+
+
+def _normalize_genbox_base_url(value: object) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    parsed = urlsplit(raw)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return ""
+    if parsed.username or parsed.password or parsed.query or parsed.fragment:
+        return ""
+    if parsed.path.rstrip("/") not in {"", "/api/sync/push"}:
+        return ""
+    return urlunsplit((parsed.scheme, parsed.netloc, "", "", ""))
+
+
+def _normalize_genbox_push_settings(value: object) -> dict[str, object]:
+    source = value if isinstance(value, dict) else {}
+    try:
+        timeout = int(source.get("timeout_secs") or DEFAULT_GENBOX_PUSH["timeout_secs"])
+    except (TypeError, ValueError):
+        timeout = int(DEFAULT_GENBOX_PUSH["timeout_secs"])
+    normalized = copy.deepcopy(source)
+    normalized.pop("has_push_key", None)
+    normalized.pop("clear_push_key", None)
+    normalized.update({
+        "enabled": _normalize_bool(source.get("enabled"), False),
+        "base_url": _normalize_genbox_base_url(source.get("base_url")),
+        "source_id": str(source.get("source_id") or "").strip(),
+        "push_key": str(source.get("push_key") or "").strip(),
+        "timeout_secs": max(5, min(120, timeout)),
     })
     return normalized
 
@@ -348,6 +391,17 @@ def _validate_image_storage_settings(settings: dict[str, object]) -> None:
         raise ValueError("启用 WebDAV 图片存储后必须填写 WebDAV URL")
     if not str(settings.get("webdav_password") or "").strip():
         raise ValueError("启用 WebDAV 图片存储后必须填写 WebDAV 密码")
+
+
+def _validate_genbox_push_settings(settings: dict[str, object]) -> None:
+    if not _normalize_bool(settings.get("enabled"), False):
+        return
+    if not _normalize_genbox_base_url(settings.get("base_url")):
+        raise ValueError("GenBox Push requires a valid HTTP(S) base URL")
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", str(settings.get("source_id") or "").strip()):
+        raise ValueError("GenBox Push source ID is invalid")
+    if not str(settings.get("push_key") or "").strip():
+        raise ValueError("GenBox Push requires a Push Key")
 
 
 def _normalize_auth_key(value: object) -> str:
@@ -650,6 +704,7 @@ class ConfigStore:
             data["global_system_prompt"] = self.global_system_prompt
             data["backup"] = self.get_backup_settings()
             data["image_storage"] = self.get_image_storage_settings()
+            data["genbox_push"] = self.get_genbox_push_settings()
             data["chat_completion_cache"] = self.get_chat_completion_cache_settings()
             data["proxy_runtime"] = self.get_public_proxy_runtime_settings()
             data["fallback_proxy"] = self.get_proxy_fallback_settings()
@@ -734,6 +789,9 @@ class ConfigStore:
             if "image_storage" in updates:
                 updates["image_storage"] = _normalize_image_storage_settings(updates.get("image_storage"))
                 _validate_image_storage_settings(updates["image_storage"])
+            if "genbox_push" in updates:
+                updates["genbox_push"] = _normalize_genbox_push_settings(updates.get("genbox_push"))
+                _validate_genbox_push_settings(updates["genbox_push"])
             if "chat_completion_cache" in updates:
                 updates["chat_completion_cache"] = _normalize_chat_completion_cache_settings(
                     updates.get("chat_completion_cache")
@@ -761,6 +819,9 @@ class ConfigStore:
 
     def get_image_storage_settings(self) -> dict[str, object]:
         return _normalize_image_storage_settings(self.data.get("image_storage"))
+
+    def get_genbox_push_settings(self) -> dict[str, object]:
+        return _normalize_genbox_push_settings(self.data.get("genbox_push"))
 
     def get_chat_completion_cache_settings(self) -> dict[str, object]:
         return _normalize_chat_completion_cache_settings(self.data.get("chat_completion_cache"))

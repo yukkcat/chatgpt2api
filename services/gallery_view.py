@@ -67,6 +67,19 @@ def _thumbnail_url(base_url: str, path: str) -> str:
     return f"{base_url.rstrip('/')}/image-thumbnails/{path}"
 
 
+def _genbox_push_state(value: object) -> dict[str, str] | None:
+    if not isinstance(value, Mapping):
+        return None
+    status = _text(value.get("status"))
+    sha256 = _text(value.get("sha256")).lower()
+    updated_at = _text(value.get("updated_at"))
+    if status not in {"imported", "already-imported", "duplicate-local"}:
+        return None
+    if len(sha256) != 64 or any(char not in "0123456789abcdef" for char in sha256):
+        return None
+    return {"status": status, "sha256": sha256, "updated_at": updated_at}
+
+
 def gallery_row(
     item: Mapping[str, object],
     *,
@@ -100,6 +113,7 @@ def gallery_row(
         "available": local or webdav,
         "width": _positive_int_or_none(item.get("width")),
         "height": _positive_int_or_none(item.get("height")),
+        "genbox_push": _genbox_push_state(item.get("genbox_push")),
     }
 
 

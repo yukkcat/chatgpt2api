@@ -281,6 +281,7 @@ export function buildLogPreviewGalleryFile(image: LogPreviewImage | null | undef
     available: true,
     width: null,
     height: null,
+    genbox_push: null,
   }
 }
 
