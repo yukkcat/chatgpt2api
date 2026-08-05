@@ -772,7 +772,16 @@ class ImageTaskService:
                 duration_ms=duration_ms,
                 **_clear_task_details(),
             )
-            auto_push_gallery_urls(_collect_image_urls(result))
+            # Auto-push only the assets produced by this task and carry through
+            # metadata that is present in the real generation response.
+            auto_push_gallery_urls(
+                _collect_image_urls(result),
+                metadata={
+                    "prompt": payload.get("prompt"),
+                    "created_at": result.get("created_at") or result.get("created"),
+                    "model": model,
+                },
+            )
             image_attempts = collect_image_attempts(result)
             self._log_call(
                 identity,
@@ -1107,7 +1116,14 @@ class ImageTaskService:
                 duration_ms=int((time.time() - started) * 1000),
                 **_clear_task_details(),
             )
-            auto_push_gallery_urls(_collect_image_urls(formatted))
+            auto_push_gallery_urls(
+                _collect_image_urls(formatted),
+                metadata={
+                    "prompt": "",
+                    "created_at": formatted.get("created_at") or formatted.get("created"),
+                    "model": model,
+                },
+            )
             self._log_call(
                 identity,
                 mode,
