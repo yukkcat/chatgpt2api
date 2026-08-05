@@ -105,10 +105,11 @@ def test_unconfigured_push_makes_zero_network_requests(monkeypatch):
     assert calls == []
 
 
-def test_registered_gallery_push_carries_metadata_and_retains_source(monkeypatch):
+def test_registered_gallery_push_carries_metadata_and_retains_source(monkeypatch, tmp_path: Path):
     configure(monkeypatch)
-    payload = png_bytes()
-    monkeypatch.setattr(push.image_storage_service, "get_bytes", lambda rel: payload)
+    service, image_path = registered_storage(monkeypatch, tmp_path)
+    monkeypatch.setattr(push, "image_storage_service", service)
+    payload = image_path.read_bytes()
     monkeypatch.setattr(
         push.image_storage_service,
         "record_genbox_push",
@@ -127,7 +128,7 @@ def test_registered_gallery_push_carries_metadata_and_retains_source(monkeypatch
     )
     monkeypatch.setattr(push.requests, "Session", lambda **kwargs: session)
     result = push.push_gallery_image(
-        "generated.png",
+        "registered.png",
         metadata={"prompt": "a red square", "date": "2026-08-05", "created_at": "2026-08-05T10:00:00Z", "model": "gpt-image-2"},
     )
     post = next(call for call in calls if call[0] == "post")
@@ -142,6 +143,8 @@ def test_registered_gallery_push_carries_metadata_and_retains_source(monkeypatch
     assert post[2]["headers"]["X-GenBox-Key"] == "test-secret"
     assert "test-secret" not in json.dumps(result)
     assert result["source_retained"] is True
+    assert image_path.is_file()
+    assert image_path.read_bytes() == payload
 
 
 @pytest.mark.parametrize("bad_path", ["missing.png", "../outside.png", "/absolute.png", "folder", "note.txt"])
