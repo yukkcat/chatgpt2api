@@ -1,0 +1,22 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: chatgpt2api:local
+    container_name: chatgpt2api-local
+    ports:
+      - "8000:80"
+    volumes:
+      - ./data:/app/data
+      - ./config.json:/app/config.json
+    environment:
+      DATABASE_URL: sqlite:////app/data/chatgpt2api.db
+    # 应用数据库；删除 DATABASE_URL 时同样默认使用 /app/data/chatgpt2api.db
+    #   DATABASE_URL: postgresql://user:password@host:5432/dbname
+
+    # 认证密钥 (可选，覆盖 config.json)
+    #   CHATGPT2API_AUTH_KEY: your_secret_key
+
+    # 基础 URL (可选)
+    #   CHATGPT2API_BASE_URL: https://your-domain.com

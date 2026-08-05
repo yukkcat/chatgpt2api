@@ -1,0 +1,8 @@
+{
+  "name": "chatgpt2api-image-upscale",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "sharp": "^0.34.4"
+  }
+}

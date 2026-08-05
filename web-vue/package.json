@@ -1,0 +1,57 @@
+{
+  "name": "chatgpt2api-console",
+  "private": true,
+  "version": "3.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "icons:generate": "node scripts/generate-local-icons.mjs",
+    "icons:check": "node scripts/generate-local-icons.mjs --check",
+    "clean:dist": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "npm run icons:check && npm run clean:dist && tsc && vite build",
+    "test:runtime": "node tests/local-icons-runtime.mjs && node tests/log-selection-runtime.mjs && node tests/log-detail-runtime.mjs && node tests/monitor-detail-runtime.mjs && node tests/logs-overlay-contract.mjs && node tests/operation-progress-runtime.mjs && node tests/gallery-operation-runtime.mjs && node tests/gallery-lightbox-contract.mjs && node tests/settings-operation-runtime.mjs && node tests/router-contract-runtime.mjs && node tests/session-contract-runtime.mjs && node tests/model-catalog-runtime.mjs && node tests/page-query-runtime.mjs && node tests/release-ui-runtime.mjs && node tests/studio-search-skill-runtime.mjs && node tests/focus-loop-runtime.mjs && node tests/clipboard-runtime.mjs && node tests/public-download-runtime.mjs && node tests/account-management-runtime.mjs && node tests/remote-account-import-panel-contract.mjs && node tests/studio-recent-file-tasks-runtime.mjs && node tests/studio-task-runtime.mjs && node tests/proxy-node-import-runtime.mjs",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@iconify-json/lucide": "^1.2.121",
+    "@iconify/vue": "^5.0.0",
+    "@types/js-beautify": "^1.14.3",
+    "@types/markdown-it": "^14.1.2",
+    "autoprefixer": "^10.4.23",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.19",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.2"
+  },
+  "dependencies": {
+    "@vitejs/plugin-vue": "^6.0.6",
+    "axios": "^1.15.0",
+    "highlight.js": "^11.11.1",
+    "js-beautify": "^1.15.4",
+    "markdown-it": "^14.2.0",
+    "nanocat-ui": "0.1.8",
+    "pinia": "^3.0.4",
+    "vue": "^3.5.26",
+    "vue-router": "^4.6.4",
+    "vue-virtual-scroller": "^2.0.0-beta.8"
+  },
+  "overrides": {
+    "micromatch": {
+      "picomatch": "2.3.2"
+    },
+    "anymatch": {
+      "picomatch": "2.3.2"
+    },
+    "vite": {
+      "picomatch": "4.0.4",
+      "tinyglobby": {
+        "picomatch": "4.0.4"
+      }
+    },
+    "sucrase": {
+      "tinyglobby": {
+        "picomatch": "4.0.4"
+      }
+    }
+  }
+}
