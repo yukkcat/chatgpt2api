@@ -6,7 +6,7 @@ import shutil
 import tempfile
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from contextlib import AbstractContextManager
 from copy import deepcopy
 from datetime import datetime
@@ -222,6 +222,23 @@ def _collect_image_urls(value: object) -> list[str]:
         for item in value:
             urls.extend(_collect_image_urls(item))
     return list(dict.fromkeys(urls))
+
+
+def _generation_push_metadata(result: Mapping[str, Any], *, prompt: object = None, model: object = None) -> dict[str, object]:
+    metadata: dict[str, object] = {}
+    if prompt is not None and str(prompt).strip():
+        metadata["prompt"] = prompt
+    created_at = result.get("created_at")
+    if created_at is None:
+        created_at = result.get("created")
+    if created_at is not None and str(created_at).strip():
+        metadata["created_at"] = created_at
+    date = result.get("date")
+    if date is not None and str(date).strip():
+        metadata["date"] = date
+    if model is not None and str(model).strip():
+        metadata["model"] = model
+    return metadata
 
 
 class ImageTaskService:
@@ -776,11 +793,7 @@ class ImageTaskService:
             # metadata that is present in the real generation response.
             auto_push_gallery_urls(
                 _collect_image_urls(result),
-                metadata={
-                    "prompt": payload.get("prompt"),
-                    "created_at": result.get("created_at") or result.get("created"),
-                    "model": model,
-                },
+                metadata=_generation_push_metadata(result, prompt=payload.get("prompt"), model=model),
             )
             image_attempts = collect_image_attempts(result)
             self._log_call(
@@ -1118,11 +1131,7 @@ class ImageTaskService:
             )
             auto_push_gallery_urls(
                 _collect_image_urls(formatted),
-                metadata={
-                    "prompt": "",
-                    "created_at": formatted.get("created_at") or formatted.get("created"),
-                    "model": model,
-                },
+                metadata=_generation_push_metadata(formatted, model=model),
             )
             self._log_call(
                 identity,

@@ -63,6 +63,19 @@ def png_bytes() -> bytes:
     return output.getvalue()
 
 
+def registered_storage(monkeypatch, tmp_path: Path, rel: str = "registered.png"):
+    index_file = tmp_path / "image_index.json"
+    index_file.write_text(json.dumps({"items": {rel: {"local": True}}}), encoding="utf-8")
+    image_root = tmp_path / "images"
+    image_root.mkdir()
+    image_path = image_root / rel
+    image_path.parent.mkdir(parents=True, exist_ok=True)
+    image_path.write_bytes(png_bytes())
+    monkeypatch.setattr(config_module, "DATA_DIR", tmp_path)
+    monkeypatch.setattr(storage_module, "DATA_DIR", tmp_path)
+    return storage_module.ImageStorageService(index_file=index_file), image_path
+
+
 def configure(monkeypatch, *, enabled: bool = True):
     settings = {
         "enabled": enabled,
@@ -167,6 +180,32 @@ def test_push_timeout_returns_error_without_delete(monkeypatch):
     assert exc.value.detail["error"] == "genbox_request_failed"
     assert calls[0][0] == "get"
     assert all(call[0] != "delete" for call in calls)
+
+
+def test_push_uses_gallery_registration_before_network(monkeypatch, tmp_path: Path):
+    configure(monkeypatch)
+    service, _ = registered_storage(monkeypatch, tmp_path)
+    monkeypatch.setattr(push, "image_storage_service", service)
+    calls: list[tuple] = []
+    monkeypatch.setattr(push.requests, "Session", lambda **kwargs: calls.append(("session",)) or None)
+    with pytest.raises(HTTPException) as exc:
+        push.push_gallery_image("unregistered.png")
+    assert exc.value.status_code == 404
+    assert calls == []
+
+
+def test_timeout_keeps_registered_source_bytes_on_disk(monkeypatch, tmp_path: Path):
+    configure(monkeypatch)
+    service, image_path = registered_storage(monkeypatch, tmp_path)
+    monkeypatch.setattr(push, "image_storage_service", service)
+    original = image_path.read_bytes()
+    calls: list[tuple] = []
+    monkeypatch.setattr(push.requests, "Session", lambda **kwargs: TimeoutSession(calls))
+    with pytest.raises(HTTPException) as exc:
+        push.push_gallery_image("registered.png")
+    assert exc.value.detail["error"] == "genbox_request_failed"
+    assert image_path.is_file()
+    assert image_path.read_bytes() == original
 
 
 @pytest.mark.parametrize(
