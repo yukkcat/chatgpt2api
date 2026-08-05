@@ -58,6 +58,19 @@ def _rel_from_stored_url(url: str) -> str | None:
         return None
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         return None
+    configured_origins: set[tuple[str, str]] = set()
+    for base in (
+        config.base_url,
+        config.get_image_storage_settings().get("public_base_url"),
+    ):
+        try:
+            origin = urlsplit(str(base or "").strip().rstrip("/"))
+        except ValueError:
+            continue
+        if origin.scheme in {"http", "https"} and origin.netloc:
+            configured_origins.add((origin.scheme, origin.netloc.lower()))
+    if (parsed.scheme, parsed.netloc.lower()) not in configured_origins:
+        return None
     path = parsed.path or ""
     if "/images/" in path:
         rel = path.split("/images/", 1)[1]
