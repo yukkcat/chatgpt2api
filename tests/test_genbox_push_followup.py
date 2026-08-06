@@ -186,6 +186,47 @@ def test_push_timeout_returns_error_without_delete(monkeypatch):
     assert all(call[0] != "delete" for call in calls)
 
 
+def test_auto_push_logs_do_not_expose_push_key(monkeypatch, tmp_path: Path):
+    configure(monkeypatch)
+    service, image_path = registered_storage(monkeypatch, tmp_path)
+    monkeypatch.setattr(push, "image_storage_service", service)
+    monkeypatch.setattr(push, "_spawn_thread", lambda target, name: target())
+
+    records: list[object] = []
+
+    class RecordingLogger:
+        def info(self, message: object) -> None:
+            records.append(message)
+
+        def warning(self, message: object) -> None:
+            records.append(message)
+
+        def error(self, message: object) -> None:
+            records.append(message)
+
+    monkeypatch.setattr(push, "logger", RecordingLogger())
+    payload = image_path.read_bytes()
+    import hashlib
+
+    sha = hashlib.sha256(payload).hexdigest()
+    success_session = FakeSession(
+        [
+            FakeResponse(200, {"ok": True, "contract_version": "v1", "source_id": "test-source", "max_image_bytes": len(payload)}),
+            FakeResponse(200, {"ok": True, "contract_version": "v1", "source_id": "test-source", "sha256": sha, "status": "imported"}),
+        ],
+        [],
+    )
+    monkeypatch.setattr(push.requests, "Session", lambda **kwargs: success_session)
+    push._run_auto_push("registered.png", metadata={"prompt": "a red square"})
+    assert any("genbox_auto_push_succeeded" in str(record) for record in records)
+
+    timeout_calls: list[tuple] = []
+    monkeypatch.setattr(push.requests, "Session", lambda **kwargs: TimeoutSession(timeout_calls))
+    push._run_auto_push("registered.png")
+    assert any("genbox_auto_push_failed" in str(record) for record in records)
+    assert "test-secret" not in str(records)
+
+
 def test_push_uses_gallery_registration_before_network(monkeypatch, tmp_path: Path):
     configure(monkeypatch)
     service, _ = registered_storage(monkeypatch, tmp_path)
