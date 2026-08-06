@@ -276,7 +276,18 @@ class ImageStorageService:
 
     def _load_clean_index(self) -> dict[str, dict[str, object]]:
         items = self._load_index()
-        return {rel: item for rel, item in items.items() if _is_image_rel(rel)}
+        clean: dict[str, dict[str, object]] = {}
+        for rel, item in items.items():
+            if not _is_image_rel(rel):
+                continue
+            storage = _clean(item.get("storage"))
+            item = dict(item)
+            if "local" not in item and storage in {"local", "both"}:
+                item["local"] = True
+            if "webdav" not in item and storage in {"webdav", "both"}:
+                item["webdav"] = True
+            clean[rel] = item
+        return clean
 
     def _save_index(self, items: dict[str, dict[str, object]]) -> None:
         _write_json_object(self.index_file, {"items": items})
@@ -465,11 +476,16 @@ class ImageStorageService:
         safe_rel = normalize_image_relative_path(rel)
         if not _is_image_rel(safe_rel):
             raise HTTPException(status_code=404, detail="image not found")
+        # File paths are not an authorization boundary: only assets registered
+        # in the Gallery index may be read through this service.
+        with self._index_guard():
+            item = self._load_clean_index().get(safe_rel)
+        if not isinstance(item, dict):
+            raise HTTPException(status_code=404, detail="image not found")
         path = image_local_path(safe_rel)
-        if path.is_file():
+        if bool(item.get("local")) and path.is_file():
             return path.read_bytes()
-        item = self._load_clean_index().get(safe_rel, {})
-        if item.get("webdav"):
+        if bool(item.get("webdav")):
             client = WebDAVClient(self.settings())
             try:
                 return client.get(safe_rel)
@@ -539,7 +555,9 @@ class ImageStorageService:
 
     def has_local(self, rel: str) -> bool:
         safe_rel = normalize_image_relative_path(rel)
-        return _is_image_rel(safe_rel) and image_local_path(safe_rel).is_file()
+        with self._index_guard():
+            item = self._load_clean_index().get(safe_rel)
+        return bool(isinstance(item, dict) and item.get('local')) and image_local_path(safe_rel).is_file()
 
     @staticmethod
     def _catalog_size_matches_local(item: dict[str, object], local_size: int) -> bool:

@@ -310,13 +310,10 @@ def download_images_zip(paths: list[str]) -> io.BytesIO:
                 path.relative_to(root)
             except ValueError:
                 continue
-            if path.is_file():
-                payload = path.read_bytes()
-            else:
-                try:
-                    payload = image_storage_service.get_bytes(rel)
-                except Exception:
-                    continue
+            try:
+                payload = image_storage_service.get_bytes(rel)
+            except Exception:
+                continue
             name = path.name
             if name in used_names:
                 stem = path.stem
