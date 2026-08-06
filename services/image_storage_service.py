@@ -276,7 +276,18 @@ class ImageStorageService:
 
     def _load_clean_index(self) -> dict[str, dict[str, object]]:
         items = self._load_index()
-        return {rel: item for rel, item in items.items() if _is_image_rel(rel)}
+        clean: dict[str, dict[str, object]] = {}
+        for rel, item in items.items():
+            if not _is_image_rel(rel):
+                continue
+            storage = _clean(item.get("storage"))
+            item = dict(item)
+            if "local" not in item and storage in {"local", "both"}:
+                item["local"] = True
+            if "webdav" not in item and storage in {"webdav", "both"}:
+                item["webdav"] = True
+            clean[rel] = item
+        return clean
 
     def _save_index(self, items: dict[str, dict[str, object]]) -> None:
         _write_json_object(self.index_file, {"items": items})

@@ -278,3 +278,26 @@ def test_studio_task_passes_only_result_urls_and_real_metadata(monkeypatch, tmp_
             {"prompt": "current generation prompt", "date": "2026-08-05", "model": "gpt-image-2"},
         )
     ]
+
+def test_auto_push_ignores_external_urls_without_spawning_network(monkeypatch):
+    configure(monkeypatch)
+    spawned: list[tuple] = []
+    monkeypatch.setattr(push, "_spawn_thread", lambda target, name: spawned.append((target, name)) or None)
+    push.auto_push_gallery_urls([
+        "https://evil.invalid/images/old.png",
+        "file:///etc/passwd",
+        "https://app.invalid/images/unregistered.png",
+    ])
+    assert spawned == []
+
+def test_legacy_registered_local_item_without_flags_is_readable(monkeypatch, tmp_path: Path):
+    index_file = tmp_path / "image_index.json"
+    index_file.write_text(json.dumps({"items": {"legacy.png": {"storage": "local"}}}), encoding="utf-8")
+    image_root = tmp_path / "images"
+    image_root.mkdir()
+    payload = png_bytes()
+    (image_root / "legacy.png").write_bytes(payload)
+    monkeypatch.setattr(config_module, "DATA_DIR", tmp_path)
+    monkeypatch.setattr(storage_module, "DATA_DIR", tmp_path)
+    service = storage_module.ImageStorageService(index_file=index_file)
+    assert service.get_bytes("legacy.png") == payload
