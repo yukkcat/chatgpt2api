@@ -555,7 +555,9 @@ class ImageStorageService:
 
     def has_local(self, rel: str) -> bool:
         safe_rel = normalize_image_relative_path(rel)
-        return _is_image_rel(safe_rel) and image_local_path(safe_rel).is_file()
+        with self._index_guard():
+            item = self._load_clean_index().get(safe_rel)
+        return bool(isinstance(item, dict) and item.get('local')) and image_local_path(safe_rel).is_file()
 
     @staticmethod
     def _catalog_size_matches_local(item: dict[str, object], local_size: int) -> bool:

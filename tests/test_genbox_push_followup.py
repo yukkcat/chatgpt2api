@@ -213,27 +213,26 @@ def test_timeout_keeps_registered_source_bytes_on_disk(monkeypatch, tmp_path: Pa
 
 
 @pytest.mark.parametrize(
-    "response, expected_code",
+    "post_payload, post_status, expected_code",
     [
-        (FakeResponse(200, {"ok": True, "contract_version": "v1", "source_id": "test-source", "max_image_bytes": 999}), "genbox_invalid_receipt"),
-        (FakeResponse(500, {"error": "bad"}), "genbox_rejected"),
+        ({"ok": True, "contract_version": "v1", "source_id": "test-source", "sha256": "0" * 64, "status": "imported"}, 200, "genbox_invalid_receipt"),
+        ({"error": "bad"}, 500, "genbox_rejected"),
     ],
 )
-def test_receipt_and_http_errors_keep_source(monkeypatch, response: FakeResponse, expected_code: str):
+def test_receipt_and_http_errors_keep_source(monkeypatch, tmp_path: Path, post_payload: dict[str, object], post_status: int, expected_code: str):
     configure(monkeypatch)
-    payload = png_bytes()
-    monkeypatch.setattr(push.image_storage_service, "get_bytes", lambda rel: payload)
-    probe = FakeResponse(200, {"ok": True, "contract_version": "v1", "source_id": "test-source", "max_image_bytes": len(payload)})
-    if response.status_code == 200:
-        import hashlib
-
-        response = FakeResponse(200, {"ok": True, "contract_version": "v1", "source_id": "test-source", "sha256": "0" * 64, "status": "imported"})
+    service, image_path = registered_storage(monkeypatch, tmp_path)
+    monkeypatch.setattr(push, "image_storage_service", service)
+    original = image_path.read_bytes()
+    probe = FakeResponse(200, {"ok": True, "contract_version": "v1", "source_id": "test-source", "max_image_bytes": len(original)})
     calls: list[tuple] = []
-    monkeypatch.setattr(push.requests, "Session", lambda **kwargs: FakeSession([probe, response], calls))
+    monkeypatch.setattr(push.requests, "Session", lambda **kwargs: FakeSession([probe, FakeResponse(post_status, post_payload)], calls))
     with pytest.raises(HTTPException) as exc:
-        push.push_gallery_image("generated.png")
+        push.push_gallery_image("registered.png")
     assert exc.value.detail["error"] == expected_code
     assert calls[0][0] == "get"
+    assert image_path.is_file()
+    assert image_path.read_bytes() == original
 
 
 def test_external_url_is_not_eligible_for_studio_auto_push(monkeypatch):
@@ -301,3 +300,9 @@ def test_legacy_registered_local_item_without_flags_is_readable(monkeypatch, tmp
     monkeypatch.setattr(storage_module, "DATA_DIR", tmp_path)
     service = storage_module.ImageStorageService(index_file=index_file)
     assert service.get_bytes("legacy.png") == payload
+
+
+def test_has_local_rejects_unregistered_path(monkeypatch, tmp_path: Path):
+    service, _ = registered_storage(monkeypatch, tmp_path)
+    assert service.has_local("registered.png") is True
+    assert service.has_local("unregistered.png") is False
