@@ -39,6 +39,21 @@
   &nbsp;&nbsp;·&nbsp;&nbsp; <a href="https://api.klong.lat">生图 API：小量 ¥0.02/张 · 中转 ¥0.01/张 · 大量/企业 ¥0.009/张</a>
 </p>
 
+## 赞助商
+
+<table width="100%">
+  <tr>
+    <td align="center" valign="middle">
+      <a href="https://www.ipwo.net/?ref=githubchatgpt2api"><img src="docs/images/IPWO.png" width="100%" alt="IPWO住宅代理"></a>
+    </td>
+  </tr>
+  <tr>
+    <td valign="middle">
+      &nbsp;<strong><a href="https://www.ipwo.net/?ref=githubchatgpt2api"><u>IPWO</u></a></strong>&nbsp;覆盖195+地区动态住宅代理、静态住宅代理和不限量住宅代理支持HTTP、HTTPS及SOCKS5协议，为AI应用、多账号管理、自动化及海外网络访问提供灵活的代理解决方案。专属折扣码：<strong>0205</strong>
+    </td>
+  </tr>
+</table>
+
 ## 快速部署
 
 ### 一键安装
