@@ -58,6 +58,7 @@ DEFAULT_GENBOX_PUSH = {
     "push_key": "",
     "timeout_secs": 20,
     "auto_push_after_studio": False,
+    "delete_source_after_push": False,
 }
 
 DEFAULT_CHAT_COMPLETION_CACHE = {
@@ -220,6 +221,7 @@ def _normalize_genbox_push_settings(value: object) -> dict[str, object]:
         "push_key": str(source.get("push_key") or "").strip(),
         "timeout_secs": max(5, min(120, timeout)),
         "auto_push_after_studio": _normalize_bool(source.get("auto_push_after_studio"), False),
+        "delete_source_after_push": _normalize_bool(source.get("delete_source_after_push"), False),
     })
     return normalized
 

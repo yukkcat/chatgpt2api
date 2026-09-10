@@ -49,6 +49,7 @@ class GalleryGenBoxPushRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     path: str = Field(min_length=1, max_length=1024)
+    delete_source_after_push: bool = False
 
 
 class GalleryGenBoxPushResult(GalleryGenBoxPushState):

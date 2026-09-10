@@ -328,7 +328,11 @@ def create_router(app_version: str) -> APIRouter:
     ):
         require_admin(authorization)
         try:
-            return await run_in_threadpool(push_gallery_image, body.path)
+            return await run_in_threadpool(
+                push_gallery_image,
+                body.path,
+                delete_source_after_push=body.delete_source_after_push,
+            )
         except GenBoxPushError as exc:
             raise HTTPException(
                 status_code=exc.status_code,
