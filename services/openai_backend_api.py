@@ -3616,9 +3616,9 @@ class OpenAIBackendAPI:
         self._report_progress("uploading")
         references = [self._upload_image(image, f"image_{idx}.png") for idx, image in enumerate(images, start=1)]
         self._report_progress("bootstrapping")
-        self._bootstrap()
+        self._bootstrap(timeout_secs=config.image_stream_timeout_secs)
         self._report_progress("getting_token")
-        requirements = self._get_chat_requirements()
+        requirements = self._get_chat_requirements(timeout_secs=config.image_stream_timeout_secs)
         self._report_progress("preparing_conversation")
         conduit_token = self._prepare_image_conversation(prompt, requirements, model)
         self._report_progress("starting_generation")

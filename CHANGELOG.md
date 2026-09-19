@@ -2,6 +2,8 @@
 
 ## Unreleased
 
++ [修复] 图片请求的 bootstrap 与 chat-requirements 前置阶段改用 `image_stream_timeout_secs`，避免沿用 30 秒硬超时导致 `image_stream_timeout` 失败。
+
 ## 3.2.3 - 2026-09-09
 
 + [新增] Python 图片接口和共享模型列表支持 `gpt-image-2.5`、`gpt-image-2.5-flare`、`gpt-image-2.5-sunburst`，通过 ChatGPT Web 的 `auto` 路由兼容，不包含 `exact` 别名。
