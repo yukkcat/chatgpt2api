@@ -2193,6 +2193,8 @@ def _generate_single_image(
                         expected_refresh_token=attempt_refresh_token,
                         expected_last_token_refresh_at=attempt_last_token_refresh_at,
                     )
+                    if failure is not None and failure.code == "image_model_not_found":
+                        account_service.mark_image_model_missing(token)
             except Exception as exc:
                 logger.warning({
                     "event": "image_account_result_update_failed",

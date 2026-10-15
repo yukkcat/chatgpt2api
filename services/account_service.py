@@ -161,6 +161,7 @@ class AccountService:
         self._accounts = self._load_accounts()
         self._account_snapshot_checked_at = time.monotonic()
         self._image_inflight: dict[str, int] = {}
+        self._image_model_cooldowns: dict[str, float] = {}
         self._image_failure_refresh_lock = Lock()
         self._image_failure_refresh_active: set[str] = set()
         self._image_failure_refresh_active_scopes: dict[str, str] = {}
@@ -1844,8 +1845,8 @@ class AccountService:
             plan_types: set[str] | tuple[str, ...] | None = None,
     ) -> list[str]:
         excluded = set(excluded_tokens or set())
-        return [
-            token
+        candidates = [
+            item
             for item in self._accounts.values()
             if self._is_image_account_available(item)
                and self._account_matches_plan_type(item, plan_type)
@@ -1853,6 +1854,13 @@ class AccountService:
                and self._account_matches_source_type(item, source_type)
                and (token := item.get("access_token") or "")
                and token not in excluded
+        ]
+        # 优先级排序：具备完整 Web 客户端模型权限（Token 长度较长或明确包含权限）优先调度
+        candidates.sort(key=lambda item: (0 if len(str(item.get("access_token") or "")) > 1800 else 1))
+        return [
+            token
+            for item in candidates
+            if (token := item.get("access_token") or "")
         ]
 
     def _list_available_candidate_tokens(
@@ -1863,6 +1871,7 @@ class AccountService:
             plan_types: set[str] | tuple[str, ...] | None = None,
     ) -> list[str]:
         max_concurrency = max(1, int(config.image_account_concurrency or 1))
+        now = time.monotonic()
         return [
             token
             for token in self._list_ready_candidate_tokens(
@@ -1872,6 +1881,8 @@ class AccountService:
                 plan_types,
             )
             if int(self._image_inflight.get(token, 0)) < max_concurrency
+            # 上游 404 Model not found 触发的本地冷却期内不再被选中，避免反复撞同一个号。
+            and now >= float(self._image_model_cooldowns.get(token, 0.0))
         ]
 
     def _acquire_next_candidate_token(
@@ -4025,6 +4036,18 @@ class AccountService:
                         ),
                     },
                 )
+
+    def mark_image_model_missing(self, access_token: str, *, seconds: int = 600) -> None:
+        """上游 404 Model not found：对账号做本地冷却。
+
+        只影响本地候选调度，不清空真实额度、不标记永久封号、不扣代理健康分。
+        """
+        if not access_token:
+            return
+        with self._image_slot_condition:
+            resolved = self._resolve_access_token_locked(access_token)
+            self._image_model_cooldowns[resolved] = time.monotonic() + max(0, int(seconds))
+            self._image_slot_condition.notify_all()
 
     def mark_image_result(
         self,
