@@ -2,6 +2,8 @@
 
 ## Unreleased
 
++ [修复] OAuth 授权码兑换令牌时验证服务端 TLS 证书，避免通过未验证的连接发送授权码和 PKCE verifier。
+
 ## 3.2.3 - 2026-09-09
 
 + [新增] Python 图片接口和共享模型列表支持 `gpt-image-2.5`、`gpt-image-2.5-flare`、`gpt-image-2.5-sunburst`，通过 ChatGPT Web 的 `auto` 路由兼容，不包含 `exact` 别名。
