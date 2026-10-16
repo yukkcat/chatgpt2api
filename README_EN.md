@@ -152,6 +152,8 @@ Authorization: Bearer <auth-key>
 | `/v1/psd/generations` | `POST` | PSD task shortcut |
 | `/files/{file_path}` | `GET` | Publicly downloads a generated file from its random storage path |
 
+Text endpoints return HTTP 501 for unsupported tool execution and content blocks such as files, PDFs, or audio instead of silently dropping them. Chat Completions and Responses support the documented web-search tools; supported image inputs remain available. Anthropic Messages adapts declared tools into client-visible `tool_use` blocks, but does not execute those tools on the server. The model catalog does not advertise per-model tool or attachment capabilities.
+
 Creating, querying, and deleting file tasks is isolated by API key. The `/files/...` links returned by successful tasks work like generated-image links: anyone holding the link can download the asset without authentication. Public downloads validate paths and file types and reject path traversal.
 
 <details>

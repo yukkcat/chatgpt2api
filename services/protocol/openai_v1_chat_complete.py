@@ -22,6 +22,7 @@ from services.protocol.conversation import (
     text_backend,
 )
 from services.protocol.reasoning import thinking_effort_from_body
+from services.protocol.request_capabilities import validate_request_capabilities
 from services.protocol.web_search_tool import (
     WEB_SEARCH_TOOL_TYPES,
     has_unsupported_tools,
@@ -38,13 +39,6 @@ from utils.image_tokens import (
     image_usage,
     image_output_metadata,
 )
-
-TOOL_UNAVAILABLE_SYSTEM_MESSAGE = (
-    "This compatibility backend cannot execute local tools, shell commands, non-search tools, "
-    "or file operations. Do not claim to have run tools or inspected external resources. "
-    "If a user asks you to use a tool, say that tool execution is unavailable through this backend."
-)
-
 
 def completion_chunk(model: str, delta: dict[str, Any], finish_reason: str | None = None, completion_id: str = "", created: int | None = None) -> dict[str, Any]:
     return {
@@ -191,10 +185,9 @@ def chat_image_args(body: dict[str, Any]) -> tuple[str, str, int, list[tuple[byt
 
 
 def text_chat_parts(body: dict[str, Any]) -> tuple[str, list[dict[str, Any]]]:
+    validate_request_capabilities(body, "chat")
     model = str(body.get("model") or "auto").strip() or "auto"
     messages = normalize_text_messages(normalize_messages(chat_messages_from_body(body)))
-    if has_unsupported_tools(body, WEB_SEARCH_TOOL_TYPES):
-        messages.insert(0, {"role": "system", "content": TOOL_UNAVAILABLE_SYSTEM_MESSAGE})
     return model, messages
 
 
@@ -344,6 +337,7 @@ def text_completion_response(model: str, messages: list[dict[str, Any]], thinkin
 
 
 def handle(body: dict[str, Any]) -> dict[str, Any] | Iterator[dict[str, Any]]:
+    validate_request_capabilities(body, "chat")
     if body.get("stream"):
         if is_image_chat_request(body):
             return image_chat_events(body)

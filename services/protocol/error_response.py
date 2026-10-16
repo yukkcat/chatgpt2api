@@ -83,7 +83,9 @@ def openai_error_payload(
             "message": error_message_from_detail(detail) or "request failed",
             "type": error_type or _default_error_type(status_code),
             "param": param,
-            "code": code if code is not None else _default_error_code(status_code),
+            "code": code if code is not None else (
+                detail.get("code") if isinstance(detail, dict) and detail.get("code") else _default_error_code(status_code)
+            ),
         }
     }
 
