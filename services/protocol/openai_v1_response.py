@@ -6,6 +6,8 @@ from typing import Any, Iterable, Iterator
 
 from fastapi import HTTPException
 
+from services.model_catalog_service import model_catalog_service
+
 from services.protocol.chat_completion_cache import cache_key, chat_completion_cache, normalize_text_messages
 from services.protocol.conversation import (
     ConversationRequest,
@@ -293,7 +295,7 @@ def _backend_account_email(backend: object) -> str:
 
 
 def text_response_parts(body: dict[str, Any]) -> tuple[str, list[dict[str, Any]]]:
-    model = str(body.get("model") or "auto").strip() or "auto"
+    model = model_catalog_service.resolve_text_model(body.get("model"))
     messages = normalize_text_messages(normalize_messages(messages_from_input(body.get("input"), body.get("instructions"))))
     if has_unsupported_response_tools(body):
         messages.insert(0, {"role": "system", "content": TOOL_UNAVAILABLE_SYSTEM_MESSAGE})
@@ -454,6 +456,7 @@ def collect_response(events: Iterable[dict[str, Any]]) -> dict[str, Any]:
 def response_events(body: dict[str, Any]) -> Iterator[dict[str, Any]]:
     if is_text_response_request(body):
         model, messages = text_response_parts(body)
+        body = {**body, "model": model}
         if has_web_search_tool(body) and not has_unsupported_response_tools(body):
             yield from stream_web_search_response(body, messages)
             return
@@ -491,6 +494,8 @@ def response_events(body: dict[str, Any]) -> Iterator[dict[str, Any]]:
 
 
 def handle(body: dict[str, Any]) -> dict[str, Any] | Iterator[dict[str, Any]]:
+    if is_text_response_request(body):
+        body = {**body, "model": model_catalog_service.resolve_text_model(body.get("model"))}
     events = response_events(body)
     if body.get("stream"):
         return events

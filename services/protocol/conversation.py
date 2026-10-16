@@ -15,6 +15,7 @@ from dataclasses import dataclass, field, replace
 from typing import Any, Callable, Iterable, Iterator
 
 import tiktoken
+from fastapi import HTTPException
 from curl_cffi.requests import exceptions as curl_exceptions
 
 from services.account_service import ImageAccountSelectionError, account_service
@@ -1094,6 +1095,11 @@ def _remember_text_account(backend: OpenAIBackendAPI, access_token: str) -> str:
 
 def text_backend() -> OpenAIBackendAPI:
     access_token = account_service.get_text_access_token()
+    if not access_token and config.text_require_authenticated_account:
+        raise HTTPException(status_code=503, detail={
+            "error": "An authenticated ChatGPT web account is required; anonymous fallback is disabled",
+            "code": "authenticated_account_required",
+        })
     backend = OpenAIBackendAPI(access_token=access_token)
     _remember_text_account(backend, access_token)
     return backend

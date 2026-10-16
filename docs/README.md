@@ -51,6 +51,7 @@ Executable documentation rules live in
 | [`storage-architecture.md`](storage-architecture.md) | current | Independent persistence responsibilities |
 | [`prompt-library-architecture.md`](prompt-library-architecture.md) | current | Prompt source and library projection lifecycle |
 | [`deployment.md`](deployment.md) | current | Docker, source development, backup, and upgrade guidance |
+| [`runbooks/strict-text-routing.md`](runbooks/strict-text-routing.md) | current | Optional model allowlist and authenticated-account requirements for text routers |
 | [`upstream-sse-conversation.md`](upstream-sse-conversation.md) | current | Internal Conversation SSE and result-resolution reference |
 
 ## Documentation rules

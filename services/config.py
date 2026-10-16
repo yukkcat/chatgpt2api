@@ -565,6 +565,16 @@ class ConfigStore:
         return _normalize_bool(self.data.get("image_account_retry_enabled"), True)
 
     @property
+    def text_validate_model_catalog(self) -> bool:
+        self.reload_if_changed()
+        return _normalize_bool(self.data.get("text_validate_model_catalog"), False)
+
+    @property
+    def text_require_authenticated_account(self) -> bool:
+        self.reload_if_changed()
+        return _normalize_bool(self.data.get("text_require_authenticated_account"), False)
+
+    @property
     def image_upscale_enabled(self) -> bool:
         self.reload_if_changed()
         return _normalize_bool(self.data.get("image_upscale_enabled"), False)

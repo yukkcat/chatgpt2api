@@ -2,6 +2,8 @@
 
 ## Unreleased
 
++ [新增] 文本请求可选择强制使用模型目录白名单和已登录账号，防止路由器将未知模型或匿名回退误认为成功；默认保留现有行为。
+
 ## 3.2.3 - 2026-09-09
 
 + [新增] Python 图片接口和共享模型列表支持 `gpt-image-2.5`、`gpt-image-2.5-flare`、`gpt-image-2.5-sunburst`，通过 ChatGPT Web 的 `auto` 路由兼容，不包含 `exact` 别名。

@@ -5,6 +5,8 @@ import hashlib
 import json
 from typing import Any
 
+from fastapi import HTTPException
+
 from contracts.models import (
     ModelCatalogCapabilities,
     ModelCatalogDefaults,
@@ -115,6 +117,19 @@ def _revision(payload: dict[str, Any]) -> str:
 
 class ModelCatalogService:
     """Build the model facts shared by management and OpenAI-compatible APIs."""
+
+    def resolve_text_model(self, requested: object) -> str:
+        model = str(requested or "").strip()
+        if not config.text_validate_model_catalog:
+            return model or "auto"
+        catalog = self.view()
+        model = model or catalog.defaults.chat_model
+        if model not in catalog.chat_models:
+            raise HTTPException(status_code=400, detail={
+                "error": "Model is not in the configured chat model catalog",
+                "code": "model_not_found",
+            })
+        return model
 
     def view(self) -> ModelCatalogView:
         settings = config.get()
