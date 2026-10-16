@@ -75,7 +75,13 @@ export function formatAccountDate(timestampSeconds?: number | null): string {
 }
 
 export function statusText(item: Account): string {
-  return item.status_label
+  const labels = {
+    normal: 'Normal',
+    limited: 'Rate limited',
+    abnormal: 'Abnormal',
+    disabled: 'Disabled',
+  } as const
+  return labels[item.status_category] || item.status_label
 }
 
 export function statusRawError(item: Account): string {
@@ -142,17 +148,17 @@ export function accountStatusDetailText(
 ): string {
   return [
     item.status_reason,
-    `账号组：${groupLabel(item.group_id)}`,
-    `代理：${proxyText(item)}`,
+    `Group: ${groupLabel(item.group_id)}`,
+    `Proxy: ${proxyText(item)}`,
   ].filter(Boolean).join('\n')
 }
 
 export function accountDetailItems(item: Account) {
   return [
-    { label: '创建时间', value: accountCreatedText(item) },
-    { label: '恢复时间', value: accountRestoreText(item) },
-    { label: '图片额度', value: accountQuotaText(item) },
-    { label: '成功 / 失败', value: `${item.success_count || 0} / ${item.failure_count || 0}` },
+    { label: 'Created', value: accountCreatedText(item) },
+    { label: 'Quota reset', value: accountRestoreText(item) },
+    { label: 'Image quota', value: accountQuotaText(item) },
+    { label: 'Success / failure', value: `${item.success_count || 0} / ${item.failure_count || 0}` },
   ]
 }
 
@@ -162,7 +168,7 @@ export function accountGroupNameMap(groups: readonly AccountGroup[]): Map<string
 
 export function accountGroupLabel(groupId: string | undefined, groupNames: ReadonlyMap<string, string>): string {
   const id = cleanString(groupId)
-  if (!id) return '未分组'
+  if (!id) return 'No group'
   return groupNames.get(id) || id
 }
 

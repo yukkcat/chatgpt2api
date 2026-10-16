@@ -76,7 +76,7 @@ type PagedQueryLoadOptions = {
 
 function resolveErrorMessage(error: unknown, message?: PageQueryErrorMessage): string {
   if (typeof message === 'function') return message(error)
-  return errorMessage(error, message || '请求失败')
+  return errorMessage(error, message || 'Request failed')
 }
 
 export function usePageQuery(options: PageQueryOptions) {

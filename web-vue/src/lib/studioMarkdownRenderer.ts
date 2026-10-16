@@ -41,7 +41,7 @@ function createMarkdownRenderer(enableHighlight: boolean) {
     return `<div class="studio-code-shell" data-language="${langLabel}">`
       + `<div class="studio-code-header">`
       + `<span class="studio-code-language">${langLabel}</span>`
-      + `<button type="button" class="studio-code-copy" title="复制代码">复制</button>`
+      + `<button type="button" class="studio-code-copy" title="Copy code">Copy</button>`
       + `</div>`
       + `<pre class="hljs studio-code-pre">`
       + `<code class="language-${langLabel}">${highlighted}</code>`

@@ -13,7 +13,7 @@
             <Input
               :model-value="keyword"
               type="text"
-              placeholder="搜索账号 ID / 邮箱 / Token / 套餐 / 来源"
+              placeholder="Search account ID / email / token / plan / source"
               block
               root-class="min-w-[14rem] flex-1 md:max-w-sm"
               @update:model-value="keyword = $event.trim()"
@@ -21,16 +21,16 @@
             <GroupedSelectMenu
               v-model="statusFilter"
               :options="statusFilterOptions"
-              placeholder="状态筛选"
+              placeholder="Filter by status"
               selected-indicator="none"
-              aria-label="账号状态筛选"
+              aria-label="Filter accounts by status"
             />
             <GroupedSelectMenu
               v-model="groupFilter"
               :options="groupFilterOptions"
-              placeholder="账号组"
+              placeholder="Account group"
               selected-indicator="none"
-              aria-label="账号组筛选"
+              aria-label="Filter by account group"
             />
           </FilterToolbar>
 
@@ -41,12 +41,12 @@
               :indeterminate="someVisibleSelected"
               @update:model-value="toggleSelectAllVisible"
             >
-              全选本页
+              Select current page
             </Checkbox>
             <ViewModeSwitch
               :model-value="viewMode"
-              list-label="列表视图"
-              cards-label="卡片视图"
+              list-label="List view"
+              cards-label="Card view"
               @update:model-value="setViewMode"
             />
           </div>
@@ -62,10 +62,10 @@
                 :disabled="accountGroupsLoading"
                 @click="openAccountGroupsModal"
               >
-                账号组管理
+                Manage groups
               </Button>
               <FloatingActionMenu
-                label="导入 / 添加"
+                label="Import / add"
                 :items="accountEntryItems"
                 :disabled="importBusy || batchBusy || accountOperationBusy"
                 align="left"
@@ -73,7 +73,7 @@
                 @select="handleAccountEntryAction"
               />
               <FloatingActionMenu
-                label="导出"
+                label="Export"
                 :items="exportMenuItems"
                 :disabled="exportBusy"
                 align="left"
@@ -99,7 +99,7 @@
               :disabled="loading"
               @click="loadData"
             >
-              刷新列表
+              Refresh list
             </Button>
           </FilterToolbar>
         </div>
@@ -107,8 +107,8 @@
 
       <PageLoadingState
         v-if="viewMode === 'cards' && loading && visibleAccounts.length === 0"
-        title="正在加载账号"
-        description="读取账号列表、分组和分页状态。"
+        title="Loading accounts"
+        description="Loading the account list, groups, and pagination state."
       />
 
       <TableShell
@@ -117,8 +117,8 @@
         sticky-header
         unframed
         :loading="loading && visibleAccounts.length === 0"
-        loading-title="正在加载账号"
-        loading-description="读取账号列表、分组和分页状态。"
+        loading-title="Loading accounts"
+        loading-description="Loading the account list, groups, and pagination state."
         :show-empty="!loading && visibleAccounts.length === 0"
         :empty-colspan="10"
         :scroll-class="isWorkspaceLayout ? 'max-h-[min(36rem,60dvh)] lg:max-h-none' : ''"
@@ -133,25 +133,25 @@
                   :indeterminate="someVisibleSelected"
                   @update:model-value="toggleSelectAllVisible"
                 >
-                  <span class="sr-only">全选当前页账号</span>
+                  <span class="sr-only">Select all accounts on this page</span>
                 </Checkbox>
               </th>
               <th class="py-2.5 pr-5">AT / RT</th>
-              <th class="py-2.5 pr-5">来源 / 套餐</th>
-              <th class="py-2.5 pr-5">状态</th>
-              <th class="py-2.5 pr-5">账户信息</th>
-              <th class="py-2.5 pr-5">创建时间</th>
-              <th class="py-2.5 pr-5">图片额度</th>
-              <th class="py-2.5 pr-5">恢复时间</th>
-              <th class="py-2.5 pr-5">成功 / 失败</th>
-              <th class="py-2.5 pr-3 text-right">操作</th>
+              <th class="py-2.5 pr-5">Source / plan</th>
+              <th class="py-2.5 pr-5">Status</th>
+              <th class="py-2.5 pr-5">Account details</th>
+              <th class="py-2.5 pr-5">Created</th>
+              <th class="py-2.5 pr-5">Image quota</th>
+              <th class="py-2.5 pr-5">Reset time</th>
+              <th class="py-2.5 pr-5">Success / failure</th>
+              <th class="py-2.5 pr-3 text-right">Actions</th>
           </tr>
         </template>
         <template #empty>
                 <EmptyState
                   plain
-                  title="暂无账号数据"
-                  description="可以先用 OAuth 登录已有账号，也可以导入 Access Token、Session JSON 或账号 JSON 文件。"
+                  title="No accounts yet"
+                  description="Sign in to an existing account with OAuth, or import an access token, session JSON, or account JSON file."
                 />
         </template>
         <AccountTableRow
@@ -183,8 +183,8 @@
         <div v-if="!loading && visibleAccounts.length === 0" class="col-span-full">
           <EmptyState
             plain
-            title="暂无账号数据"
-            description="可以先用 OAuth 登录已有账号，也可以导入 Access Token、Session JSON 或账号 JSON 文件。"
+            title="No accounts yet"
+            description="Sign in to an existing account with OAuth, or import an access token, session JSON, or account JSON file."
           />
         </div>
 
@@ -215,11 +215,11 @@
         v-model:layout-mode="listLayoutMode"
         :total-count="accountListTotal"
         :page-size-options="pageSizeOptions"
-        unit="个账号"
+        unit="accounts"
         :disabled="loading"
       >
         <template #summary="{ visibleCount, totalCount, unit }">
-          <span>当前展示 {{ visibleCount }} / {{ totalCount }} {{ unit }}</span>
+          <span>Showing {{ visibleCount }} / {{ totalCount }} {{ unit }}</span>
         </template>
       </ListPagination>
     </PagePanel>
@@ -243,11 +243,11 @@
 
     <ModalShell
       :open="showModal"
-      :aria-label="editingId ? '编辑账号' : '添加账号'"
+      :aria-label="editingId ? 'Edit account' : 'Add account'"
       :z-index="120"
     >
             <ModalHeader
-              :title="editingId ? '编辑账号' : '添加账号'"
+              :title="editingId ? 'Edit account' : 'Add account'"
               :bordered="false"
               :close-disabled="saving"
               compact
@@ -255,39 +255,39 @@
         />
 
             <ModalBody density="compact" class="space-y-3">
-                <FormSection v-if="editingId" title="账号身份" surface="plain">
+                <FormSection v-if="editingId" title="Account identity" surface="plain">
                   <div class="grid grid-cols-1 gap-2.5 md:grid-cols-2">
                     <label class="text-xs">
-                      <span class="ui-field-label">邮箱</span>
-                      <Input :model-value="form.email || '未获取'" disabled block />
+                      <span class="ui-field-label">Email</span>
+                      <Input :model-value="form.email || 'Not available'" disabled block />
                     </label>
                     <label class="text-xs">
-                      <span class="ui-field-label">管理 ID</span>
+                      <span class="ui-field-label">Admin ID</span>
                       <Input :model-value="form.id" disabled block root-class="font-mono" />
                     </label>
                   </div>
                 </FormSection>
 
-                <FormSection title="账号凭据" surface="plain">
+                <FormSection title="Account credentials" surface="plain">
                   <div class="grid grid-cols-1 gap-2.5 md:grid-cols-2">
                   <label class="block text-xs">
-                    <span class="ui-field-label">AT{{ editingId ? '' : '（必填）' }}</span>
+                    <span class="ui-field-label">AT{{ editingId ? '' : ' (required)' }}</span>
                     <textarea
                       v-model.trim="form.access_token"
                       rows="3"
                       class="ui-textarea-sm font-mono"
-                      :placeholder="editingId ? '留空表示不修改' : '粘贴完整 access token'"
+                      :placeholder="editingId ? 'Leave blank to keep unchanged' : 'Paste the full access token'"
                       autocomplete="off"
                       spellcheck="false"
                     ></textarea>
                   </label>
                   <label class="block text-xs">
-                    <span class="ui-field-label">RT（可选）</span>
+                    <span class="ui-field-label">RT (optional)</span>
                     <textarea
                       v-model.trim="form.refresh_token"
                       rows="3"
                       class="ui-textarea-sm font-mono"
-                      :placeholder="editingId ? '留空表示不修改' : '粘贴 refresh token'"
+                      :placeholder="editingId ? 'Leave blank to keep unchanged' : 'Paste the refresh token'"
                       autocomplete="off"
                       spellcheck="false"
                     ></textarea>
@@ -295,45 +295,45 @@
                   </div>
                 </FormSection>
 
-                <FormSection title="账号设置" surface="plain">
+                <FormSection title="Account settings" surface="plain">
                   <div class="grid grid-cols-1 gap-2 md:grid-cols-2">
                     <label class="text-xs">
-                      <span class="ui-field-label">套餐</span>
+                      <span class="ui-field-label">Plan</span>
                       <Input
                         :model-value="form.type"
                         block
-                        placeholder="留空表示未知（Free / Plus / Pro）"
+                        placeholder="Leave blank if unknown (Free / Plus / Pro)"
                         @update:model-value="form.type = $event.trim()"
                       />
                     </label>
                     <div class="text-xs">
-                      <span class="ui-field-label">来源</span>
+                      <span class="ui-field-label">Source</span>
                       <GroupedSelectMenu
                         v-model="form.source_type"
                         :options="accountSourceOptions"
-                        placeholder="来源"
+                        placeholder="Source"
                         selected-indicator="none"
-                        aria-label="账号来源"
+                        aria-label="Account source"
                         block
                       />
                     </div>
                     <label class="text-xs">
-                      <span class="ui-field-label">图片额度</span>
+                      <span class="ui-field-label">Image quota</span>
                       <Input
                         :model-value="form.quota"
                         type="number"
                         block
-                        placeholder="留空表示未知"
+                        placeholder="Leave blank if unknown"
                         @update:model-value="form.quota = $event.trim()"
                       />
                     </label>
                     <label class="text-xs">
-                      <span class="ui-field-label">账号组</span>
+                      <span class="ui-field-label">Account group</span>
                       <GroupedSelectMenu
                         v-model="form.group_id"
                         :options="accountGroupOptions"
                         :disabled="accountGroupsLoading"
-                        aria-label="账号组"
+                        aria-label="Account group"
                         selected-indicator="none"
                         block
                       />
@@ -341,11 +341,11 @@
                     <div class="space-y-2 text-xs md:col-span-2">
                       <div class="grid grid-cols-1 gap-2 md:grid-cols-[11rem_minmax(0,1fr)]">
                         <label>
-                          <span class="ui-field-label">代理模式</span>
+                          <span class="ui-field-label">Proxy mode</span>
                           <GroupedSelectMenu
                             :model-value="proxyMode"
                             :options="accountProxyModeOptions"
-                            aria-label="代理模式"
+                            aria-label="Proxy mode"
                             selected-indicator="none"
                             block
                             @update:model-value="setProxyMode"
@@ -353,12 +353,12 @@
                         </label>
 
                         <label v-if="proxyMode === 'group'">
-                          <span class="ui-field-label">代理组（多节点）</span>
+                          <span class="ui-field-label">Proxy group (multiple nodes)</span>
                           <GroupedSelectMenu
                             :model-value="selectedProxyGroupId"
                             :options="proxyGroupOptions"
                             :disabled="accountGroupsLoading"
-                            aria-label="代理组"
+                            aria-label="Proxy group"
                             selected-indicator="none"
                             block
                             @update:model-value="selectProxyGroup"
@@ -366,7 +366,7 @@
                         </label>
 
                         <label v-else-if="proxyMode === 'custom'">
-                          <span class="ui-field-label">自定义代理</span>
+                          <span class="ui-field-label">Custom proxy</span>
                           <Input
                             :model-value="customProxyInput"
                             block
@@ -377,13 +377,13 @@
                         </label>
 
                         <SurfaceBox v-else tone="muted" dashed density="compact" class="flex min-h-[3.25rem] items-center">
-                          {{ proxyMode === 'direct' ? '该账号强制直连，不读取账号组或默认出口。' : '该账号不单独指定代理，会按账号组代理、默认出口顺序回退。' }}
+                          {{ proxyMode === 'direct' ? 'This account always connects directly and ignores its group and default proxy.' : 'No proxy is set for this account. It falls back to the group proxy, then the default proxy.' }}
                         </SurfaceBox>
                       </div>
 
                       <SurfaceBox tone="muted" density="compact" class="flex flex-wrap items-center justify-between gap-2">
                         <div class="min-w-0">
-                          <span class="ui-field-label">当前代理</span>
+                          <span class="ui-field-label">Current proxy</span>
                           <p class="mt-1 max-w-full truncate text-xs text-foreground" :title="accountProxyPreview">{{ accountProxyPreview }}</p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2">
@@ -395,7 +395,7 @@
                             :disabled="accountGroupsLoading"
                             @click="loadAccountGroups()"
                           >
-                            {{ accountGroupsLoading ? '刷新中...' : '刷新代理组' }}
+                            {{ accountGroupsLoading ? 'Refreshing…' : 'Refresh proxy groups' }}
                           </Button>
                           <Button
                             v-if="proxyMode !== 'direct'"
@@ -405,9 +405,9 @@
                             :disabled="proxyTesting || accountGroupsLoading"
                             @click="testAccountProxy"
                           >
-                            {{ proxyTesting ? '测试中...' : '测试当前代理' }}
+                            {{ proxyTesting ? 'Testing…' : 'Test current proxy' }}
                           </Button>
-                          <span v-else class="text-[11px] text-muted-foreground">直连模式无需测试出口</span>
+                          <span v-else class="text-[11px] text-muted-foreground">No proxy test is needed in direct mode.</span>
                         </div>
                       </SurfaceBox>
                     </div>
@@ -417,19 +417,19 @@
 
             <ModalFooter :bordered="false">
               <Button size="xs" variant="primary" root-class="min-w-14 justify-center" :disabled="saving" @click="saveAccount">
-                {{ saving ? '保存中...' : '保存' }}
+                {{ saving ? 'Saving…' : 'Save' }}
               </Button>
             </ModalFooter>
     </ModalShell>
 
     <ModalShell
       :open="showAccountGroupsModal"
-      aria-label="账号组管理"
+      aria-label="Manage account groups"
       :z-index="130"
     >
             <ModalHeader
-              title="账号组管理"
-              subtitle="先创建账号组，再在账号列表勾选账号批量绑定。"
+              title="Manage account groups"
+              subtitle="Create a group, then select accounts in the list to bind them in bulk."
               :close-disabled="accountGroupSaving"
               compact
               @close="closeAccountGroupsModal"
@@ -439,26 +439,26 @@
               <div class="border-b border-border bg-muted/20 p-4 md:border-b-0 md:border-r">
                 <div class="space-y-3">
                   <p class="text-sm font-medium text-foreground">
-                    {{ editingAccountGroupId ? '编辑账号组' : '新建账号组' }}
+                    {{ editingAccountGroupId ? 'Edit group' : 'Create group' }}
                   </p>
 
                   <label class="block text-xs">
-                    <span class="ui-field-label">账号组名称</span>
+                    <span class="ui-field-label">Group name</span>
                     <Input
                       :model-value="accountGroupForm.name"
                       block
-                      placeholder="高额度账号 / Codex / 手动 Token"
+                      placeholder="High-quota accounts / Codex / manual tokens"
                       @update:model-value="accountGroupForm.name = $event.trim()"
                     />
                   </label>
 
                   <div class="space-y-2 text-xs">
                     <label class="block">
-                      <span class="ui-field-label">默认出口</span>
+                      <span class="ui-field-label">Default proxy</span>
                       <GroupedSelectMenu
                         :model-value="accountGroupProxyMode"
                         :options="accountProxyModeOptions"
-                        aria-label="账号组默认代理模式"
+                        aria-label="Group default proxy mode"
                         selected-indicator="none"
                         block
                         @update:model-value="setAccountGroupProxyMode"
@@ -466,12 +466,12 @@
                     </label>
 
                     <label v-if="accountGroupProxyMode === 'group'" class="block">
-                      <span class="ui-field-label">代理组（多节点）</span>
+                      <span class="ui-field-label">Proxy group (multiple nodes)</span>
                       <GroupedSelectMenu
                         :model-value="selectedAccountGroupProxyGroupId"
                         :options="accountGroupProxyOptions"
                         :disabled="accountGroupsLoading"
-                        aria-label="账号组默认代理组"
+                        aria-label="Group default proxy group"
                         selected-indicator="none"
                         block
                         @update:model-value="selectAccountGroupProxyGroup"
@@ -479,7 +479,7 @@
                     </label>
 
                     <label v-else-if="accountGroupProxyMode === 'custom'" class="block">
-                      <span class="ui-field-label">自定义代理</span>
+                      <span class="ui-field-label">Custom proxy</span>
                       <Input
                         :model-value="accountGroupCustomProxyInput"
                         block
@@ -490,11 +490,11 @@
                     </label>
 
                     <SurfaceBox v-else tone="muted" dashed density="compact" class="min-h-[2.75rem]">
-                      {{ accountGroupProxyMode === 'direct' ? '该账号组强制直连，组内账号不会回退默认出口。' : '账号组不单独指定代理，组内账号会继续回退默认出口。' }}
+                      {{ accountGroupProxyMode === 'direct' ? 'This group always connects directly. Its accounts will not fall back to the default proxy.' : 'No proxy is set for this group. Its accounts continue to use the default proxy as a fallback.' }}
                     </SurfaceBox>
 
                     <SurfaceBox tone="muted" density="compact">
-                      <span class="ui-field-label">当前代理</span>
+                      <span class="ui-field-label">Current proxy</span>
                       <p class="mt-1 truncate text-xs text-foreground" :title="accountGroupProxyPreview">{{ accountGroupProxyPreview }}</p>
                     </SurfaceBox>
                   </div>
@@ -504,28 +504,28 @@
                       :model-value="accountGroupForm.enabled"
                       @update:model-value="accountGroupForm.enabled = Boolean($event)"
                     />
-                    启用账号组
+                    Enable group
                   </SurfaceBox>
 
                   <label class="block text-xs">
-                    <span class="ui-field-label">备注</span>
+                    <span class="ui-field-label">Notes</span>
                     <textarea
                       v-model.trim="accountGroupForm.notes"
                       rows="3"
                       class="ui-textarea-sm"
-                      placeholder="例如：高额度账号默认走香港代理池"
+                      placeholder="Example: route high-quota accounts through the Hong Kong proxy pool"
                     ></textarea>
                   </label>
 
                   <Button size="sm" variant="primary" root-class="w-full justify-center" :disabled="accountGroupSaving" @click="saveAccountGroup">
-                    {{ accountGroupSaving ? '保存中...' : editingAccountGroupId ? '保存账号组' : '创建账号组' }}
+                    {{ accountGroupSaving ? 'Saving…' : editingAccountGroupId ? 'Save group' : 'Create group' }}
                   </Button>
                 </div>
               </div>
 
               <div class="max-h-[32rem] overflow-y-auto p-4">
                 <StateBlock v-if="accountGroupRows.length === 0" dashed>
-                  还没有账号组。先在左侧创建，比如高额度账号、Codex、手动 Token。
+                  No groups yet. Create one on the left, for example, High-quota accounts, Codex, or Manual tokens.
                 </StateBlock>
 
                 <div v-else class="space-y-2">
@@ -540,21 +540,21 @@
                         <div class="flex flex-wrap items-center gap-2">
                           <p class="font-medium text-foreground">{{ group.name }}</p>
                           <StateBadge :tone="group.enabled ? 'success' : 'muted'" size="xs">
-                            {{ group.enabled ? '启用' : '停用' }}
+                            {{ group.enabled ? 'Enabled' : 'Disabled' }}
                           </StateBadge>
                         </div>
                         <p class="mt-1 text-xs text-muted-foreground">
-                          {{ group.account_count }} 个账号 · 默认出口：{{ group.proxy_label }}
+                          {{ group.account_count }} accounts · Default proxy: {{ group.proxy_label }}
                         </p>
                         <p v-if="group.notes" class="mt-1 line-clamp-2 text-xs text-muted-foreground">{{ group.notes }}</p>
                       </div>
 
                       <div class="flex shrink-0 items-center gap-2">
                         <Button size="xs" variant="outline" :disabled="accountGroupSaving" @click="editAccountGroup(group.raw)">
-                          编辑
+                          Edit
                         </Button>
                         <Button size="xs" variant="outline" root-class="text-rose-600" :disabled="accountGroupSaving" @click="deleteAccountGroup(group.raw)">
-                          删除
+                          Delete
                         </Button>
                       </div>
                     </div>
@@ -566,10 +566,10 @@
 
     <ModalShell
       :open="showImportModal"
-      aria-label="导入账号"
+      aria-label="Import accounts"
       :z-index="120"
     >
-            <ModalHeader title="导入账号" :close-disabled="importModalBusy" compact @close="closeImportModal" />
+            <ModalHeader title="Import accounts" :close-disabled="importModalBusy" compact @close="closeImportModal" />
 
             <div class="grid grid-cols-1 gap-0 md:grid-cols-[15rem_1fr]">
               <div class="flex flex-col border-b border-border bg-muted/20 p-3 md:border-b-0 md:border-r">
@@ -598,12 +598,12 @@
               <div class="min-h-[clamp(26rem,55vh,42rem)] p-4">
                 <div v-if="importMode === 'oauth_login'" class="space-y-3">
                   <ImportModePanel
-                    title="OAuth 登录已有账号"
-                    description="用浏览器登录 ChatGPT，回填 callback URL 后保存 RT，用于 AT 临期自动续期。"
+                    title="Sign in to an existing account with OAuth"
+                    description="Sign in to ChatGPT in your browser, then paste the callback URL to save the RT. It can renew an AT before it expires."
                   />
                   <div class="grid grid-cols-1 gap-3">
                     <label class="block text-xs">
-                      <span class="ui-field-label">账号邮箱（可选）</span>
+                      <span class="ui-field-label">Account email (optional)</span>
                       <Input
                         :model-value="oauthEmailHint"
                         type="email"
@@ -616,19 +616,19 @@
 
                     <div class="flex flex-wrap gap-2">
                       <Button size="xs" variant="primary" :disabled="importBusy" @click="startOAuthLogin">
-                        {{ oauthAuthorizeUrl ? '重新生成授权链接' : '生成并打开授权页面' }}
+                        {{ oauthAuthorizeUrl ? 'Regenerate authorization link' : 'Generate and open authorization page' }}
                       </Button>
                       <Button v-if="oauthAuthorizeUrl" size="xs" variant="outline" :disabled="importBusy" @click="openOAuthAuthorizeUrl">
-                        打开授权页面
+                        Open authorization page
                       </Button>
                       <Button v-if="oauthAuthorizeUrl" size="xs" variant="outline" :disabled="importBusy" @click="copyOAuthAuthorizeUrl">
-                        复制授权链接
+                        Copy authorization link
                       </Button>
                     </div>
 
                     <SurfaceBox v-if="oauthAuthorizeUrl" tone="muted" density="compact" wrap>
-                      授权链接已生成。登录完成后，把浏览器最终跳转到的 callback URL 粘贴到下方。
-                      <span v-if="oauthRedirectUriPrefix">目标地址：{{ oauthRedirectUriPrefix }}</span>
+                      Authorization link generated. After signing in, paste the final callback URL from your browser below.
+                      <span v-if="oauthRedirectUriPrefix">Redirect URI: {{ oauthRedirectUriPrefix }}</span>
                     </SurfaceBox>
 
                     <label class="block text-xs">
@@ -637,7 +637,7 @@
                         v-model.trim="oauthCallbackText"
                         rows="5"
                         class="ui-textarea-sm font-mono"
-                        placeholder="粘贴完整 callback URL，或只粘贴 code"
+                        placeholder="Paste the full callback URL or just the code"
                         :disabled="importBusy || !oauthSessionId"
                       ></textarea>
                     </label>
@@ -649,7 +649,7 @@
                         :disabled="importBusy || !oauthSessionId || !oauthCallbackText.trim()"
                         @click="finishOAuthLogin"
                       >
-                        {{ importBusy ? '导入中...' : '完成导入' }}
+                        {{ importBusy ? 'Importing…' : 'Finish import' }}
                       </Button>
                     </div>
                   </div>
@@ -657,69 +657,69 @@
 
                 <div v-else-if="importMode === 'access_token'" class="space-y-3">
                   <ImportModePanel
-                    title="导入 Access Token"
-                    description="支持直接粘贴，一行一个；也支持从 TXT 文件读取，一行一个。"
+                    title="Import access tokens"
+                    description="Paste tokens directly, one per line, or load a TXT file with one token per line."
                   />
                   <textarea
                     v-model.trim="manualTokenText"
                     rows="10"
                     class="ui-textarea-sm font-mono"
-                    placeholder="一行一个 access token"
+                    placeholder="One access token per line"
                   ></textarea>
                   <div class="flex flex-wrap justify-end gap-2">
                     <Button size="xs" variant="outline" :disabled="importBusy" @click="openManualTokenFile">
-                      读取 TXT 文件
+                      Load TXT file
                     </Button>
                     <Button size="xs" variant="primary" :disabled="importBusy || !manualTokenText.trim()" @click="importManualTokenText">
-                      {{ importBusy ? '导入中...' : '开始导入' }}
+                      {{ importBusy ? 'Importing…' : 'Start import' }}
                     </Button>
                   </div>
                 </div>
 
                 <div v-else-if="importMode === 'session_json'" class="space-y-3">
-                  <ImportModePanel title="导入 Session JSON">
+                  <ImportModePanel title="Import session JSON">
                     <template #description>
                       <p class="mt-1 text-xs leading-6 text-muted-foreground">
-                        打开
+                        Open
                         <a
                           href="https://chatgpt.com/api/auth/session"
                           target="_blank"
                           rel="noopener noreferrer"
                           class="font-medium text-primary underline decoration-primary/35 underline-offset-2 hover:decoration-primary"
-                        >https://chatgpt.com/api/auth/session</a>，复制完整 JSON，系统会保留其中的 AT、RT 和 ID Token；该接口通常不包含长期 RT。
+                        >https://chatgpt.com/api/auth/session</a>, copy the full JSON, and paste it here. The importer keeps the AT, RT, and ID token; this endpoint usually does not include a long-lived RT.
                       </p>
                     </template>
                   </ImportModePanel>
-                  <textarea v-model.trim="sessionJsonText" rows="12" class="ui-textarea-sm font-mono" placeholder="粘贴完整 session JSON"></textarea>
+                  <textarea v-model.trim="sessionJsonText" rows="12" class="ui-textarea-sm font-mono" placeholder="Paste the full session JSON"></textarea>
                   <div class="flex justify-end">
                     <Button size="xs" variant="primary" :disabled="importBusy || !sessionJsonText.trim()" @click="importSessionJson">
-                      {{ importBusy ? '导入中...' : '开始导入' }}
+                      {{ importBusy ? 'Importing…' : 'Start import' }}
                     </Button>
                   </div>
                 </div>
 
                 <div v-else-if="importMode === 'backup_json'" class="space-y-3">
                   <ImportModePanel
-                    title="导入完整备份文件"
-                    description="读取本系统导出的完整账号 JSON，直接恢复已保存的凭据和账号配置，不请求远程接口验证。"
+                    title="Import full backup file"
+                    description="Load a full account JSON export from this system to restore saved credentials and account settings. No remote verification is performed."
                   />
                   <StateBlock dashed compact>
                     <Button size="sm" variant="outline" :disabled="importBusy" @click="openAccountFileDialog">
-                      选择备份 JSON 文件
+                      Select backup JSON file
                     </Button>
                   </StateBlock>
                 </div>
 
                 <div v-else-if="importMode === 'cpa_json' || importMode === 'sub2api_json'" class="space-y-3">
                   <ImportModePanel
-                    :title="importMode === 'sub2api_json' ? '导入 Sub2API JSON 文件' : '导入 CPA JSON 文件'"
+                    :title="importMode === 'sub2api_json' ? 'Import Sub2API JSON file' : 'Import CPA JSON file'"
                     :description="importMode === 'sub2api_json'
-                      ? '读取 Sub2API 导出的 JSON 文件，提取账号凭据并同步账号信息与额度。'
-                      : '从一个或多个 CPA JSON 文件提取账号凭据，并请求远程接口验证、同步账号信息与额度。'"
+                      ? 'Load JSON files exported by Sub2API to extract account credentials and sync account details and quotas.'
+                      : 'Extract account credentials from one or more CPA JSON files, then verify them remotely and sync account details and quotas.'"
                   />
                   <StateBlock dashed compact>
                     <Button size="sm" variant="outline" :disabled="importBusy" @click="openAccountFileDialog">
-                      选择 {{ importMode === 'sub2api_json' ? 'Sub2API' : 'CPA' }} JSON 文件
+                      Select {{ importMode === 'sub2api_json' ? 'Sub2API' : 'CPA' }} JSON file(s)
                     </Button>
                   </StateBlock>
                 </div>

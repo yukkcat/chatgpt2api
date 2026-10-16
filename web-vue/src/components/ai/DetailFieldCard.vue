@@ -8,7 +8,7 @@
         variant="ghost"
         @click="$emit('copy', value)"
       >
-        复制
+        Copy
       </Button>
     </div>
     <p class="detail-field-card__value">{{ value || '-' }}</p>

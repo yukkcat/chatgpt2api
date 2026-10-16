@@ -17,7 +17,7 @@
         class="studio-history-resizer"
         role="separator"
         aria-orientation="vertical"
-        title="拖动调整历史栏宽度"
+        title="Drag to resize the history panel"
         @pointerdown="startSidebarResize"
       ></div>
     </div>
@@ -30,14 +30,14 @@
             variant="ghost"
             icon-only
             root-class="chat-header-icon lg:hidden"
-            title="打开会话列表"
-            aria-label="打开会话列表"
+            title="Open conversation list"
+            aria-label="Open conversation list"
             @click="openMobileHistory"
           >
             <Icon icon="lucide:panel-left-open" class="h-4 w-4" />
           </Button>
           <div class="min-w-0">
-            <div class="chat-header-name">{{ activeConversation?.title || '新对话' }}</div>
+            <div class="chat-header-name">{{ activeConversation?.title || 'New chat' }}</div>
             <div class="chat-header-subtitle">{{ activeHeaderSubtitle }}</div>
           </div>
         </div>
@@ -45,7 +45,7 @@
         <div class="chat-header-actions">
           <Button size="sm" variant="outline" root-class="chat-header-action-button" @click="createConversation()">
             <Icon icon="lucide:plus" class="h-3.5 w-3.5" />
-            <span class="chat-header-action-label hidden sm:inline">新对话</span>
+            <span class="chat-header-action-label hidden sm:inline">New chat</span>
           </Button>
           <Button
             size="sm"
@@ -55,15 +55,15 @@
             @click="clearCurrentConversation"
           >
             <Icon icon="lucide:trash-2" class="h-3.5 w-3.5" />
-            <span class="chat-header-action-label hidden sm:inline">清空</span>
+            <span class="chat-header-action-label hidden sm:inline">Clear</span>
           </Button>
           <Button
             size="sm"
             variant="ghost"
             icon-only
             root-class="chat-header-action-button"
-            :title="isFullscreen ? '退出全屏' : '全屏'"
-            :aria-label="isFullscreen ? '退出全屏' : '全屏'"
+            :title="isFullscreen ? 'Exit full screen' : 'Full screen'"
+            :aria-label="isFullscreen ? 'Exit full screen' : 'Full screen'"
             @click="toggleFullscreen"
           >
             <Icon :icon="isFullscreen ? 'lucide:minimize-2' : 'lucide:maximize-2'" class="h-4 w-4" />
@@ -132,7 +132,7 @@
           <aside
             v-if="activeSearchSourceMessage && isSearchSourceDocked"
             class="studio-search-sources-dock"
-            aria-label="参考来源"
+            aria-label="Sources"
           >
             <div class="studio-search-sources-dock-inner">
               <StudioSearchSourcesPanel
@@ -151,7 +151,7 @@
       :open="Boolean(activeSearchSourceMessage) && !isSearchSourceDocked"
       max-width="22rem"
       :z-index="220"
-      aria-label="参考来源"
+      aria-label="Sources"
       bare
       @close="closeSearchSourcePanel"
     >
@@ -390,16 +390,16 @@ const chatStreamRuntime = useStudioChatStreamRuntime({
 })
 const isStreaming = chatStreamRuntime.isStreaming
 const activeHeaderSubtitle = computed(() => {
-  if (isStreaming.value) return '正在回复'
+  if (isStreaming.value) return 'Responding'
   if (isSending.value) {
-    if (composeMode.value === 'search') return '正在搜索'
-    if (composeMode.value === 'image') return '正在提交图片'
-    if (composeMode.value === 'file') return '正在提交文件任务'
-    return '正在请求'
+    if (composeMode.value === 'search') return 'Searching'
+    if (composeMode.value === 'image') return 'Submitting image'
+    if (composeMode.value === 'file') return 'Submitting file task'
+    return 'Requesting'
   }
-  if (activeRunningTaskCount.value > 0) return `处理中 ${activeRunningTaskCount.value}`
+  if (activeRunningTaskCount.value > 0) return `Processing ${activeRunningTaskCount.value}`
   const count = activeConversation.value?.messages.length || 0
-  return count ? `${count} 条消息` : '准备就绪'
+  return count ? `${count} messages` : 'Ready'
 })
 
 function clearSearchSourceHighlight() {
@@ -543,10 +543,10 @@ async function deleteConversation(id: string) {
   const conversation = conversationActionsRuntime.prepareDeleteConversation(id)
   if (!conversation) return
   const ok = await confirmDialog.ask({
-    title: '删除对话',
-    message: `确定删除“${conversation.title || '未命名对话'}”吗？本地历史会被移除。`,
-    confirmText: '删除',
-    cancelText: '取消',
+    title: 'Delete chat',
+    message: `Delete “${conversation.title || 'Untitled chat'}”? This will remove the local history.`,
+    confirmText: 'Delete',
+    cancelText: 'Cancel',
   })
   if (!ok) return
   conversationActionsRuntime.deleteConversation(id)
@@ -555,10 +555,10 @@ async function deleteConversation(id: string) {
 async function confirmClearHistory() {
   if (!conversationActionsRuntime.prepareClearHistory()) return
   const ok = await confirmDialog.ask({
-    title: '清空历史',
-    message: '确定清空本地对话画图历史吗？已生成的图片文件不会删除。',
-    confirmText: '清空',
-    cancelText: '取消',
+    title: 'Clear history',
+    message: 'Clear local chat and image history? Generated image files will not be deleted.',
+    confirmText: 'Clear',
+    cancelText: 'Cancel',
   })
   if (!ok) return
   conversationActionsRuntime.clearHistory()
@@ -569,10 +569,10 @@ async function clearCurrentConversation() {
   const conversation = activeConversation.value
   if (!conversation?.messages.length) return
   const ok = await confirmDialog.ask({
-    title: '清空当前对话',
-    message: `确定清空“${conversation.title || '未命名对话'}”中的消息吗？`,
-    confirmText: '清空',
-    cancelText: '取消',
+    title: 'Clear current chat',
+    message: `Clear the messages in “${conversation.title || 'Untitled chat'}”?`,
+    confirmText: 'Clear',
+    cancelText: 'Cancel',
   })
   if (!ok) return
   conversationActionsRuntime.clearCurrentConversation(conversation.id)
@@ -643,7 +643,7 @@ function imageCompareSource(asset: StudioImageAssetView, name: string): StudioIm
   const localPath = cleanAssetText(asset.path)
   return {
     src,
-    name: cleanAssetText(name) || imageAssetFilename(asset, '生成图片.png'),
+    name: cleanAssetText(name) || imageAssetFilename(asset, 'generated-image.png'),
     localPath: localPath || undefined,
   }
 }
@@ -651,16 +651,16 @@ function imageCompareSource(asset: StudioImageAssetView, name: string): StudioIm
 async function imageAssetToFile(asset: StudioImageAssetView, name: string) {
   const filename = imageAssetFilename(asset, name)
   const source = imageAssetSource(asset)
-  if (!source) throw new Error('图片没有可读取的地址')
+  if (!source) throw new Error('The image has no readable URL')
 
   const response = /^data:/i.test(source)
     ? await fetch(source)
     : await fetch(source, { credentials: 'same-origin' })
-  if (!response.ok) throw new Error(`读取图片失败：HTTP ${response.status}`)
+  if (!response.ok) throw new Error(`Failed to read image: HTTP ${response.status}`)
 
   const blob = await response.blob()
-  if (!blob.size) throw new Error('读取到的图片为空')
-  if (blob.type && !blob.type.startsWith('image/')) throw new Error('读取到的内容不是图片')
+  if (!blob.size) throw new Error('The image is empty')
+  if (blob.type && !blob.type.startsWith('image/')) throw new Error('The returned content is not an image')
   return new File([blob], filename, { type: blob.type || 'image/png' })
 }
 
@@ -674,24 +674,24 @@ async function referenceGeneratedImage(asset: StudioImageAssetView, name: string
   try {
     file = await imageAssetToFile(asset, name)
   } catch (error) {
-    toast.error(studioErrorMessage(error, '引用图片读取失败'))
+    toast.error(studioErrorMessage(error, 'Failed to read referenced image'))
     return
   }
 
   const added = await referenceRuntime.append([file])
   if (!added) {
-    toast.error('最多只能添加 8 张参考图')
+    toast.error('You can add up to 8 reference images')
     return
   }
   composerRuntime.activateImageMode()
-  toast.success('已引用到输入框')
+  toast.success('Added to the message')
   scheduleScrollToBottom()
 }
 
 function openInpaintModal(asset: StudioImageAssetView, name: string, _message: StudioMessage) {
   const source = imageCompareSource(asset, name)
   if (!source) {
-    toast.error('图片没有可用于局部修改的地址')
+    toast.error('The image has no URL available for editing')
     return
   }
   inpaintTarget.value = { asset, name, source }
@@ -704,7 +704,7 @@ function closeInpaintModal() {
 function openImageCompare(source: StudioImageCompareSource, asset: StudioImageAssetView, name: string) {
   const after = imageCompareSource(asset, name)
   if (!after) {
-    toast.error('新图没有可用于对比的地址')
+    toast.error('The new image has no URL available for comparison')
     return
   }
   comparePreview.value = { before: source, after }
@@ -721,7 +721,7 @@ async function submitInpaintEdit(payload: { prompt: string; markedImage: File })
     sourceFile = await imageAssetToFile(target.asset, target.name)
     referenceImage = await messageReferenceImageFromFile(payload.markedImage)
   } catch (error) {
-    toast.error(studioErrorMessage(error, '局部修改图片读取失败'))
+    toast.error(studioErrorMessage(error, 'Failed to read image for editing'))
     return
   }
 
@@ -736,7 +736,7 @@ async function submitInpaintEdit(payload: { prompt: string; markedImage: File })
     files: [sourceFile, payload.markedImage],
     userContent: `局部修改：${prompt}`,
     referenceImages: [referenceImage],
-    assistantContent: '局部修改任务已提交',
+    assistantContent: 'Image editing task submitted',
     inpaintSource: target.source,
     imageCount: 1,
   })
@@ -765,9 +765,9 @@ async function copyText(value: string) {
   if (!value) return
   try {
     await writeClipboardText(value)
-    toast.success('已复制')
+    toast.success('Copied')
   } catch {
-    toast.error('复制失败')
+    toast.error('Copy failed')
   }
 }
 
@@ -776,9 +776,9 @@ async function downloadPreviewImage() {
   if (!previewImage) return
   try {
     await downloadUrlAsFile(previewImage.src, previewImage.name || 'image.png', { localPath: previewImage.localPath })
-    toast.success('已开始下载')
+    toast.success('Download started')
   } catch (error: any) {
-    toast.error(`下载失败：${error.message || '无法读取图片文件'}`)
+    toast.error(`Download failed: ${error.message || 'Unable to read image file'}`)
   }
 }
 

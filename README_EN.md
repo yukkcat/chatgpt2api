@@ -70,6 +70,8 @@ docker compose up -d
 | OpenAI-compatible API | `http://localhost:3000/v1` |
 | Data directory | `./data` |
 
+The built-in admin console labels, navigation, and controls are presented in English. Dynamic upstream values and user content—such as account names, backend status details, error messages, and saved prompts—are shown as received.
+
 `CHATGPT2API_AUTH_KEY` in `.env` takes precedence over `auth-key` in `config.json`. Compose uses a dedicated runtime volume for console-managed online updates. Console settings, upstream accounts, user keys, call records, and metrics are stored in the Application Database. Do not commit local `.env`, `config.json`, or `data/` files.
 
 ### PostgreSQL 18

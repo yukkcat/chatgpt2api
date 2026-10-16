@@ -89,7 +89,7 @@ function resampleDemoValues(values: number[], pointCount: number) {
 function resolveDemoLabels(labels: string[]) {
   return labels.length > 0
     ? labels
-    : ['-7h', '-6h', '-5h', '-4h', '-3h', '-2h', '-1h', '当前']
+    : ['-7h', '-6h', '-5h', '-4h', '-3h', '-2h', '-1h', 'Now']
 }
 
 function createStraightAreaLineSeries(
@@ -147,7 +147,7 @@ export function useDashboardPage() {
     runtime: pageRuntime,
     key: DASHBOARD_DATA_REQUEST_KEY,
     error: dashboardQueryError,
-    errorMessage: '概览加载失败',
+    errorMessage: 'Dashboard failed to load',
   })
   const dashboardLoadError = ref('')
   const dashboardDataWarning = ref('')
@@ -172,7 +172,7 @@ export function useDashboardPage() {
   function createDefaultStats() {
     return [
       {
-        label: '账号总数',
+        label: 'Total accounts',
         value: '0',
         meta: '',
         icon: 'lucide:users',
@@ -180,7 +180,7 @@ export function useDashboardPage() {
         iconColor: 'text-sky-600'
       },
       {
-        label: '正常账号',
+        label: 'Normal accounts',
         value: '0',
         meta: '',
         icon: 'lucide:check-circle',
@@ -188,7 +188,7 @@ export function useDashboardPage() {
         iconColor: 'text-emerald-600'
       },
       {
-        label: '限流账号',
+        label: 'Rate-limited accounts',
         value: '0',
         meta: '',
         icon: 'lucide:clock',
@@ -196,7 +196,7 @@ export function useDashboardPage() {
         iconColor: 'text-amber-600'
       },
       {
-        label: '异常账号',
+        label: 'Invalid accounts',
         value: '0',
         meta: '',
         icon: 'lucide:alert-circle',
@@ -204,7 +204,7 @@ export function useDashboardPage() {
         iconColor: 'text-rose-600'
       },
       {
-        label: '禁用账号',
+        label: 'Disabled accounts',
         value: '0',
         meta: '',
         icon: 'lucide:ban',
@@ -212,7 +212,7 @@ export function useDashboardPage() {
         iconColor: 'text-slate-600'
       },
       {
-        label: '剩余额度',
+        label: 'Remaining quota',
         value: '0',
         meta: '',
         icon: 'lucide:coins',
@@ -234,7 +234,7 @@ export function useDashboardPage() {
   const dashboardOperations = shallowRef<DashboardResponse['operations'] | null>(null)
   const dashboardVersion = ref('--')
 
-  // 每个图表独立的数据状态
+  // Each chart has an independent data state.
   function createEmptyChartData() {
     return {
       trend: {
@@ -531,7 +531,7 @@ export function useDashboardPage() {
       || chartData.value.trend.switchCount.some(value => value > 0)
       || hasSuccessRateData
     const successRateSeries = {
-      ...createStraightAreaLineSeries('成功率', successRateValues, chartColors.warning, 0.08),
+      ...createStraightAreaLineSeries('Success rate', successRateValues, chartColors.warning, 0.08),
       yAxisIndex: 1,
       symbolSize: 4,
       connectNulls: true,
@@ -542,14 +542,14 @@ export function useDashboardPage() {
       tooltip: {
         ...theme.tooltip,
         formatter: (params: unknown) => formatDashboardAxisTooltip(params, (value, item) => (
-          item.seriesName === '成功率'
+          item.seriesName === 'Success rate'
             ? `${value.toFixed(1)}%`
             : value.toLocaleString('zh-CN')
         )),
       },
       legend: {
         ...theme.legend,
-        data: [...trendSeries.map(series => series.name), '成功率'],
+        data: [...trendSeries.map(series => series.name), 'Success rate'],
       },
       grid: {
         ...theme.grid,
@@ -578,7 +578,7 @@ export function useDashboardPage() {
       ],
       graphic: useDemoData || hasTrendData
         ? (useDemoData ? [demoChartGraphic()] : [])
-        : [emptyChartGraphic('当前范围内暂无可统计请求')],
+        : [emptyChartGraphic('No requests to display for this time range.')],
       series: [...trendSeries, successRateSeries],
     }, mode)
   }
@@ -604,7 +604,7 @@ export function useDashboardPage() {
       top: 8,
       silent: true,
       style: {
-        text: '演示数据',
+        text: 'Demo data',
         fill: '#a3a3a3',
         fontSize: 11,
       },
@@ -690,7 +690,7 @@ export function useDashboardPage() {
         ...theme.yAxis,
         minInterval: 1,
       },
-      graphic: modelNames.length ? [] : [emptyChartGraphic('当前范围内暂无成功请求')],
+      graphic: modelNames.length ? [] : [emptyChartGraphic('No successful requests in this time range.')],
       series,
     }, mode)
   }
@@ -802,7 +802,7 @@ export function useDashboardPage() {
     dashboardOperations.value = snapshot.operations
     dashboardVersion.value = snapshot.version
     dashboardDataWarning.value = snapshot.metrics.status === 'degraded'
-      ? '统计数据暂未更新，当前展示最近一次可用快照。'
+      ? 'Statistics have not been updated. Showing the most recent available snapshot.'
       : ''
     if (nextRenderSignature === dashboardRenderSignature) return false
     dashboardRenderSignature = nextRenderSignature
@@ -872,9 +872,9 @@ export function useDashboardPage() {
       const refreshed = Boolean(snapshot)
       if (!refreshed && epoch === dashboardRefreshEpoch) {
         if (dashboardSnapshot) {
-          dashboardDataWarning.value = '最新统计刷新失败，当前展示最近一次可用快照。'
+          dashboardDataWarning.value = 'Failed to refresh the latest statistics. Showing the most recent available snapshot.'
         } else if (!options.silent) {
-          dashboardLoadError.value = dashboardQueryError.value || '概览加载失败'
+          dashboardLoadError.value = dashboardQueryError.value || 'Dashboard failed to load'
         }
       }
       return refreshed
@@ -985,7 +985,7 @@ export function useDashboardPage() {
       : durationSeconds(realValues)
     const series = [
       createStraightAreaLineSeries(
-        '平均耗时',
+        'Average duration',
         values,
         chartColors.primary,
         0.16,
@@ -995,10 +995,10 @@ export function useDashboardPage() {
     applyAnimatedOption('responseTime', createDurationChartOption(
       labels,
       hasData || useDemoData ? series : [],
-      hasData || useDemoData ? ['平均耗时'] : [],
+      hasData || useDemoData ? ['Average duration'] : [],
       useDemoData
         ? [demoChartGraphic()]
-        : (hasData ? [] : [emptyChartGraphic('当前范围内暂无成功耗时')]),
+        : (hasData ? [] : [emptyChartGraphic('No successful response times in this range.')]),
     ), mode)
   }
 
@@ -1009,7 +1009,7 @@ export function useDashboardPage() {
     const realModelNames = Object.keys(responseSeriesByModel)
       .filter((modelName) => (responseSeriesByModel[modelName] || []).some((value) => Number(value || 0) > 0))
     const useDemoData = import.meta.env.DEV && realModelNames.length === 0
-    const modelNames = useDemoData ? ['演示模型'] : realModelNames
+    const modelNames = useDemoData ? ['Demo model'] : realModelNames
     const labels = useDemoData
       ? resolveDemoLabels(chartData.value.modelResponseTime.labels)
       : chartData.value.modelResponseTime.labels
@@ -1030,7 +1030,7 @@ export function useDashboardPage() {
       modelNames,
       useDemoData
         ? [demoChartGraphic()]
-        : (modelNames.length ? [] : [emptyChartGraphic('当前范围内暂无模型耗时')]),
+        : (modelNames.length ? [] : [emptyChartGraphic('No model response times in this range.')]),
     ), mode)
   }
 

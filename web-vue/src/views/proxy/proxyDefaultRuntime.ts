@@ -34,7 +34,7 @@ export const DEFAULT_TEST_KEY = '__default__'
 
 const EMPTY_EFFECTIVE_DEFAULT: ProxyEffectiveReference = {
   source: 'direct',
-  label: '直连',
+  label: 'Direct',
   configured: false,
   available: true,
   has_proxy: false,
@@ -68,7 +68,7 @@ export function useProxyDefaultRuntime(options: ProxyDefaultRuntimeOptions) {
     runtime: options.runtime,
     key: options.requestKey,
     loading,
-    errorMessage: '加载代理配置失败',
+    errorMessage: 'Failed to load proxy settings',
   })
 
   const defaultProxyGroupOptions = computed(() => (
@@ -205,7 +205,7 @@ export function useProxyDefaultRuntime(options: ProxyDefaultRuntimeOptions) {
 
   async function saveDefaultProxy() {
     if (!currentView.value) {
-      toast.warning('配置尚未加载完成')
+      toast.warning('Settings have not finished loading')
       return
     }
     if (!validateProxySelection(
@@ -213,8 +213,8 @@ export function useProxyDefaultRuntime(options: ProxyDefaultRuntimeOptions) {
       selectedDefaultProxyGroupId.value,
       defaultCustomProxyInput,
       {
-        missingGroup: '请选择默认出口代理组',
-        missingCustom: '请填写自定义代理 URL',
+        missingGroup: 'Select a default egress proxy group',
+        missingCustom: 'Enter a custom proxy URL',
       },
     )) return
     if (!validateProxySelection(
@@ -222,15 +222,15 @@ export function useProxyDefaultRuntime(options: ProxyDefaultRuntimeOptions) {
       selectedFallbackProxyGroupId.value,
       fallbackCustomProxyInput,
       {
-        missingGroup: '请选择备用出口代理组',
-        missingCustom: '请填写备用代理 URL',
+        missingGroup: 'Select a fallback egress proxy group',
+        missingCustom: 'Enter a fallback proxy URL',
       },
     )) return
     const confirmed = await confirmDialog.ask({
-      title: '确认保存出口配置',
-      message: '即将保存默认出口和备用出口配置。备用出口只在图片请求早期连接失败时重试一次，是否继续？',
-      confirmText: '保存',
-      cancelText: '取消',
+      title: 'Confirm egress settings',
+      message: 'This will save the default and fallback egress settings. Fallback egress retries image requests once after an early connection failure. Continue?',
+      confirmText: 'Save',
+      cancelText: 'Cancel',
     })
     if (!confirmed) return
 
@@ -246,9 +246,9 @@ export function useProxyDefaultRuntime(options: ProxyDefaultRuntimeOptions) {
       }
       syncDefaultProxyControls(response.default_reference)
       syncFallbackProxyControls(response.fallback_reference)
-      toast.success('出口配置已保存')
+      toast.success('Egress settings saved')
     } catch (error) {
-      toast.error(prefixedErrorMessage('保存出口配置失败', error))
+      toast.error(prefixedErrorMessage('Failed to save egress settings', error))
     } finally {
       savingDefaultProxy.value = false
     }
@@ -263,7 +263,7 @@ export function useProxyDefaultRuntime(options: ProxyDefaultRuntimeOptions) {
 
   async function testDefaultProxy() {
     if (defaultProxyMode.value === 'direct') {
-      toast.info('直连模式无需测试出口')
+      toast.info('Egress testing is not needed in direct mode')
       return
     }
     if (!validateProxySelection(
@@ -271,15 +271,15 @@ export function useProxyDefaultRuntime(options: ProxyDefaultRuntimeOptions) {
       selectedDefaultProxyGroupId.value,
       defaultCustomProxyInput,
       {
-        missingGroup: '请选择默认出口代理组',
-        missingCustom: '请填写自定义代理 URL',
+        missingGroup: 'Select a default egress proxy group',
+        missingCustom: 'Enter a custom proxy URL',
       },
     )) return
     const confirmed = await confirmDialog.ask({
-      title: '确认测试默认出口',
-      message: '即将使用当前默认出口发起外部网络测试请求。请确认当前允许测试该出口连接。',
-      confirmText: '开始测试',
-      cancelText: '取消',
+      title: 'Confirm default egress test',
+      message: 'This will send an external network test request through the current default egress. Confirm that testing this connection is allowed.',
+      confirmText: 'Start test',
+      cancelText: 'Cancel',
     })
     if (!confirmed) return
 
@@ -299,10 +299,10 @@ export function useProxyDefaultRuntime(options: ProxyDefaultRuntimeOptions) {
       }
       const response = await proxyApi.test(defaultCustomProxyInput.value.trim())
       defaultTestResult.value = response.result
-      if (response.result.ok) toast.success(`默认出口可用，耗时 ${response.result.latency_ms}ms`)
-      else toast.warning(response.result.error || '默认出口测试失败')
+      if (response.result.ok) toast.success(`Default egress available, latency ${response.result.latency_ms}ms`)
+      else toast.warning(response.result.error || 'Default egress test failed')
     } catch (error) {
-      const message = errorMessage(error, '默认出口测试失败')
+      const message = errorMessage(error, 'Default egress test failed')
       defaultTestResult.value = {
         ok: false,
         status: 0,

@@ -1,25 +1,25 @@
 <template>
   <div class="settings-storage-grid">
-    <FormSection title="图片存储" class="settings-storage-main">
+    <FormSection title="Image storage" class="settings-storage-main">
       <div class="settings-check-grid settings-check-grid--single">
         <div class="settings-check-item">
           <div class="settings-check-control">
             <Checkbox
               v-model="imageStorage.enabled"
               :disabled="fieldReadOnly('image_storage.enabled')"
-            >启用 WebDAV 图片存储</Checkbox>
+            >Enable WebDAV image storage</Checkbox>
           </div>
         </div>
       </div>
 
-      <FormField label="存储模式">
+      <FormField label="Storage mode">
         <div class="w-full">
           <GroupedSelectMenu
             v-model="imageStorage.mode"
             :options="imageStorageModeOptions"
             :disabled="fieldReadOnly('image_storage.mode')"
             selected-indicator="none"
-            aria-label="图片存储模式"
+            aria-label="Image storage mode"
             block
           />
         </div>
@@ -35,7 +35,7 @@
       </FormField>
 
       <div class="grid grid-cols-1 gap-2.5 md:grid-cols-2">
-        <FormField label="用户名">
+        <FormField label="Username">
           <Input
             v-model.trim="imageStorage.webdav_username"
             block
@@ -43,18 +43,18 @@
           />
         </FormField>
 
-        <FormField label="密码">
+        <FormField label="Password">
           <Input
             v-model="imageStorage.webdav_password"
             type="password"
             block
             :disabled="fieldReadOnly('image_storage.webdav_password')"
-            :placeholder="imageStorage.has_webdav_password ? '已配置，留空不修改' : '请输入 WebDAV 密码'"
+            :placeholder="imageStorage.has_webdav_password ? 'Configured. Leave blank to keep unchanged.' : 'Enter the WebDAV password'"
           />
         </FormField>
       </div>
 
-      <FormField label="根路径">
+      <FormField label="Root path">
         <Input
           v-model.trim="imageStorage.webdav_root_path"
           block
@@ -63,7 +63,7 @@
         />
       </FormField>
 
-      <FormField label="公开访问前缀">
+      <FormField label="Public access URL prefix">
         <Input
           v-model.trim="imageStorage.public_base_url"
           block
@@ -74,30 +74,30 @@
 
       <div class="flex flex-wrap items-center gap-2">
         <Button size="xs" variant="outline" :disabled="imageStorageBusy === 'test'" @click="$emit('testStorage')">
-          {{ imageStorageBusy === 'test' ? '测试中...' : '测试 WebDAV' }}
+          {{ imageStorageBusy === 'test' ? 'Testing…' : 'Test WebDAV' }}
         </Button>
         <Button size="xs" variant="outline" :disabled="imageStorageBusy === 'sync'" @click="$emit('syncStorage')">
-          {{ imageStorageBusy === 'sync' ? '同步中...' : '全量同步' }}
+          {{ imageStorageBusy === 'sync' ? 'Syncing…' : 'Sync all files' }}
         </Button>
       </div>
 
       <div v-if="imageStorageTestResult" class="rounded-xl border border-border bg-background px-3 py-2 text-xs">
         <p :class="imageStorageTestResult.ok ? 'text-emerald-600' : 'text-slate-600'">
-          {{ imageStorageTestResult.ok ? 'WebDAV 可用' : 'WebDAV 不可用' }}
+          {{ imageStorageTestResult.ok ? 'WebDAV is available' : 'WebDAV is unavailable' }}
           <span v-if="imageStorageTestResult.status"> · HTTP {{ imageStorageTestResult.status }}</span>
         </p>
         <p v-if="imageStorageTestResult.error" class="mt-1 break-all text-slate-600">{{ imageStorageTestResult.error }}</p>
       </div>
     </FormSection>
 
-    <FormSection title="AI 审核" class="settings-storage-side">
+    <FormSection title="AI review" class="settings-storage-side">
       <div class="settings-check-grid settings-check-grid--single">
         <div class="settings-check-item">
           <div class="settings-check-control">
             <Checkbox
               v-model="settings.ai_review.enabled"
               :disabled="fieldReadOnly('ai_review.enabled')"
-            >启用 AI 审核</Checkbox>
+            >Enable AI review</Checkbox>
           </div>
         </div>
       </div>
@@ -117,7 +117,7 @@
           type="password"
           block
           :disabled="fieldReadOnly('ai_review.api_key')"
-          :placeholder="settings.ai_review.has_api_key ? '已配置，留空不修改' : 'sk-...'"
+          :placeholder="settings.ai_review.has_api_key ? 'Configured. Leave blank to keep unchanged.' : 'sk-...'"
         />
       </FormField>
 
@@ -130,13 +130,13 @@
         />
       </FormField>
 
-      <FormField label="审核提示词">
+      <FormField label="Review prompt">
         <textarea
           v-model="settings.ai_review.prompt"
           rows="5"
           class="ui-textarea-sm"
           :disabled="fieldReadOnly('ai_review.prompt')"
-          placeholder="判断用户请求是否允许。只回答 ALLOW 或 REJECT。"
+          placeholder="Decide whether the user request is allowed. Reply only with ALLOW or REJECT."
         ></textarea>
       </FormField>
     </FormSection>

@@ -55,7 +55,7 @@ export function useOperationProgressRuntime() {
     subtitle: '',
     total: 0,
     current: 0,
-    statusLabel: '已处理',
+    statusLabel: 'Processed',
     message: '',
     error: '',
     busy: false,
@@ -74,7 +74,7 @@ export function useOperationProgressRuntime() {
     const event: OperationTimelineEvent = {
       key: `operation:${operationRevision}:${eventSequence}`,
       timestamp,
-      label: String(input.label || '任务').trim() || '任务',
+      label: String(input.label || 'task').trim() || 'task',
       message,
       tone: input.tone || 'info',
     }
@@ -107,15 +107,15 @@ export function useOperationProgressRuntime() {
     state.subtitle = input.subtitle || ''
     state.total = input.total === undefined ? 1 : Math.max(0, Number(input.total || 0))
     state.current = 0
-    state.statusLabel = '处理中'
+    state.statusLabel = 'Processing'
     state.message = input.message || ''
     state.error = ''
     state.busy = true
     state.tone = 'info'
     state.events = []
     record({
-      label: '开始处理',
-      message: input.message || `${input.title}已开始`,
+      label: 'Started processing',
+      message: input.message || `${input.title} started`,
       tone: 'info',
     })
     await waitForPresentation()
@@ -123,31 +123,31 @@ export function useOperationProgressRuntime() {
 
   function succeed(message: string, current = state.total) {
     state.current = Math.max(0, Number(current || 0))
-    state.statusLabel = '已完成'
+    state.statusLabel = 'Complete'
     state.message = message
     state.error = ''
     state.busy = false
     state.tone = 'success'
-    record({ label: '已完成', message, tone: 'success' })
+    record({ label: 'Complete', message, tone: 'success' })
   }
 
   function warn(message: string, current = state.total) {
     state.current = Math.max(0, Number(current || 0))
-    state.statusLabel = '部分完成'
+    state.statusLabel = 'Partially complete'
     state.message = message
     state.error = ''
     state.busy = false
     state.tone = 'warning'
-    record({ label: '部分完成', message, tone: 'warning' })
+    record({ label: 'Partially complete', message, tone: 'warning' })
   }
 
   function fail(error: string, current = state.current) {
     state.current = Math.max(0, Number(current || 0))
-    state.statusLabel = '失败'
+    state.statusLabel = 'Failed'
     state.error = error
     state.busy = false
     state.tone = 'danger'
-    record({ label: '失败', message: error, tone: 'danger' })
+    record({ label: 'Failed', message: error, tone: 'danger' })
   }
 
   function close() {

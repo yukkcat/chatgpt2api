@@ -43,7 +43,7 @@ withDefaults(defineProps<{
   subtitle: '',
   titleClass: 'ui-section-title',
   headingTag: 'p',
-  closeText: '关闭',
+  closeText: 'Close',
   closeDisabled: false,
   showClose: true,
   bordered: true,

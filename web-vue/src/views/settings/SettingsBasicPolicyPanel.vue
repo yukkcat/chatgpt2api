@@ -1,14 +1,14 @@
 <template>
   <div class="space-y-4">
-    <FormSection title="账号策略">
+    <FormSection title="Account policies">
       <div class="settings-check-grid settings-check-grid--single">
         <div class="settings-check-item">
           <div class="settings-check-control">
             <Checkbox
               v-model="settings.auto_remove_invalid_accounts"
               :disabled="fieldReadOnly('auto_remove_invalid_accounts')"
-            >自动移除异常账号</Checkbox>
-            <HelpTip text="确认鉴权无效的账号会进入异常处理；开启后直接移除，关闭后保留异常状态。" />
+            >Automatically remove invalid accounts</Checkbox>
+            <HelpTip text="Accounts confirmed to have invalid credentials are marked as invalid. When enabled, they are removed; when disabled, they remain in the invalid state." />
           </div>
         </div>
         <div class="settings-check-item">
@@ -16,8 +16,8 @@
             <Checkbox
               v-model="settings.auto_remove_rate_limited_accounts"
               :disabled="fieldReadOnly('auto_remove_rate_limited_accounts')"
-            >自动移除额度耗尽账号</Checkbox>
-            <HelpTip text="只有远程明确确认图片额度为 0 时才会处理，代理错误、断流或上游 429 不会删除账号。" />
+            >Automatically remove accounts with exhausted quotas</Checkbox>
+            <HelpTip text="This applies only when the upstream explicitly confirms that the image quota is 0. Proxy errors, interrupted streams, and upstream HTTP 429 responses do not remove accounts." />
           </div>
         </div>
         <div class="settings-check-item">
@@ -25,14 +25,14 @@
             <Checkbox
               v-model="settings.image_account_retry_enabled"
               :disabled="fieldReadOnly('image_account_retry_enabled')"
-            >生图失败后尝试其他账号</Checkbox>
-            <HelpTip text="除文本结果（HTTP 400）外，当前账号未能交付图片时立即尝试其他账号；当前请求不会等待后台账号核验。" />
+            >Try another account when image generation fails</Checkbox>
+            <HelpTip text="If the current account does not return an image, another account is tried immediately, except when the result is text (HTTP 400). The request does not wait for background account verification." />
           </div>
         </div>
       </div>
-      <FormField label="最大尝试账号数">
+      <FormField label="Maximum accounts to try">
         <template #label-extra>
-          <HelpTip text="包含第一次使用的账号。默认 4，最小 2，不限制可填写的最大值。" />
+          <HelpTip text="Includes the first account tried. Default: 4; minimum: 2. There is no maximum value." />
         </template>
         <SettingsNumberInput
           :field="imageMaxAccountAttemptsField"
@@ -41,15 +41,15 @@
       </FormField>
     </FormSection>
 
-    <FormSection title="图片确认">
+    <FormSection title="Image confirmation">
       <div class="settings-check-grid settings-check-grid--single">
         <div class="settings-check-item">
           <div class="settings-check-control">
             <Checkbox
               v-model="settings.image_settle_enabled"
               :disabled="fieldReadOnly('image_settle_enabled')"
-            >图片二次确认机制</Checkbox>
-            <HelpTip text="找到图片结果后再等待指定秒数复查一次，减少结果尚未稳定时提前返回。" />
+            >Recheck image results</Checkbox>
+            <HelpTip text="After an image result is found, wait the specified number of seconds and check again to avoid returning an unstable result." />
           </div>
         </div>
         <div class="settings-check-item">
@@ -57,12 +57,12 @@
             <Checkbox
               v-model="settings.image_remove_conversation_after_result"
               :disabled="fieldReadOnly('image_remove_conversation_after_result')"
-            >图片成功后删除官网会话</Checkbox>
-            <HelpTip text="默认关闭。仅在图片已成功保存后尝试隐藏 ChatGPT 官网 conversation；失败只记录日志，不影响图片返回。关闭时保留官网会话，便于恢复和排查。" />
+            >Remove the ChatGPT conversation after a successful image result</Checkbox>
+            <HelpTip text="Off by default. After an image is saved successfully, the system tries to hide the ChatGPT conversation. Failure is logged and does not affect the returned image. When disabled, the conversation is kept for recovery and troubleshooting." />
           </div>
         </div>
       </div>
-      <FormField label="二次确认等待（秒）">
+      <FormField label="Recheck delay (seconds)">
         <SettingsNumberInput
           :field="imageSettleSecondsField"
           :disabled="!settings.image_settle_enabled"
@@ -70,31 +70,31 @@
       </FormField>
     </FormSection>
 
-    <FormSection title="图片放大">
+    <FormSection title="Image upscaling">
       <div class="settings-check-grid settings-check-grid--single">
         <div class="settings-check-item">
           <div class="settings-check-control">
             <Checkbox
               v-model="settings.image_upscale_enabled"
               :disabled="fieldReadOnly('image_upscale_enabled')"
-            >图片尺寸不足时自动放大</Checkbox>
-            <HelpTip text="默认关闭。仅处理明确请求了尺寸且上游图片小于目标尺寸的结果；自动尺寸和已达到目标尺寸的图片保持原样。" />
+            >Automatically upscale undersized images</Checkbox>
+            <HelpTip text="Off by default. Applies only when a size was explicitly requested and the upstream image is smaller than the target. Automatic sizes and images that already meet the target are left unchanged." />
           </div>
         </div>
       </div>
-      <FormField label="放大引擎">
+      <FormField label="Upscaling engine">
         <GroupedSelectMenu
           v-model="settings.image_upscale_engine"
           :options="imageUpscaleEngineOptions"
           :disabled="!settings.image_upscale_enabled || fieldReadOnly('image_upscale_engine')"
           selected-indicator="none"
-          aria-label="图片放大引擎"
+          aria-label="Image upscaling engine"
           block
         />
       </FormField>
     </FormSection>
 
-    <FormSection title="控制台日志级别">
+    <FormSection title="Console log levels">
       <div class="settings-check-grid settings-check-grid--single mt-3">
         <div
           v-for="level in logLevelOptions"
@@ -109,7 +109,7 @@
             >
               {{ level.label }}
             </Checkbox>
-            <HelpTip v-if="level.value === 'debug'" text="不选择任何级别时使用默认 info / warning / error。" />
+            <HelpTip v-if="level.value === 'debug'" text="If no levels are selected, the defaults are info / warning / error." />
           </div>
         </div>
       </div>

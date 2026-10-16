@@ -4,18 +4,18 @@
     :class="{ 'monitor-page--ready': Boolean(monitorData) }"
   >
     <PagePanel class="monitor-overview-panel space-y-5">
-      <PanelHeader title="实时监控" align="start">
+      <PanelHeader title="Live Monitor" align="start">
         <template #copy>
           <p class="mt-1 text-xs text-muted-foreground">
-            进程内实时窗口，用于观察入口、账号、出口、上游生成、断流和本地拒绝/繁忙；入口排队高时关注 CHATGPT2API_THREAD_TOKENS；最近更新：{{ monitorData?.updated_at || '未获取' }}
+            Live in-process view of ingress, accounts, egress, upstream generation, stream interruptions, and local rejections or busy responses. If the ingress queue is high, check CHATGPT2API_THREAD_TOKENS. Last updated: {{ monitorData?.updated_at || 'Not fetched' }}
           </p>
         </template>
         <template #actions>
           <StateBadge :tone="autoRefresh ? 'success' : 'muted'" shape="rounded">
-            {{ autoRefresh ? '自动刷新' : '已暂停' }}
+            {{ autoRefresh ? 'Auto-refresh' : 'Paused' }}
           </StateBadge>
           <label class="flex items-center gap-2 text-xs text-muted-foreground">
-            <span class="whitespace-nowrap">间隔</span>
+            <span class="whitespace-nowrap">Interval</span>
             <Input
               :model-value="String(refreshIntervalSeconds)"
               type="number"
@@ -28,13 +28,13 @@
               @change="applyRefreshInterval()"
               @keyup.enter="applyRefreshInterval()"
             />
-            <span class="whitespace-nowrap">秒</span>
+            <span class="whitespace-nowrap">sec</span>
           </label>
           <Button size="sm" variant="outline" :disabled="isLoading" @click="refreshMonitor(false)">
-            {{ isLoading ? '刷新中...' : '立即刷新' }}
+            {{ isLoading ? 'Refreshing...' : 'Refresh now' }}
           </Button>
           <Button size="sm" variant="outline" @click="toggleAutoRefresh">
-            {{ autoRefresh ? '暂停刷新' : '继续刷新' }}
+            {{ autoRefresh ? 'Pause refresh' : 'Resume refresh' }}
           </Button>
         </template>
       </PanelHeader>
@@ -74,15 +74,15 @@
         v-if="loadError"
         compact
         dashed
-        title="实时监控加载失败"
+        title="Failed to load live monitor"
         :description="loadError"
       />
     </PagePanel>
 
     <PageLoadingState
       v-if="!monitorData && !loadError"
-      title="正在获取实时快照"
-      description="正在读取当前进程的活跃请求、完成记录和瓶颈诊断。"
+      title="Fetching live snapshot"
+      description="Loading active requests, completed records, and bottleneck diagnostics for the current process."
       compact
     />
 
@@ -91,22 +91,22 @@
         <ConsoleSegmentedTabs
           v-model="activeDetailPanel"
           :options="detailPanelOptions"
-          aria-label="实时监控明细"
+          aria-label="Live monitor details"
           fit="content"
         />
       </div>
 
       <section v-if="activeDetailPanel === 'active'" class="monitor-detail-section">
         <div class="monitor-detail-header">
-          <PanelHeader title="活跃请求" align="start">
+          <PanelHeader title="Active requests" align="start">
             <template #copy>
               <p class="mt-1 text-xs text-muted-foreground">
-                正在运行的图片请求，按进入时间排序。
+                Running image requests, sorted by arrival time.
               </p>
             </template>
             <template #actions>
-              <MetaChip size="xs" tone="info">当前并发 {{ activeRows.length }} / {{ threadTokens }}</MetaChip>
-              <MetaChip size="xs" tone="muted">入口排队 {{ entryQueueText }}</MetaChip>
+              <MetaChip size="xs" tone="info">Current concurrency {{ activeRows.length }} / {{ threadTokens }}</MetaChip>
+              <MetaChip size="xs" tone="muted">Ingress queue {{ entryQueueText }}</MetaChip>
             </template>
           </PanelHeader>
         </div>
@@ -128,19 +128,19 @@
           sticky-header
           :show-empty="activeRows.length === 0"
           :empty-colspan="7"
-          empty-title="暂无活跃请求"
-          empty-description="开始压测或发起图片请求后，这里会实时出现运行中的调用。"
+          empty-title="No active requests"
+          empty-description="Running calls will appear here when you start a load test or send an image request."
           table-class="monitor-table"
         >
           <template #head>
             <tr>
-              <th>请求</th>
-              <th>模型</th>
-              <th>阶段</th>
-              <th>已耗时</th>
-              <th>关键耗时</th>
-              <th>出口</th>
-              <th>账号</th>
+              <th>Request</th>
+              <th>Model</th>
+              <th>Stage</th>
+              <th>Elapsed</th>
+              <th>Key timings</th>
+              <th>Egress</th>
+              <th>Account</th>
             </tr>
           </template>
           <MonitorActiveRow
@@ -155,10 +155,10 @@
 
       <section v-else-if="activeDetailPanel === 'recent'" class="monitor-detail-section">
         <div class="monitor-detail-header">
-          <PanelHeader title="最近完成" align="start">
+          <PanelHeader title="Recently completed" align="start">
             <template #copy>
               <p class="mt-1 text-xs text-muted-foreground">
-                最近完成的图片相关调用，窗口保存在进程内存中。
+                Recently completed image calls. This window is stored in process memory.
               </p>
             </template>
             <template #actions>
@@ -174,18 +174,18 @@
           sticky-header
           :show-empty="recentRows.length === 0"
           :empty-colspan="6"
-          empty-title="暂无完成记录"
-          empty-description="当前容器启动后还没有图片相关请求完成。"
+          empty-title="No completed records"
+          empty-description="No image requests have completed since this container started."
           table-class="monitor-table"
         >
           <template #head>
             <tr>
-              <th>请求</th>
-              <th>状态</th>
-              <th>模型</th>
-              <th>总耗时</th>
-              <th>关键耗时</th>
-              <th>账号 / 出口</th>
+              <th>Request</th>
+              <th>Status</th>
+              <th>Model</th>
+              <th>Total time</th>
+              <th>Key timings</th>
+              <th>Account / Egress</th>
             </tr>
           </template>
           <MonitorRecentRow
@@ -200,10 +200,10 @@
 
       <section v-else-if="activeDetailPanel === 'slow'" class="monitor-detail-section">
         <div class="monitor-detail-header">
-          <PanelHeader title="慢请求" align="start">
+          <PanelHeader title="Slow requests" align="start">
             <template #copy>
               <p class="mt-1 text-xs text-muted-foreground">
-                按等待入口、等待账号、等待出口、上游生成和上游断流综合排序。
+                Ranked by ingress wait, account wait, egress wait, upstream generation, and upstream stream interruption.
               </p>
             </template>
           </PanelHeader>
@@ -221,7 +221,7 @@
           />
         </div>
         <div v-else class="monitor-detail-empty px-4 pb-4">
-          <EmptyState plain title="暂无慢请求" description="窗口内没有可排序的完成请求。" />
+          <EmptyState plain title="No slow requests" description="There are no completed requests in this window to rank." />
         </div>
       </section>
 
@@ -311,12 +311,12 @@ const recentRows = computed(() => monitorData.value?.recent.slice(0, 20) || [])
 const slowRows = computed(() => monitorData.value?.slow.slice(0, 8) || [])
 const activeDetailPanel = ref<SegmentedValue>('active')
 const detailPanelOptions = computed<SegmentedOption[]>(() => [
-  { value: 'active', label: '活跃请求', count: activeRows.value.length },
-  { value: 'recent', label: '最近完成', count: recentRows.value.length },
-  { value: 'slow', label: '慢请求', count: slowRows.value.length },
+  { value: 'active', label: 'Active requests', count: activeRows.value.length },
+  { value: 'recent', label: 'Recently completed', count: recentRows.value.length },
+  { value: 'slow', label: 'Slow requests', count: slowRows.value.length },
 ])
 const threadTokens = computed(() => monitorData.value?.threadpool?.tokens || '-')
-const completedWindowText = computed(() => monitorData.value?.completed_window_text || '窗口 0 / 0')
+const completedWindowText = computed(() => monitorData.value?.completed_window_text || 'Window 0 / 0')
 const activeStageItems = computed(() => monitorData.value?.active_stage_items || [])
 const entryQueueText = computed(() => monitorData.value?.entry_queue_text || '-')
 const diagnosticGroups = computed(() => monitorData.value?.diagnostic_groups || [])

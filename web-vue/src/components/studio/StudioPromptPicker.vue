@@ -1,14 +1,14 @@
 <template>
   <ModalShell
     :open="open"
-    aria-label="提示词库"
+    aria-label="Prompt library"
     :z-index="220"
     panel-class="studio-prompt-picker-modal"
     close-on-backdrop
     @close="emit('close')"
   >
     <ModalHeader
-      title="提示词库"
+      title="Prompt library"
       :subtitle="headerSubtitle"
       compact
       @close="emit('close')"
@@ -24,7 +24,7 @@
           <Input
             v-model.trim="keyword"
             type="text"
-            placeholder="搜索标题、分类、词源或提示词"
+            placeholder="Search titles, categories, sources, or prompts"
             block
             root-class="prompt-picker-search-input"
           />
@@ -33,7 +33,7 @@
             <GroupedSelectMenu
               v-model="sourceFilter"
               :options="sourceOptions"
-              aria-label="提示词来源"
+              aria-label="Prompt source"
               placement="bottom"
               selected-indicator="none"
               block
@@ -44,7 +44,7 @@
             <GroupedSelectMenu
               v-model="categoryFilter"
               :options="categorySelectOptions"
-              aria-label="提示词分类"
+              aria-label="Prompt category"
               placement="bottom"
               selected-indicator="none"
               block
@@ -56,15 +56,15 @@
       <PageLoadingState
         v-if="loading && prompts.length === 0"
         compact
-        title="正在读取本地提示词"
-        description="优先读取后端本地快照，不等待云端词源。"
+        title="Loading local prompts"
+        description="Loading the local server snapshot without waiting for cloud sources."
       />
 
       <StateBlock v-else-if="loadError && prompts.length === 0">
-        <EmptyState plain title="提示词加载失败" :description="loadError" />
+        <EmptyState plain title="Failed to load prompts" :description="loadError" />
         <div class="prompt-picker-state-actions">
           <Button size="sm" variant="outline" :disabled="loading" @click="loadPrompts(true)">
-            {{ loading ? '重试中...' : '重新加载' }}
+            {{ loading ? 'Retrying...' : 'Reload' }}
           </Button>
         </div>
       </StateBlock>
@@ -72,8 +72,8 @@
       <StateBlock v-else-if="filteredPrompts.length === 0">
         <EmptyState
           plain
-          :title="prompts.length === 0 ? '暂无本地提示词' : '没有匹配的提示词'"
-          :description="prompts.length === 0 ? '请到系统设置的提示词源里更新一次词源。' : '换一个关键词、来源或分类再试。'"
+          :title="prompts.length === 0 ? 'No local prompts' : 'No matching prompts'"
+          :description="prompts.length === 0 ? 'Update a prompt source in Settings to populate the library.' : 'Try another keyword, source, or category.'"
         />
       </StateBlock>
 
@@ -105,7 +105,7 @@
             <p>{{ promptDisplaySummary(item) }}</p>
             <div class="prompt-card-footer">
               <span>{{ compactPromptLength(item.prompt) }}</span>
-              <Button size="xs" variant="primary" root-class="prompt-card-use-button" @click.stop="selectPrompt(item)">使用</Button>
+              <Button size="xs" variant="primary" root-class="prompt-card-use-button" @click.stop="selectPrompt(item)">Use</Button>
             </div>
           </div>
         </article>
@@ -114,11 +114,11 @@
 
     <ModalFooter align="between" compact>
       <div class="prompt-picker-count">
-        已显示 {{ visiblePrompts.length }} / {{ filteredPrompts.length }} 条，库内 {{ prompts.length }} 条
+        Showing {{ visiblePrompts.length }} / {{ filteredPrompts.length }} of {{ prompts.length }} items
       </div>
       <div class="prompt-picker-footer-actions">
         <Button v-if="hasMorePrompts" size="xs" variant="outline" root-class="min-w-20 justify-center" @click="showAllPrompts">
-          加载全部
+          Load all
         </Button>
       </div>
     </ModalFooter>
@@ -178,14 +178,14 @@ const categorySelectOptions = computed(() => categoryOptions.value.map((category
 })))
 
 const headerSubtitle = computed(() => {
-  if (loading.value && prompts.value.length === 0) return '正在读取本地快照'
+  if (loading.value && prompts.value.length === 0) return 'Loading local snapshot'
   const sourceCount = sources.value.filter((source) => source.enabled).length
-  return `${prompts.value.length} 条提示词，${sourceCount || 0} 个启用词源`
+  return `${prompts.value.length} prompts · ${sourceCount || 0} active sources`
 })
 
 function compactPromptLength(value: string) {
   const length = Array.from(String(value || '')).length
-  return length > 0 ? `${length} 字` : ''
+  return length > 0 ? `${length} chars` : ''
 }
 
 function selectPrompt(item: PromptLibraryItem) {

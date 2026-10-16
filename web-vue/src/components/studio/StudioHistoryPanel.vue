@@ -2,9 +2,9 @@
   <aside class="studio-history-panel">
     <div class="studio-history-header">
       <div class="studio-history-title-row">
-        <span class="studio-history-heading">对话</span>
+        <span class="studio-history-heading">Chat</span>
         <div class="studio-history-actions">
-          <Button size="sm" variant="outline" icon-only root-class="rounded-xl" title="新对话" @click="$emit('create')">
+          <Button size="sm" variant="outline" icon-only root-class="rounded-xl" title="New chat" @click="$emit('create')">
             <Icon icon="lucide:plus" class="h-4 w-4" />
           </Button>
           <Button
@@ -13,7 +13,7 @@
             icon-only
             root-class="rounded-xl"
             :disabled="!conversations.length"
-            title="清空历史记录"
+            title="Clear history"
             @click="$emit('clear')"
           >
             <Icon icon="lucide:trash-2" class="h-4 w-4" />
@@ -24,7 +24,7 @@
 
     <label class="studio-history-search ui-input">
       <Icon icon="lucide:search" class="h-3.5 w-3.5 shrink-0" />
-      <input v-model="query" placeholder="搜索对话" />
+      <input v-model="query" placeholder="Search chats" />
     </label>
 
     <div ref="historyListRef" class="studio-history-list custom-scrollbar" @scroll="handleWindowScroll">
@@ -66,7 +66,7 @@
               :ref="setEditInputRef"
               v-model="editingTitle"
               maxlength="80"
-              aria-label="对话标题"
+              aria-label="Chat title"
               @keydown.esc.prevent="cancelRename"
               @blur="commitRename(conversation.id)"
             />
@@ -79,9 +79,9 @@
             @click="handleSelect(conversation.id)"
             @dblclick.stop="beginRename(conversation)"
           >
-            <span class="studio-history-title">{{ conversation.title || '未命名对话' }}</span>
+            <span class="studio-history-title">{{ conversation.title || 'Untitled chat' }}</span>
             <span class="studio-history-meta">
-              <span>{{ conversation.messages.length ? `${conversation.messages.length} 条` : '空对话' }}</span>
+              <span>{{ conversation.messages.length ? `${conversation.messages.length} messages` : 'Empty chat' }}</span>
               <span aria-hidden="true">·</span>
               <span>{{ formatConversationTime(conversation) }}</span>
             </span>
@@ -97,8 +97,8 @@
             <button
               type="button"
               class="studio-history-icon"
-              title="重命名"
-              aria-label="重命名对话"
+              title="Rename"
+              aria-label="Rename chat"
               @click.stop="beginRename(conversation)"
             >
               <Icon icon="lucide:pencil" class="h-3 w-3" />
@@ -106,8 +106,8 @@
             <button
               type="button"
               class="studio-history-icon is-danger"
-              title="删除对话"
-              aria-label="删除对话"
+              title="Delete chat"
+              aria-label="Delete chat"
               @click.stop="$emit('delete', conversation.id)"
             >
               <Icon icon="lucide:trash-2" class="h-3 w-3" />
@@ -124,7 +124,7 @@
       ></div>
 
       <div v-if="!filteredConversations.length" class="studio-history-empty">
-        {{ query.trim() ? '没有匹配的对话' : '输入提示词后会在这里显示对话历史。' }}
+        {{ query.trim() ? 'No matching chats' : 'Your chat history will appear here after you send a message.' }}
       </div>
     </div>
   </aside>
@@ -254,7 +254,7 @@ function conversationSearchText(conversation: StudioConversation) {
 
 function beginRename(conversation: StudioConversation) {
   editingId.value = conversation.id
-  editingTitle.value = conversation.title || '未命名对话'
+  editingTitle.value = conversation.title || 'Untitled chat'
   void nextTick(() => {
     editInputRef.value?.focus()
     editInputRef.value?.select()

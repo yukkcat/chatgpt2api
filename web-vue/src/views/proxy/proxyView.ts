@@ -13,16 +13,16 @@ export function proxyTestToastType(tone: ProxyTestTone): ProxyTestSummaryTone {
 }
 
 export const defaultProxyModeOptions = [
-  { label: '直连', value: 'direct' },
-  { label: '代理组', value: 'group' },
-  { label: '自定义代理', value: 'custom' },
+  { label: 'Direct', value: 'direct' },
+  { label: 'Proxy group', value: 'group' },
+  { label: 'Custom proxy', value: 'custom' },
 ] as const
 
 export const fallbackProxyModeOptions = [
-  { label: '关闭', value: 'off' },
-  { label: '直连', value: 'direct' },
-  { label: '代理组', value: 'group' },
-  { label: '自定义代理', value: 'custom' },
+  { label: 'Off', value: 'off' },
+  { label: 'Direct', value: 'direct' },
+  { label: 'Proxy group', value: 'group' },
+  { label: 'Custom proxy', value: 'custom' },
 ] as const
 
 const defaultProxyModes = new Set<string>(defaultProxyModeOptions.map((item) => item.value))
@@ -100,7 +100,7 @@ export function proxyGroupActionItems(
     [
       {
         key: 'test-all',
-        label: testingKey === allKey ? '检测中...' : '检测全部节点',
+        label: testingKey === allKey ? 'Testing...' : 'Test all nodes',
         disabled: testingKey === allKey || group.nodes.length === 0,
       },
     ],
@@ -108,8 +108,8 @@ export function proxyGroupActionItems(
       {
         key: 'toggle-enabled',
         label: savingGroupId === group.id
-          ? '处理中...'
-          : group.enabled ? '停用代理组' : '启用代理组',
+          ? 'Processing...'
+          : group.enabled ? 'Disable proxy group' : 'Enable proxy group',
         disabled: savingGroupId === group.id,
       },
     ],
@@ -117,10 +117,10 @@ export function proxyGroupActionItems(
       {
         key: 'delete',
         label: deletingGroupId === group.id
-          ? '删除中...'
+          ? 'Deleting...'
           : group.can_delete
-            ? '删除代理组'
-            : `不可删除 · ${group.references.join('、') || '正在使用'}`,
+            ? 'Delete proxy group'
+            : `Cannot delete · ${group.references.join(', ') || 'In use'}`,
         danger: true,
         disabled: deletingGroupId === group.id || !group.can_delete,
       },
@@ -133,14 +133,14 @@ export function proxyGroupOptions(
   selectedId = '',
 ) {
   const rows = groups.map((group) => ({
-    label: `${group.enabled === false ? '停用 · ' : ''}${group.name || group.id}${Array.isArray(group.nodes) ? ` · ${group.nodes.length} 个节点` : ''}`,
+    label: `${group.enabled === false ? 'Disabled · ' : ''}${group.name || group.id}${Array.isArray(group.nodes) ? ` · ${group.nodes.length} nodes` : ''}`,
     value: group.id,
   }))
   if (selectedId && !rows.some((item) => item.value === selectedId)) {
-    rows.unshift({ label: `未知代理组 · ${selectedId}`, value: selectedId })
+    rows.unshift({ label: `Unknown proxy group · ${selectedId}`, value: selectedId })
   }
   return [
-    { label: '选择代理组', value: '' },
+    { label: 'Select a proxy group', value: '' },
     ...rows,
   ]
 }
@@ -151,13 +151,13 @@ export function buildProxyPreview(
   customInput: string,
   groups: readonly Pick<ProxyGroup, 'id' | 'name'>[],
 ) {
-  if (mode === 'off') return '关闭'
-  if (mode === 'direct') return '直连'
+  if (mode === 'off') return 'Off'
+  if (mode === 'direct') return 'Direct'
   if (mode === 'group') {
     const group = groups.find((item) => item.id === selectedGroupId)
-    return selectedGroupId ? `代理组：${group?.name || selectedGroupId}` : '代理组：未选择'
+    return selectedGroupId ? `Proxy group: ${group?.name || selectedGroupId}` : 'Proxy group: not selected'
   }
-  return customInput || '自定义代理：未填写'
+  return customInput || 'Custom proxy: not set'
 }
 
 export function proxyNodeTestKey(group: Pick<ProxyGroup, 'id'>, node: Pick<ProxyNode, 'id'>) {
@@ -174,13 +174,13 @@ export function proxyNodeTestSummary(
   testResults: Readonly<Record<string, ProxyTestResult>>,
   testingKey: string,
 ) {
-  if (isProxyNodeTesting(group, node, testingKey)) return '检测中...'
+  if (isProxyNodeTesting(group, node, testingKey)) return 'Testing...'
   const result = testResults[proxyNodeTestKey(group, node)]
   if (result?.ok) return `HTTP ${result.status || '-'} · ${result.latency_ms || 0}ms`
-  if (result && !result.ok) return result.error || '检测失败'
-  if (node.health.state === 'unhealthy') return node.health.error || '检测失败'
+  if (result && !result.ok) return result.error || 'Test failed'
+  if (node.health.state === 'unhealthy') return node.health.error || 'Test failed'
   if (node.health.state === 'healthy') return `${node.health.latency_ms || 0}ms`
-  return '尚未测试'
+  return 'Not tested yet'
 }
 
 export function proxyNodeTestClass(

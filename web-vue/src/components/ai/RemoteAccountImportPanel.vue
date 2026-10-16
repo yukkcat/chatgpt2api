@@ -25,7 +25,7 @@
           :model-value="selectedCPAPoolId"
           :options="cpaPoolOptions"
           selected-indicator="none"
-          aria-label="CPA 服务器"
+          aria-label="CPA server"
           block
           :disabled="busy"
           @update:model-value="setCPAPool"
@@ -35,7 +35,7 @@
             :model-value="selectedSub2APIServerId"
             :options="sub2apiServerOptions"
             selected-indicator="none"
-            aria-label="Sub2API 服务器"
+            aria-label="Sub2API server"
             block
             :disabled="busy"
             @update:model-value="setSub2APIServer"
@@ -44,7 +44,7 @@
             :model-value="selectedSub2APIGroupId"
             :options="sub2apiGroupOptions"
             selected-indicator="none"
-            aria-label="Sub2API 分组"
+            aria-label="Sub2API group"
             block
             :disabled="busy || !selectedSub2APIServerId"
             @update:model-value="setSub2APIGroup"
@@ -52,10 +52,10 @@
         </template>
 
         <Button size="xs" variant="outline" :disabled="busy" @click="refreshSources(false)">
-          {{ busy ? '刷新中...' : '刷新来源' }}
+          {{ busy ? 'Refreshing...' : 'Refresh sources' }}
         </Button>
         <Button size="xs" variant="outline" :disabled="busy || !canLoadItems" @click="loadCurrentItems">
-          {{ activeMode === 'cpa' ? '加载文件' : '加载账号' }}
+          {{ activeMode === 'cpa' ? 'Load files' : 'Load accounts' }}
         </Button>
       </div>
     </ImportModePanel>
@@ -65,7 +65,7 @@
       class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2"
     >
       <p class="text-xs text-muted-foreground">
-        {{ loadedSummaryText }}<span v-if="duplicateCount">，已过滤/去重 {{ duplicateCount }} 个</span>
+        {{ loadedSummaryText }}<span v-if="duplicateCount"> · {{ duplicateCount }} duplicates filtered</span>
       </p>
       <div class="flex flex-wrap items-center gap-2">
         <label
@@ -77,12 +77,12 @@
             :disabled="busy"
             @update:model-value="setImportSub2APIByGroups"
           />
-          <span>按远端分组导入</span>
+          <span>Import by remote group</span>
         </label>
         <Button size="xs" variant="outline" :disabled="busy || allSelected" @click="selectAllItems">
-          {{ activeMode === 'sub2api' ? '全选账号' : '全选' }}
+          {{ activeMode === 'sub2api' ? 'Select all accounts' : 'Select all' }}
         </Button>
-        <Button size="xs" variant="outline" :disabled="busy || selectedCount === 0" @click="clearSelection">清空</Button>
+        <Button size="xs" variant="outline" :disabled="busy || selectedCount === 0" @click="clearSelection">Clear</Button>
       </div>
     </div>
 
@@ -136,7 +136,7 @@
                   :disabled="busy || isSub2APIGroupAllSelected(group)"
                   @click="selectSub2APIGroup(group)"
                 >
-                  全选本组
+                  Select all in group
                 </Button>
                 <Button
                   size="xs"
@@ -144,7 +144,7 @@
                   :disabled="busy || sub2APIGroupSelectedCount(group) === 0"
                   @click="clearSub2APIGroup(group)"
                 >
-                  清空本组
+                  Clear group
                 </Button>
               </div>
             </div>
@@ -158,7 +158,7 @@
                 <span class="min-w-0">
                   <span class="block truncate text-sm text-foreground">{{ account.email || account.name || account.id }}</span>
                   <span class="block truncate text-xs text-muted-foreground">
-                    {{ account.plan_type || '未知' }} · {{ account.status || '-' }} · {{ account.has_access_token ? '有 access token' : '需导出 token' }}
+                    {{ account.plan_type || 'Unknown' }} · {{ account.status || '-' }} · {{ account.has_access_token ? 'Access token available' : 'Token export required' }}
                   </span>
                 </span>
                 <Checkbox
@@ -176,7 +176,7 @@
     <div class="flex flex-wrap items-center justify-between gap-3">
       <p class="text-xs text-muted-foreground">{{ importStatusText }}</p>
       <Button size="xs" variant="primary" :disabled="busy || remoteImportActive || selectedCount === 0" @click="startImport">
-        {{ busy ? '处理中...' : '导入选中' }}
+        {{ busy ? 'Processing...' : 'Import selected' }}
       </Button>
     </div>
   </section>
@@ -217,7 +217,7 @@ type RemoteImportSource = {
 
 const DEFAULT_GROUP_VALUE = '__default__'
 const UNGROUPED_SUB2API_GROUP_KEY = '__ungrouped__'
-const UNGROUPED_SUB2API_GROUP_NAME = '未分组账号'
+const UNGROUPED_SUB2API_GROUP_NAME = 'Ungrouped accounts'
 
 const props = withDefaults(defineProps<{
   mode: RemoteAccountImportMode
@@ -280,22 +280,22 @@ const modeOptions = [
 ] as const
 
 const panelTitle = computed(() => (
-  activeMode.value === 'cpa' ? '从远程 CPA 导入' : '从 Sub2API 导入'
+  activeMode.value === 'cpa' ? 'Import from remote CPA' : 'Import from Sub2API'
 ))
 
 const panelDescription = computed(() => (
   activeMode.value === 'cpa'
-    ? '读取已保存 CPA 连接里的账号文件，勾选后导入本地号池。'
-    : '读取已保存 Sub2API 连接里的账号；选择“全部账号”时会按远端分组折叠加载，导入时可自动创建或复用同名本地分组。'
+    ? 'Load account files from a saved CPA connection, then select which ones to import into the local account pool.'
+    : 'Load accounts from a saved Sub2API connection. Selecting “All accounts” loads them in collapsible remote groups. Import can create or reuse local groups with matching names.'
 ))
 
 const cpaPoolOptions = computed(() => [
-  { label: '选择 CPA 连接', value: '' },
+  { label: 'Select a CPA connection', value: '' },
   ...cpaPools.value.map((pool) => ({ label: pool.name || pool.base_url || pool.id, value: pool.id })),
 ])
 
 const sub2apiServerOptions = computed(() => [
-  { label: '选择 Sub2API 连接', value: '' },
+  { label: 'Select a Sub2API connection', value: '' },
   ...sub2apiServers.value.map((server) => ({ label: server.name || server.base_url || server.id, value: server.id })),
 ])
 
@@ -307,8 +307,8 @@ const sub2apiGroupOptions = computed(() => {
   const server = selectedSub2APIServer.value
   const groups = sub2apiGroups.value[selectedSub2APIServerId.value] || []
   const options = [
-    { label: '全部账号（按远端分组）', value: '' },
-    ...(server?.group_id ? [{ label: '默认分组', value: DEFAULT_GROUP_VALUE }] : []),
+    { label: 'All accounts (by remote group)', value: '' },
+    ...(server?.group_id ? [{ label: 'Default group', value: DEFAULT_GROUP_VALUE }] : []),
     ...groups.map((group) => ({
       label: `${group.name || group.id} · ${group.active_account_count}/${group.account_count}`,
       value: group.id,
@@ -316,7 +316,7 @@ const sub2apiGroupOptions = computed(() => {
   ]
   const selected = selectedSub2APIGroupId.value
   if (selected && selected !== DEFAULT_GROUP_VALUE && !options.some((option) => option.value === selected)) {
-    options.push({ label: `当前分组 · ${selected}`, value: selected })
+    options.push({ label: `Current group · ${selected}`, value: selected })
   }
   return options
 })
@@ -400,9 +400,9 @@ const duplicateCount = computed(() => (
 
 const loadedSummaryText = computed(() => {
   if (activeMode.value === 'cpa') {
-    return `已加载 ${itemCount.value} 个文件，已选择 ${selectedCount.value} 个`
+    return `Loaded ${itemCount.value} files, selected ${selectedCount.value}`
   }
-  return `已加载 ${itemCount.value} 个账号，${sub2apiAccountGroups.value.length} 个分组，已选择 ${selectedCount.value} 个`
+  return `Loaded ${itemCount.value} accounts in ${sub2apiAccountGroups.value.length} groups, selected ${selectedCount.value}`
 })
 
 const allSelected = computed(() => (
@@ -415,17 +415,17 @@ const allSelected = computed(() => (
 ))
 
 const emptyText = computed(() => {
-  if (busy.value) return '正在加载...'
-  if (!canLoadItems.value) return activeMode.value === 'cpa' ? '请选择 CPA 连接' : '请选择 Sub2API 连接'
-  return activeMode.value === 'cpa' ? '暂无可导入文件' : '暂无可导入账号'
+  if (busy.value) return 'Loading...'
+  if (!canLoadItems.value) return activeMode.value === 'cpa' ? 'Select a CPA connection' : 'Select a Sub2API connection'
+  return activeMode.value === 'cpa' ? 'No files available to import' : 'No accounts available to import'
 })
 
 const importStatusText = computed(() => {
   if (remoteImportActive.value && !remoteImportJobIsActive(importJob.value)) {
-    return '已有账号导入任务正在运行'
+    return 'An account import is already running'
   }
   const job = importJob.value
-  if (!job) return '未开始导入'
+  if (!job) return 'Import has not started'
   return job.result_message || job.status_label
 })
 
@@ -571,14 +571,14 @@ async function loadCPAPools() {
     emitRecoverableImportJobs('cpa', cpaPools.value, selectedCPAPoolId.value)
   } catch (error: any) {
     cpaPools.value = []
-    toast.error(error.message || '加载 CPA 连接失败')
+    toast.error(error.message || 'Failed to load CPA connections')
   }
 }
 
 async function loadCPAFiles() {
   const poolId = selectedCPAPoolId.value
   if (!poolId) {
-    toast.warning('请先选择 CPA 连接')
+    toast.warning('Select a CPA connection first')
     return
   }
   try {
@@ -588,7 +588,7 @@ async function loadCPAFiles() {
     remoteCPADuplicateCount.value = normalized.duplicates
     selectedCPAFileNames.value = []
   } catch (error: any) {
-    toast.error(error.message || '加载 CPA 文件失败')
+    toast.error(error.message || 'Failed to load CPA files')
   }
 }
 
@@ -602,7 +602,7 @@ async function loadSub2APIServers() {
     emitRecoverableImportJobs('sub2api', sub2apiServers.value, selectedSub2APIServerId.value)
   } catch (error: any) {
     sub2apiServers.value = []
-    toast.error(error.message || '加载 Sub2API 连接失败')
+    toast.error(error.message || 'Failed to load Sub2API connections')
   }
 }
 
@@ -615,7 +615,7 @@ async function loadSub2APIGroups(serverId: string) {
     }
   } catch (error: any) {
     sub2apiGroups.value = { ...sub2apiGroups.value, [serverId]: [] }
-    toast.error(error.message || '加载 Sub2API 分组失败')
+    toast.error(error.message || 'Failed to load Sub2API groups')
   }
 }
 
@@ -630,7 +630,7 @@ function selectedSub2APIGroupHint() {
   if (!groupId) return null
   return {
     id: groupId,
-    name: sub2apiGroupNameById.value.get(groupId) || (selected === DEFAULT_GROUP_VALUE ? '默认分组' : groupId),
+    name: sub2apiGroupNameById.value.get(groupId) || (selected === DEFAULT_GROUP_VALUE ? 'Default group' : groupId),
   }
 }
 
@@ -681,7 +681,7 @@ async function loadSub2APIAccountsByRemoteGroups(serverId: string) {
 async function loadSub2APIAccounts() {
   const serverId = selectedSub2APIServerId.value
   if (!serverId) {
-    toast.warning('请先选择 Sub2API 连接')
+    toast.warning('Select a Sub2API connection first')
     return
   }
   try {
@@ -699,7 +699,7 @@ async function loadSub2APIAccounts() {
     selectedSub2APIAccountIds.value = []
     collapseAllSub2APIGroups()
   } catch (error: any) {
-    toast.error(error.message || '加载 Sub2API 账号失败')
+    toast.error(error.message || 'Failed to load Sub2API accounts')
   }
 }
 
@@ -828,7 +828,7 @@ function emitRecoverableImportJobs(
   const orderedSources = current
     ? [current, ...sources.filter((source) => source.id !== currentSourceId)]
     : sources
-  const title = mode === 'cpa' ? '导入远程 CPA' : '导入 Sub2API 账号'
+  const title = mode === 'cpa' ? 'Import from remote CPA' : 'Import Sub2API accounts'
   for (const source of orderedSources) {
     const job = source.import_job
     if (!job || (job.status !== 'pending' && job.status !== 'running')) continue
@@ -846,12 +846,12 @@ async function pollImportJob(sourceId: string, title: string, total: number) {
     if (importJob.value?.terminal) return importJob.value
     await new Promise((resolve) => window.setTimeout(resolve, 1000))
   }
-  throw new Error('导入进度超时')
+  throw new Error('Import progress timed out')
 }
 
 async function startImport() {
   if (remoteImportActive.value) {
-    toast.warning('请等待当前账号导入任务完成')
+    toast.warning('Wait for the current account import to finish')
     return
   }
   if (activeMode.value === 'cpa') {
@@ -867,28 +867,28 @@ async function startCPAImport() {
   const names = Array.from(new Set(selectedCPAFileNames.value.filter((name) => availableNames.has(name))))
   if (!poolId || !names.length) return
   const confirmed = await confirmDialog.ask({
-    title: '确认远程 CPA 导入',
-    message: `即将从 CPA 连接导入 ${names.length} 个文件里的账号，并写入本地号池。`,
-    confirmText: '开始导入',
-    cancelText: '取消',
+    title: 'Confirm remote CPA import',
+    message: `This will import accounts from ${names.length} files in the CPA connection into the local account pool.`,
+    confirmText: 'Start import',
+    cancelText: 'Cancel',
   })
   if (!confirmed) return
 
   await runBusy(async () => {
-    const title = '导入远程 CPA'
+    const title = 'Import from remote CPA'
     emit('progress', { title, total: names.length })
     try {
       const start = await accountImportsApi.startCPAImport(poolId, names, props.targetGroupId)
       importJob.value = start.import_job || null
       emitStarted('cpa', poolId, importJob.value, title, names.length)
-      if (props.externalTracking && !importJob.value?.job_id) throw new Error('后端没有返回 CPA 导入任务')
+      if (props.externalTracking && !importJob.value?.job_id) throw new Error('The backend did not return a CPA import job')
       if (props.externalTracking) return
       emit('progress', { title, total: names.length, job: importJob.value })
       const job = await pollImportJob(poolId, title, names.length)
       showImportResult(job)
       if (job?.status !== 'failed') emit('imported')
     } catch (error: any) {
-      const message = error.message || '远程 CPA 导入失败'
+      const message = error.message || 'Remote CPA import failed'
       emit('progress', { title, total: names.length, error: message })
       if (!props.externalTracking) toast.error(message)
     }
@@ -919,18 +919,18 @@ async function startSub2APIImport() {
   if (!serverId || !accountIds.length) return
   const groupBindings = buildSub2APIGroupBindings(accountIds)
   const groupText = groupBindings.length
-    ? `，并按 ${groupBindings.length} 个远端分组创建或复用本地同名分组`
-    : '，不写入本地分组绑定'
+    ? `, and create or reuse local groups matching ${groupBindings.length} remote groups`
+    : ', without creating local group assignments'
   const confirmed = await confirmDialog.ask({
-    title: '确认 Sub2API 导入',
-    message: `即将从 Sub2API 连接导入 ${accountIds.length} 个账号${groupText}。`,
-    confirmText: '开始导入',
-    cancelText: '取消',
+    title: 'Confirm Sub2API import',
+    message: `This will import ${accountIds.length} accounts from the Sub2API connection${groupText}.`,
+    confirmText: 'Start import',
+    cancelText: 'Cancel',
   })
   if (!confirmed) return
 
   await runBusy(async () => {
-    const title = '导入 Sub2API 账号'
+    const title = 'Import Sub2API accounts'
     emit('progress', { title, total: accountIds.length })
     try {
       const start = await accountImportsApi.startSub2APIImport(serverId, accountIds, {
@@ -940,14 +940,14 @@ async function startSub2APIImport() {
       })
       importJob.value = start.import_job || null
       emitStarted('sub2api', serverId, importJob.value, title, accountIds.length)
-      if (props.externalTracking && !importJob.value?.job_id) throw new Error('后端没有返回 Sub2API 导入任务')
+      if (props.externalTracking && !importJob.value?.job_id) throw new Error('The backend did not return a Sub2API import job')
       if (props.externalTracking) return
       emit('progress', { title, total: accountIds.length, job: importJob.value })
       const job = await pollImportJob(serverId, title, accountIds.length)
       showImportResult(job)
       if (job?.status !== 'failed') emit('imported')
     } catch (error: any) {
-      const message = error.message || 'Sub2API 导入失败'
+      const message = error.message || 'Sub2API import failed'
       emit('progress', { title, total: accountIds.length, error: message })
       if (!props.externalTracking) toast.error(message)
     }
@@ -956,7 +956,7 @@ async function startSub2APIImport() {
 
 function showImportResult(job: CPAImportJob | null) {
   if (!job) {
-    toast.error('没有获取到导入结果')
+    toast.error('No import result was received')
     return
   }
   if (job.result_tone === 'danger') {

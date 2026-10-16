@@ -50,7 +50,7 @@ export function createStudioId(prefix: string) {
 
 export function buildStudioConversationTitle(content: string) {
   const title = content.trim().replace(/\s+/g, ' ')
-  return title.length > 18 ? `${title.slice(0, 18)}...` : title || '新对话'
+  return title.length > 18 ? `${title.slice(0, 18)}...` : title || 'New chat'
 }
 
 export function loadStudioConversations(): StudioConversation[] {
@@ -154,7 +154,7 @@ function normalizeStudioConversation(item: unknown): StudioConversation | null {
     : []
   return {
     id: cleanStudioText(raw.id) || createStudioId('studio'),
-    title: cleanStudioText(raw.title) || '新对话',
+    title: cleanStudioText(raw.title) || 'New chat',
     createdAt: cleanStudioText(raw.createdAt) || new Date().toISOString(),
     updatedAt: cleanStudioText(raw.updatedAt) || new Date().toISOString(),
     messages,
@@ -212,7 +212,7 @@ function normalizeStudioImageCompareSource(value: unknown): StudioImageCompareSo
   if (!src) return undefined
   return {
     src,
-    name: cleanStudioText(raw.name) || '原图',
+    name: cleanStudioText(raw.name) || 'Original image',
     localPath: cleanStudioText(raw.localPath) || undefined,
   }
 }
@@ -227,7 +227,7 @@ function normalizeStudioReferenceImages(value: unknown): StudioReferenceImage[] 
       if (!dataUrl) return null
       return {
         id: cleanStudioText(raw.id) || createStudioId('source'),
-        name: cleanStudioText(raw.name) || `参考图 ${index + 1}`,
+        name: cleanStudioText(raw.name) || `Reference image ${index + 1}`,
         type: cleanStudioText(raw.type) || 'image/png',
         size: Number.isFinite(Number(raw.size)) ? Number(raw.size) : 0,
         dataUrl,

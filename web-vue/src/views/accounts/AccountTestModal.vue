@@ -1,13 +1,13 @@
 <template>
   <ModalShell
     :open="open"
-    aria-label="测试账号"
+    aria-label="Test account"
     :z-index="140"
     scrollable
     @close="emit('close')"
   >
     <ModalHeader
-      title="测试账号"
+      title="Test account"
       :subtitle="account?.email || account?.display_name || account?.id || ''"
       :close-disabled="running"
       compact
@@ -17,11 +17,11 @@
     <ModalBody density="compact" class="space-y-4">
       <div v-if="account" class="grid grid-cols-2 gap-3">
         <SurfaceBox tone="muted" density="compact">
-          <span class="ui-field-label">来源 / 套餐</span>
+          <span class="ui-field-label">Source / plan</span>
           <p class="mt-1 truncate text-sm text-foreground">{{ account.source_plan_label }}</p>
         </SurfaceBox>
         <SurfaceBox tone="muted" density="compact">
-          <span class="ui-field-label">图片额度</span>
+          <span class="ui-field-label">Image quota</span>
           <p class="mt-1 text-sm tabular-nums text-foreground">{{ account.quota_label }}</p>
         </SurfaceBox>
       </div>
@@ -29,19 +29,19 @@
       <ConsoleSegmentedTabs
         :model-value="mode"
         :options="modeOptions"
-        aria-label="测试类型"
+        aria-label="Test type"
         @update:model-value="emit('update:mode', $event as AccountTestMode)"
       />
 
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-[13rem_minmax(0,1fr)]">
         <div class="text-xs">
-          <span class="ui-field-label">模型</span>
+          <span class="ui-field-label">Model</span>
           <GroupedSelectMenu
             :model-value="model"
             :options="modelSelectOptions"
             :disabled="running || modelCatalogLoading"
-            :placeholder="modelCatalogLoading ? '加载模型中...' : '选择模型'"
-            aria-label="测试模型"
+            :placeholder="modelCatalogLoading ? 'Loading models…' : 'Select a model'"
+            aria-label="Test model"
             selected-indicator="none"
             block
             @update:model-value="emit('update:model', String($event))"
@@ -49,7 +49,7 @@
         </div>
 
         <label class="block text-xs">
-          <span class="ui-field-label">提示词</span>
+          <span class="ui-field-label">Prompt</span>
           <textarea
             :value="prompt"
             rows="4"
@@ -61,13 +61,13 @@
       </div>
 
       <p v-if="mode === 'image'" class="text-xs text-muted-foreground">
-        将真实生成 1 张图片；成功后按现有账号规则扣除 1 次图片额度。
+        This generates one real image. On success, one image quota unit is deducted according to the account's current rules.
       </p>
 
       <section class="account-test-result" aria-live="polite">
         <PageLoadingState
           v-if="running"
-          title="正在测试账号"
+          title="Testing account"
           class="account-test-result__center"
           compact
         />
@@ -76,7 +76,7 @@
             <div class="flex flex-wrap items-center gap-2">
               <StateBadge :tone="result.tone" size="sm">{{ result.status_label }}</StateBadge>
               <span v-if="result.mode === 'image'" class="text-xs text-muted-foreground">
-                图片额度：{{ result.quota_before_label }} → {{ result.quota_after_label }}
+                Image quota: {{ result.quota_before_label }} → {{ result.quota_after_label }}
               </span>
             </div>
             <span class="text-xs tabular-nums text-muted-foreground">
@@ -88,20 +88,20 @@
           <StudioMarkdownContent v-else-if="result.content" :content="result.content" />
         </div>
         <div v-else class="account-test-result__center text-sm text-muted-foreground">
-          测试结果将在这里显示
+          The test result will appear here.
         </div>
       </section>
     </ModalBody>
 
     <ModalFooter compact>
-      <Button size="sm" variant="outline" :disabled="running" @click="emit('close')">关闭</Button>
+      <Button size="sm" variant="outline" :disabled="running" @click="emit('close')">Close</Button>
       <Button
         size="sm"
         variant="primary"
         :disabled="running || modelCatalogLoading || !model || !prompt.trim()"
         @click="emit('run')"
       >
-        {{ running ? '测试中...' : '开始测试' }}
+        {{ running ? 'Testing…' : 'Start test' }}
       </Button>
     </ModalFooter>
   </ModalShell>
@@ -144,8 +144,8 @@ const emit = defineEmits<{
 }>()
 
 const modeOptions = [
-  { label: '对话', value: 'chat' },
-  { label: '画图', value: 'image' },
+  { label: 'Chat', value: 'chat' },
+  { label: 'Image', value: 'image' },
 ] as const
 
 const modelSelectOptions = computed(() => props.modelOptions.map((value) => ({

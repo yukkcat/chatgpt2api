@@ -1,8 +1,8 @@
 <template>
   <div v-if="images.length" class="detail-image-preview">
     <div class="detail-image-preview__header">
-      <span class="detail-image-preview__title">图片预览</span>
-      <span class="detail-image-preview__count">{{ images.length }} 张</span>
+      <span class="detail-image-preview__title">Image preview</span>
+      <span class="detail-image-preview__count">{{ images.length }} images</span>
     </div>
     <div class="detail-image-preview__grid">
       <button
@@ -17,12 +17,12 @@
           <img
             v-if="!image.broken"
             :src="image.url"
-            :alt="image.alt || `日志结果图片 ${index + 1}`"
+            :alt="image.alt || `Log result image ${index + 1}`"
             loading="lazy"
             class="detail-image-preview__image"
             @error="$emit('image-error', $event, image.url)"
           />
-          <span v-else>无法预览</span>
+          <span v-else>Preview unavailable</span>
         </div>
         <p class="detail-image-preview__filename">
           {{ image.filename || '-' }}

@@ -99,7 +99,7 @@ function imageResolutionTier(width: number, height: number): ImageSizeResolution
   return '1K'
 }
 
-export function formatImageSizeLabel(value: string, autoLabel = '自动') {
+export function formatImageSizeLabel(value: string, autoLabel = 'Auto') {
   if (!value || value === DEFAULT_IMAGE_SIZE) return autoLabel
   const parsed = parseImageSize(value)
   if (!parsed) return value
@@ -122,7 +122,7 @@ function createSizePreset(value: string, ratio: string, resolution: ImageSizeRes
 }
 
 export const STANDARD_IMAGE_SIZE_PRESETS: ImageSizePreset[] = [
-  { label: '自动', value: 'auto', ratio: 'auto', resolution: 'auto' },
+  { label: 'Auto', value: 'auto', ratio: 'auto', resolution: 'auto' },
   createSizePreset('1024x1024', '1:1', '1K'),
   createSizePreset('1024x1536', '2:3', '1K'),
   createSizePreset('1536x1024', '3:2', '1K'),
@@ -169,17 +169,17 @@ export function isImageSizeSupportedByModel(size: string, highResolutionEnabled 
 }
 
 export const IMAGE_QUALITY_OPTIONS = [
-  { label: '自动', value: 'auto' },
-  { label: '低', value: 'low' },
-  { label: '中', value: 'medium' },
-  { label: '高', value: 'high' },
+  { label: 'Auto', value: 'auto' },
+  { label: 'Low', value: 'low' },
+  { label: 'Medium', value: 'medium' },
+  { label: 'High', value: 'high' },
 ]
 
 export const IMAGE_COUNT_OPTIONS = [
-  { label: '1 张', value: 1 },
-  { label: '2 张', value: 2 },
-  { label: '3 张', value: 3 },
-  { label: '4 张', value: 4 },
+  { label: '1 image', value: 1 },
+  { label: '2 images', value: 2 },
+  { label: '3 images', value: 3 },
+  { label: '4 images', value: 4 },
 ]
 
 function cleanString(value: unknown, fallback = '') {

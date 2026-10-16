@@ -70,7 +70,7 @@ export function useAccountTestRuntime(options: AccountTestRuntimeOptions) {
         await options.loadData()
       }
     } catch (error) {
-      options.setError('账号测试失败', error)
+      options.setError('Account test failed', error)
     } finally {
       running.value = false
     }

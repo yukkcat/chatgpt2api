@@ -19,12 +19,12 @@ export function useSettingsImageStorageRuntime(options: SettingsImageStorageRunt
   const operationProgress = progressRuntime.state
 
   async function testImageStorageConnection() {
-    if (!options.requireSavedSettings('测试 WebDAV')) return
+    if (!options.requireSavedSettings('test WebDAV')) return
     const confirmed = await confirmDialog.ask({
-      title: '确认测试 WebDAV',
-      message: '即将使用已保存的图片存储配置发起 WebDAV 连接测试，可能访问外部存储服务。是否继续？',
-      confirmText: '开始测试',
-      cancelText: '取消',
+      title: 'Confirm WebDAV test',
+      message: 'A WebDAV connection test will use the saved image storage settings and may contact an external storage service. Continue?',
+      confirmText: 'Start test',
+      cancelText: 'Cancel',
     })
     if (!confirmed) return
 
@@ -33,10 +33,10 @@ export function useSettingsImageStorageRuntime(options: SettingsImageStorageRunt
     try {
       const response = await settingsApi.testImageStorage()
       imageStorageTestResult.value = response.result
-      if (response.result.ok) toast.success('WebDAV 测试通过')
-      else toast.warning(response.result.error || 'WebDAV 测试失败')
+      if (response.result.ok) toast.success('WebDAV test passed.')
+      else toast.warning(response.result.error || 'WebDAV test failed.')
     } catch (error) {
-      const message = errorMessage(error, 'WebDAV 测试失败')
+      const message = errorMessage(error, 'WebDAV test failed.')
       imageStorageTestResult.value = { ok: false, error: message }
       toast.error(message)
     } finally {
@@ -45,28 +45,28 @@ export function useSettingsImageStorageRuntime(options: SettingsImageStorageRunt
   }
 
   async function syncImageStorageFiles() {
-    if (!options.requireSavedSettings('同步本地图片')) return
+    if (!options.requireSavedSettings('sync local images')) return
     const confirmed = await confirmDialog.ask({
-      title: '确认同步图片存储',
-      message: '即将扫描本地图片并同步到已配置的 WebDAV 存储，可能产生外部上传流量。是否继续？',
-      confirmText: '开始同步',
-      cancelText: '取消',
+      title: 'Confirm image storage sync',
+      message: 'Local images will be scanned and synced to the configured WebDAV storage. This may upload data externally. Continue?',
+      confirmText: 'Start sync',
+      cancelText: 'Cancel',
     })
     if (!confirmed) return
 
     imageStorageBusy.value = 'sync'
     await progressRuntime.start({
-      title: '全量同步图片',
-      subtitle: '本地 → WebDAV',
-      message: '正在扫描并上传本地图片...',
+      title: 'Sync all images',
+      subtitle: 'Local → WebDAV',
+      message: 'Scanning and uploading local images…',
     })
     try {
       const response = await settingsApi.syncImageStorage()
-      const summary = `上传 ${response.result.uploaded}，跳过 ${response.result.skipped}，失败 ${response.result.failed}`
+      const summary = `Uploaded ${response.result.uploaded}, skipped ${response.result.skipped}, failed ${response.result.failed}`
       if (response.result.failed > 0) progressRuntime.warn(summary)
       else progressRuntime.succeed(summary)
     } catch (error) {
-      progressRuntime.fail(errorMessage(error, '同步图片失败'))
+      progressRuntime.fail(errorMessage(error, 'Failed to sync images.'))
     } finally {
       imageStorageBusy.value = ''
     }

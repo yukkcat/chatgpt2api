@@ -2,6 +2,8 @@
 
 ## Unreleased
 
++ [优化] 管理控制台的静态界面文案改为英文；保留后端状态枚举、动态状态与错误文本、账号内容和提示词模板的来源语言。
+
 ## 3.2.3 - 2026-09-09
 
 + [新增] Python 图片接口和共享模型列表支持 `gpt-image-2.5`、`gpt-image-2.5-flare`、`gpt-image-2.5-sunburst`，通过 ChatGPT Web 的 `auto` 路由兼容，不包含 `exact` 别名。

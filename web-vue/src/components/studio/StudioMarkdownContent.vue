@@ -76,14 +76,14 @@ async function handleMarkdownClick(event: MouseEvent) {
   if (!code) return
   try {
     await writeClipboardText(code)
-    button.textContent = '已复制'
+    button.textContent = 'Copied'
     window.setTimeout(() => {
-      button.textContent = '复制'
+      button.textContent = 'Copy'
     }, 1200)
   } catch {
-    button.textContent = '复制失败'
+    button.textContent = 'Copy failed'
     window.setTimeout(() => {
-      button.textContent = '复制'
+      button.textContent = 'Copy'
     }, 1200)
   }
 }

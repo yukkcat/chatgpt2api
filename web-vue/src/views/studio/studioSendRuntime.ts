@@ -173,7 +173,7 @@ export function useStudioSendRuntime(input: StudioSendRuntimeInput) {
       conversation,
       prompt,
       files: request.files,
-      requestErrorFallback: '图片编辑任务提交失败',
+      requestErrorFallback: 'Failed to submit image editing task',
       assistantContent: request.assistantContent,
       inpaintSource: request.inpaintSource,
       imageCount: request.imageCount,
@@ -192,7 +192,7 @@ export function useStudioSendRuntime(input: StudioSendRuntimeInput) {
     composerRuntime.startEdit(target.message)
     referenceRuntime.clear()
     if (target.message.mode === 'file' && (target.message.fileKind === 'psd' || target.message.referenceImages?.length)) {
-      toast.error('请重新上传原图后提交文件任务')
+      toast.error('Re-upload the original image before submitting the file task')
     }
     hooks.scheduleScrollToBottom()
   }
@@ -203,7 +203,7 @@ export function useStudioSendRuntime(input: StudioSendRuntimeInput) {
       referenceRuntime.clear()
       if (message.fileKind === 'psd' || message.referenceImages?.length) {
         fillComposerFromMessage(message)
-        toast.error('请重新上传原图后提交文件任务')
+        toast.error('Re-upload the original image before submitting the file task')
         return
       }
     }
@@ -222,7 +222,7 @@ export function useStudioSendRuntime(input: StudioSendRuntimeInput) {
     if (previousUserMessage.mode === 'file' && (previousUserMessage.fileKind === 'psd' || previousUserMessage.referenceImages?.length)) {
       referenceRuntime.clear()
       fillComposerFromMessage(previousUserMessage)
-      toast.error('请重新上传原图后提交文件任务')
+      toast.error('Re-upload the original image before submitting the file task')
       return
     }
 
@@ -328,7 +328,7 @@ export function useStudioSendRuntime(input: StudioSendRuntimeInput) {
     const assistantMessage = messageRuntime.addMessage(conversation, {
       role: 'assistant',
       mode: 'search',
-      content: '正在搜索...',
+      content: 'Searching...',
       status: 'sending',
       model: 'search',
     })
@@ -342,7 +342,7 @@ export function useStudioSendRuntime(input: StudioSendRuntimeInput) {
       hooks.markConversationNotice(conversation.id, 'done')
       return true
     } catch (error) {
-      const message = studioErrorMessage(error, '搜索请求失败')
+      const message = studioErrorMessage(error, 'Search request failed')
       assistantMessage.status = 'error'
       assistantMessage.content = message
       assistantMessage.error = message
@@ -368,7 +368,7 @@ export function useStudioSendRuntime(input: StudioSendRuntimeInput) {
     const assistantMessage = messageRuntime.addMessage(conversation, {
       role: 'assistant',
       mode: 'image',
-      content: options.assistantContent || (files.length ? '图像编辑任务已提交' : '图片任务已提交'),
+      content: options.assistantContent || (files.length ? 'Image editing task submitted' : 'Image task submitted'),
       status: 'queued',
       model: imageForm.model,
       imageSize: imageForm.size,
@@ -390,11 +390,11 @@ export function useStudioSendRuntime(input: StudioSendRuntimeInput) {
       hooks.touchConversation(conversation)
       imageTaskRuntime.rememberTask(task.id)
       imageTaskRuntime.merge([task])
-      toast.success('图片任务已提交')
+      toast.success('Image task submitted')
       imageTaskRuntime.schedulePoll()
       return true
     } catch (error) {
-      const message = studioErrorMessage(error, '图片任务提交失败')
+      const message = studioErrorMessage(error, 'Failed to submit image task')
       assistantMessage.status = 'error'
       assistantMessage.content = message
       assistantMessage.error = message
@@ -413,7 +413,7 @@ export function useStudioSendRuntime(input: StudioSendRuntimeInput) {
     const assistantMessage = messageRuntime.addMessage(conversation, {
       role: 'assistant',
       mode: 'file',
-      content: `${label} 文件任务已提交`,
+      content: `${label} file task submitted`,
       status: 'queued',
       fileKind: kind,
     })
@@ -439,10 +439,10 @@ export function useStudioSendRuntime(input: StudioSendRuntimeInput) {
         hooks.markConversationNotice(conversation.id, 'running')
         fileTaskRuntime.schedulePoll()
       }
-      toast.success(`${label} 文件任务已提交`)
+      toast.success(`${label} file task submitted`)
       return true
     } catch (error) {
-      const message = studioErrorMessage(error, '文件任务提交失败')
+      const message = studioErrorMessage(error, 'Failed to submit file task')
       assistantMessage.status = 'error'
       assistantMessage.content = message
       assistantMessage.error = message
@@ -456,7 +456,7 @@ export function useStudioSendRuntime(input: StudioSendRuntimeInput) {
     if (mode !== 'file' || composerRuntime.fileKind.value !== 'psd' || referenceRuntime.references.value.length) {
       return true
     }
-    toast.error('PSD 文件任务至少需要上传一张原图')
+    toast.error('Upload at least one original image for a PSD task')
     return false
   }
 

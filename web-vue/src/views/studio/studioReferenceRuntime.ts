@@ -16,7 +16,7 @@ function readFileAsDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => resolve(String(reader.result || ''))
-    reader.onerror = () => reject(new Error('读取参考图失败'))
+    reader.onerror = () => reject(new Error('Failed to read reference image'))
     reader.readAsDataURL(file)
   })
 }
@@ -25,7 +25,7 @@ export async function createStudioReferenceFromFile(file: File): Promise<StudioR
   const dataUrl = await readFileAsDataUrl(file)
   return {
     id: createStudioId('source'),
-    name: file.name || '参考图',
+    name: file.name || 'Reference image',
     type: file.type || 'image/png',
     size: file.size,
     dataUrl,

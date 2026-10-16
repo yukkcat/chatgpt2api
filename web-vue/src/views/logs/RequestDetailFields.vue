@@ -1,7 +1,7 @@
 <template>
   <div class="request-detail-fields">
     <section v-if="primaryFields.length" class="request-detail-fields__section">
-      <div class="request-detail-fields__header">请求身份</div>
+      <div class="request-detail-fields__header">Request identity</div>
       <div class="request-detail-fields__grid">
         <DetailFieldCard
           v-for="field in primaryFields"
@@ -17,7 +17,7 @@
     </section>
 
     <section v-if="diagnosticFields.length" class="request-detail-fields__section">
-      <div class="request-detail-fields__header request-detail-fields__header--muted">诊断字段</div>
+      <div class="request-detail-fields__header request-detail-fields__header--muted">Diagnostic fields</div>
       <div class="request-detail-fields__grid request-detail-fields__grid--diagnostic">
         <DetailFieldCard
           v-for="field in diagnosticFields"

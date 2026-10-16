@@ -30,7 +30,7 @@ export function useSettingsBackupRuntime(options: SettingsBackupRuntimeOptions) 
     runtime: options.runtime,
     key: options.requestKey,
     loading: backupLoading,
-    errorMessage: '加载备份历史失败',
+    errorMessage: 'Failed to load backup history',
   })
 
   async function loadBackups() {
@@ -52,12 +52,12 @@ export function useSettingsBackupRuntime(options: SettingsBackupRuntimeOptions) 
   }
 
   async function testBackupConnection() {
-    if (!options.requireSavedSettings('测试备份连接')) return
+    if (!options.requireSavedSettings('test the backup connection')) return
     const confirmed = await confirmDialog.ask({
-      title: '确认测试备份连接',
-      message: '即将使用已保存的备份配置发起 R2/备份存储连接测试，可能访问外部存储服务。是否继续？',
-      confirmText: '开始测试',
-      cancelText: '取消',
+      title: 'Confirm backup connection test',
+      message: 'This will test the saved R2/backup storage configuration and may access an external storage service. Continue?',
+      confirmText: 'Start test',
+      cancelText: 'Cancel',
     })
     if (!confirmed) return
 
@@ -66,10 +66,10 @@ export function useSettingsBackupRuntime(options: SettingsBackupRuntimeOptions) 
     try {
       const response = await settingsApi.testBackup()
       backupTestResult.value = response.result
-      if (response.result.ok) toast.success('备份连接测试通过')
-      else toast.warning(response.result.error || '备份连接测试失败')
+      if (response.result.ok) toast.success('Backup connection test passed')
+      else toast.warning(response.result.error || 'Backup connection test failed')
     } catch (error) {
-      const message = errorMessage(error, '备份连接测试失败')
+      const message = errorMessage(error, 'Backup connection test failed')
       backupTestResult.value = { ok: false, error: message }
       toast.error(message)
     } finally {
@@ -78,28 +78,28 @@ export function useSettingsBackupRuntime(options: SettingsBackupRuntimeOptions) 
   }
 
   async function runBackupNow() {
-    if (!options.requireSavedSettings('执行立即备份')) return
+    if (!options.requireSavedSettings('run an immediate backup')) return
     const confirmed = await confirmDialog.ask({
-      title: '确认立即备份',
-      message: '即将把当前配置和运行数据写入备份存储，可能产生外部上传流量。是否继续？',
-      confirmText: '开始备份',
-      cancelText: '取消',
+      title: 'Confirm immediate backup',
+      message: 'This will write the current configuration and runtime data to backup storage and may upload data externally. Continue?',
+      confirmText: 'Start backup',
+      cancelText: 'Cancel',
     })
     if (!confirmed) return
 
     backupBusy.value = 'run'
     await progressRuntime.start({
-      title: '立即备份',
-      subtitle: 'R2 / 备份存储',
-      message: '正在打包并上传运行数据...',
+      title: 'Immediate backup',
+      subtitle: 'R2 / backup storage',
+      message: 'Packing and uploading runtime data...',
     })
     try {
       const response = await settingsApi.runBackup()
-      progressRuntime.record({ label: '刷新记录', message: '备份已完成，正在刷新历史...' })
+      progressRuntime.record({ label: 'Refreshing history', message: 'Backup complete; refreshing history...' })
       await loadBackups()
-      progressRuntime.succeed(`备份已完成：${response.result.key}`)
+      progressRuntime.succeed(`Backup complete: ${response.result.key}`)
     } catch (error) {
-      progressRuntime.fail(errorMessage(error, '执行备份失败'))
+      progressRuntime.fail(errorMessage(error, 'Backup failed'))
     } finally {
       backupBusy.value = ''
     }
@@ -107,26 +107,26 @@ export function useSettingsBackupRuntime(options: SettingsBackupRuntimeOptions) 
 
   async function deleteBackupItem(item: BackupItem) {
     const confirmed = await confirmDialog.ask({
-      title: '删除备份',
-      message: `确定删除备份 ${item.name || item.key}？`,
-      confirmText: '删除',
-      cancelText: '取消',
+      title: 'Delete backup',
+      message: `Delete backup ${item.name || item.key}?`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
     })
     if (!confirmed) return
 
     backupBusy.value = item.key
     await progressRuntime.start({
-      title: '删除备份',
+      title: 'Delete backup',
       subtitle: item.name || item.key,
-      message: '正在删除备份文件...',
+      message: 'Deleting backup file...',
     })
     try {
       await settingsApi.deleteBackup(item.key)
-      progressRuntime.record({ label: '刷新记录', message: '备份已删除，正在刷新历史...' })
+      progressRuntime.record({ label: 'Refreshing history', message: 'Backup deleted; refreshing history...' })
       await loadBackups()
-      progressRuntime.succeed('备份已删除')
+      progressRuntime.succeed('Backup deleted')
     } catch (error) {
-      progressRuntime.fail(errorMessage(error, '删除备份失败'))
+      progressRuntime.fail(errorMessage(error, 'Failed to delete backup'))
     } finally {
       backupBusy.value = ''
     }

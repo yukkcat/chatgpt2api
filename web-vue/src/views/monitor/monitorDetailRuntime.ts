@@ -43,7 +43,7 @@ export function useMonitorDetailRuntime(options: MonitorDetailRuntimeOptions) {
         || detailTargetCallId.value !== normalizedCallId
       ) return
       if (initial || !detailRecord.value) {
-        detailError.value = errorMessage(caught, '请求详情加载失败')
+        detailError.value = errorMessage(caught, 'Failed to load request details')
       }
     } finally {
       if (requestId === detailRequestId && initial) detailLoading.value = false

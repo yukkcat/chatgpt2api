@@ -1,15 +1,15 @@
 <template>
   <RequestDetailDrawer
     :open="open"
-    title="请求详情"
+    title="Request details"
     :loading="loading"
     :error="error"
     max-width="clamp(22rem, 30vw, 32rem)"
     root-class="monitor-call-detail-drawer"
     detached
-    loading-title="正在读取请求详情"
-    loading-description="正在整理阶段时间线..."
-    error-title="请求详情加载失败"
+    loading-title="Loading request details"
+    loading-description="Preparing stage timeline..."
+    error-title="Failed to load request details"
     @close="emit('close')"
   >
     <template v-if="record">
@@ -25,34 +25,34 @@
           <p class="mt-1 text-xs text-muted-foreground">{{ record.endpoint || '-' }}</p>
         </div>
         <div class="monitor-call-detail__duration">
-          <span>总耗时</span>
+          <span>Total duration</span>
           <strong>{{ record.presentation.duration_text }}</strong>
         </div>
       </section>
 
       <section class="monitor-call-detail__facts">
         <div>
-          <span>账号</span>
+          <span>Account</span>
           <strong>{{ record.account_email || '-' }}</strong>
         </div>
         <div>
-          <span>出口</span>
+          <span>Egress</span>
           <strong>{{ record.presentation.egress_text }}</strong>
         </div>
         <div>
-          <span>账号尝试</span>
+          <span>Account attempts</span>
           <strong>{{ record.presentation.account_attempt_text || '-' }}</strong>
         </div>
         <div>
-          <span>关键耗时</span>
+          <span>Key timings</span>
           <strong>{{ record.presentation.metric_digest }}</strong>
         </div>
       </section>
 
       <section>
         <div class="monitor-call-detail__section-title">
-          <span>阶段时间线</span>
-          <MetaChip size="xs" tone="muted">{{ events.length }} 个阶段</MetaChip>
+          <span>Stage timeline</span>
+          <MetaChip size="xs" tone="muted">{{ events.length }} stages</MetaChip>
         </div>
         <ol v-if="events.length" class="monitor-call-timeline">
           <li v-for="(event, index) in events" :key="`${event.event}-${event.time}-${index}`">
@@ -67,12 +67,12 @@
             </div>
           </li>
         </ol>
-        <EmptyState v-else plain title="暂无阶段记录" description="该请求没有保留可展示的阶段事件。" />
+        <EmptyState v-else plain title="No stage records" description="No stage events were retained for this request." />
       </section>
 
       <StateBlock
         v-if="record.presentation.error_text"
-        title="失败原因"
+        title="Failure reason"
         :description="record.presentation.error_text"
         compact
       />

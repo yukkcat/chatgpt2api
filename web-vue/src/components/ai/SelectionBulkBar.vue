@@ -49,7 +49,7 @@ const props = withDefaults(defineProps<{
   zIndex: 130,
 })
 
-const resolvedSummary = computed(() => props.summaryText || `已选择 ${props.selectedCount} 项`)
+const resolvedSummary = computed(() => props.summaryText || `${props.selectedCount} selected`)
 </script>
 
 <style scoped>

@@ -15,10 +15,10 @@ type AccountProxyRuntimeOptions = {
 }
 
 const accountProxyModeOptions = [
-  { label: '使用默认代理', value: 'global' },
-  { label: '强制直连', value: 'direct' },
-  { label: '代理组（多节点）', value: 'group' },
-  { label: '自定义代理', value: 'custom' },
+  { label: 'Use default proxy', value: 'global' },
+  { label: 'Always connect directly', value: 'direct' },
+  { label: 'Proxy group (multiple nodes)', value: 'group' },
+  { label: 'Custom proxy', value: 'custom' },
 ] as const
 
 export function useAccountProxyRuntime(options: AccountProxyRuntimeOptions) {
@@ -32,28 +32,28 @@ export function useAccountProxyRuntime(options: AccountProxyRuntimeOptions) {
 
   const proxyGroupOptions = computed(() => {
     const rows = options.proxyGroups.value.map((group) => ({
-      label: `${group.enabled === false ? '停用 · ' : ''}${group.name || group.id}${Array.isArray(group.nodes) ? ` · ${group.nodes.length} 个节点` : ''}`,
+      label: `${group.enabled === false ? 'Disabled · ' : ''}${group.name || group.id}${Array.isArray(group.nodes) ? ` · ${group.nodes.length} nodes` : ''}`,
       value: group.id,
     }))
     const selectedId = selectedProxyGroupId.value
     if (selectedId && !rows.some((item) => item.value === selectedId)) {
-      rows.unshift({ label: `未知代理组 · ${selectedId}`, value: selectedId })
+      rows.unshift({ label: `Unknown proxy group · ${selectedId}`, value: selectedId })
     }
     return [
-      { label: '选择代理组', value: '' },
+      { label: 'Select a proxy group', value: '' },
       ...rows,
     ]
   })
 
   const accountProxyPreview = computed(() => {
     if (projectedProxyLabel.value) return projectedProxyLabel.value
-    if (proxyMode.value === 'global') return '使用默认出口'
-    if (proxyMode.value === 'direct') return '强制直连'
+    if (proxyMode.value === 'global') return 'Using default proxy'
+    if (proxyMode.value === 'direct') return 'Direct connection required'
     if (proxyMode.value === 'group') {
       const group = options.proxyGroups.value.find((item) => item.id === selectedProxyGroupId.value)
-      return `代理组：${group?.name || selectedProxyGroupId.value || '-'}`
+      return `Proxy group: ${group?.name || selectedProxyGroupId.value || '-'}`
     }
-    return customProxyInput.value || '自定义代理'
+    return customProxyInput.value || 'Custom proxy'
   })
 
   function syncProxyControlsFromProjection(projection?: AccountProxyProjection) {
@@ -117,25 +117,25 @@ export function useAccountProxyRuntime(options: AccountProxyRuntimeOptions) {
     if (proxyTesting.value) return
 
     if (proxyMode.value === 'direct') {
-      toast.info('当前账号强制直连，不需要测试代理')
+      toast.info('This account is set to connect directly. No proxy test is needed.')
       return
     }
 
     if (proxyMode.value === 'group' && !selectedProxyGroupId.value) {
-      toast.warning('请先选择代理组')
+      toast.warning('Select a proxy group first.')
       return
     }
 
     if (proxyMode.value === 'custom' && !customProxyInput.value.trim()) {
-      toast.warning('请先填写自定义代理地址')
+      toast.warning('Enter a custom proxy address first.')
       return
     }
 
     const confirmed = await confirmDialog.ask({
-      title: '确认测试账号代理',
-      message: '即将通过当前账号代理配置发起外部网络测试请求。请确认当前允许测试该代理连接。',
-      confirmText: '开始测试',
-      cancelText: '取消',
+      title: 'Confirm account proxy test',
+      message: 'An external network test request will be sent through this account’s proxy. Confirm that you are allowed to test this connection.',
+      confirmText: 'Start test',
+      cancelText: 'Cancel',
     })
     if (!confirmed) return
 
@@ -151,12 +151,12 @@ export function useAccountProxyRuntime(options: AccountProxyRuntimeOptions) {
       )
       const result = response.result
       if (result.ok) {
-        toast.success(`代理可用：${result.latency_ms} ms，HTTP ${result.status}`)
+        toast.success(`Proxy is available: ${result.latency_ms} ms, HTTP ${result.status}`)
       } else {
-        toast.error(`代理不可用：${result.error || '未知错误'}`)
+        toast.error(`Proxy is unavailable: ${result.error || 'Unknown error'}`)
       }
     } catch (error) {
-      options.setError('测试代理失败', error)
+      options.setError('Proxy test failed', error)
     } finally {
       proxyTesting.value = false
     }

@@ -71,7 +71,7 @@ export function useAccountActionMenuRuntime(options: AccountActionMenuRuntimeOpt
     const children = actionMenuGroups<AccountActionMenuItem>(
       normalOptions.map((option) => ({
         key: `${BIND_ACCOUNT_GROUP_ACTION_PREFIX}${option.value}`,
-        label: `绑定到 ${option.label}`,
+        label: `Bind to ${option.label}`,
         disabled,
       })),
       ungroupedOptions.map((option) => ({
@@ -83,7 +83,7 @@ export function useAccountActionMenuRuntime(options: AccountActionMenuRuntimeOpt
 
     return [{
       key: 'bind_group_menu',
-      label: '绑定分组',
+      label: 'Bind group',
       disabled: disabled || children.length === 0,
       children,
     }]
@@ -91,7 +91,7 @@ export function useAccountActionMenuRuntime(options: AccountActionMenuRuntimeOpt
 
   const accountEntryItems = computed<ActionMenuItem[]>(() => actionMenuGroups(
     [
-      { key: 'create', label: '手动添加账号' },
+      { key: 'create', label: 'Add account manually' },
     ],
     ACCOUNT_IMPORT_MODE_CATALOG.map((item) => ({ key: item.value, label: item.label })),
   ))
@@ -100,24 +100,24 @@ export function useAccountActionMenuRuntime(options: AccountActionMenuRuntimeOpt
     [
       {
         key: 'selected_json',
-        label: `选中账号 · 完整 JSON${options.selectedCount.value ? ` (${options.selectedCount.value})` : ''}`,
+        label: `Selected accounts · full JSON${options.selectedCount.value ? ` (${options.selectedCount.value})` : ''}`,
         disabled: options.selectedCount.value === 0,
       },
       {
         key: 'selected_txt',
-        label: '选中账号 · Access Token TXT',
+        label: 'Selected accounts · access token TXT',
         disabled: options.selectedCount.value === 0,
       },
     ],
     [
       {
         key: 'all_json',
-        label: '全部账号 · 完整 JSON',
+        label: 'All accounts · full JSON',
         disabled: options.accountAllTotal.value === 0,
       },
       {
         key: 'all_txt',
-        label: '全部账号 · Access Token TXT',
+        label: 'All accounts · access token TXT',
         disabled: options.accountAllTotal.value === 0,
       },
     ],
@@ -127,33 +127,33 @@ export function useAccountActionMenuRuntime(options: AccountActionMenuRuntimeOpt
     [
       {
         key: 'select-all-accounts',
-        label: '全选账号',
+        label: 'Select all accounts',
         disabled: options.accountAllTotal.value === 0 || options.selectedCount.value >= options.accountAllTotal.value,
       },
       {
         key: 'select-all-matching',
-        label: '全选筛选',
+        label: 'Select all filtered accounts',
         disabled: options.accountMatchingTotal.value === 0 || options.allMatchingSelected.value,
       },
       {
         key: 'clear-selection',
-        label: options.selectedCount.value ? `取消选择 (${options.selectedCount.value})` : '取消选择',
+        label: options.selectedCount.value ? `Clear selection (${options.selectedCount.value})` : 'Clear selection',
         disabled: options.selectedCount.value === 0,
       },
     ],
     [
-      { key: 'refresh-access-token', label: '批量刷新 AT', disabled: options.selectedCount.value === 0 },
-      { key: 'sync', label: '批量同步账号与额度', disabled: options.selectedCount.value === 0 },
+      { key: 'refresh-access-token', label: 'Refresh AT in bulk', disabled: options.selectedCount.value === 0 },
+      { key: 'sync', label: 'Sync accounts and quotas in bulk', disabled: options.selectedCount.value === 0 },
     ],
     bindAccountGroupBatchItems.value,
     [
-      { key: 'enable', label: '批量启用', disabled: options.selectedCount.value === 0 },
-      { key: 'disable', label: '批量禁用', disabled: options.selectedCount.value === 0 },
-      { key: 'delete', label: '批量删除', danger: true, disabled: options.selectedCount.value === 0 },
+      { key: 'enable', label: 'Enable selected', disabled: options.selectedCount.value === 0 },
+      { key: 'disable', label: 'Disable selected', disabled: options.selectedCount.value === 0 },
+      { key: 'delete', label: 'Delete selected', danger: true, disabled: options.selectedCount.value === 0 },
     ],
   ))
 
-  const batchMenuLabel = '批量处理'
+  const batchMenuLabel = 'Bulk actions'
 
   async function handleBatchAction(action: string) {
     if (action === 'select-all-accounts') {

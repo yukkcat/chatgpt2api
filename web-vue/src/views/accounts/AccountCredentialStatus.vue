@@ -1,12 +1,12 @@
 <template>
   <div class="inline-flex min-w-0 items-center">
     <HoverCard card-class="w-72" focusable>
-      <span class="inline-flex items-center gap-1.5" aria-label="凭据状态">
+      <span class="inline-flex items-center gap-1.5" aria-label="Credential status">
         <MetaChip :tone="item.access_token_tone" size="xs" strong>
-          {{ item.access_token_label }}
+          {{ accessTokenLabel }}
         </MetaChip>
         <MetaChip :tone="item.refresh_token_tone" size="xs" strong>
-          {{ item.refresh_token_label }}
+          {{ refreshTokenLabel }}
         </MetaChip>
       </span>
 
@@ -21,20 +21,20 @@
                 root-class="h-6 px-2 text-[11px] font-normal"
                 @click.stop="emit('copy-credential', 'access')"
               >
-                复制 AT
+                Copy AT
               </Button>
             </div>
             <dl class="space-y-1">
               <div class="flex items-start justify-between gap-4">
-                <dt class="text-muted-foreground">状态</dt>
-                <dd class="text-right font-medium text-foreground">{{ item.access_token_label }}</dd>
+                <dt class="text-muted-foreground">Status</dt>
+                <dd class="text-right font-medium text-foreground">{{ accessTokenLabel }}</dd>
               </div>
               <div v-if="hasAccessIssuedAt" class="flex items-start justify-between gap-4">
-                <dt class="text-muted-foreground">签发时间</dt>
+                <dt class="text-muted-foreground">Issued</dt>
                 <dd class="text-right tabular-nums text-foreground">{{ accessIssuedAt }}</dd>
               </div>
               <div v-if="hasAccessExpiresAt" class="flex items-start justify-between gap-4">
-                <dt class="text-muted-foreground">到期时间</dt>
+                <dt class="text-muted-foreground">Expires</dt>
                 <dd class="text-right tabular-nums text-foreground">{{ accessExpiresAt }}</dd>
               </div>
             </dl>
@@ -50,28 +50,28 @@
                 :disabled="refreshTokenMissing"
                 @click.stop="emit('copy-credential', 'refresh')"
               >
-                复制 RT
+                Copy RT
               </Button>
             </div>
             <dl class="space-y-1">
               <div class="flex items-start justify-between gap-4">
-                <dt class="text-muted-foreground">状态</dt>
-                <dd class="text-right font-medium text-foreground">{{ item.refresh_token_label }}</dd>
+                <dt class="text-muted-foreground">Status</dt>
+                <dd class="text-right font-medium text-foreground">{{ refreshTokenLabel }}</dd>
               </div>
               <div v-if="hasLastTokenRefreshAt" class="flex items-start justify-between gap-4">
-                <dt class="text-muted-foreground">最近成功刷新 AT</dt>
+                <dt class="text-muted-foreground">Last successful AT refresh</dt>
                 <dd class="text-right tabular-nums text-foreground">{{ lastTokenRefreshAt }}</dd>
               </div>
               <div v-if="hasRefreshTokenInvalidAt" class="flex items-start justify-between gap-4">
-                <dt class="text-muted-foreground">失效时间</dt>
+                <dt class="text-muted-foreground">Invalidated</dt>
                 <dd class="text-right tabular-nums text-foreground">{{ refreshTokenInvalidAt }}</dd>
               </div>
               <div v-if="hasLastTokenRefreshErrorAt" class="flex items-start justify-between gap-4">
-                <dt class="text-muted-foreground">失败时间</dt>
+                <dt class="text-muted-foreground">Failed at</dt>
                 <dd class="text-right tabular-nums text-foreground">{{ lastTokenRefreshErrorAt }}</dd>
               </div>
               <div v-if="item.last_token_refresh_error" class="flex items-start justify-between gap-4">
-                <dt class="shrink-0 text-muted-foreground">失败原因</dt>
+                <dt class="shrink-0 text-muted-foreground">Failure reason</dt>
                 <dd class="break-words text-right text-foreground">{{ item.last_token_refresh_error }}</dd>
               </div>
             </dl>
@@ -98,6 +98,8 @@ const emit = defineEmits<{
 }>()
 
 const refreshTokenMissing = computed(() => props.item.refresh_token_status === 'missing')
+const accessTokenLabel = computed(() => ({ valid: 'AT valid', expiring: 'AT expiring', invalid: 'AT invalid' }[props.item.access_token_status] || props.item.access_token_label))
+const refreshTokenLabel = computed(() => ({ valid: 'RT valid', missing: 'RT missing', invalid: 'RT invalid' }[props.item.refresh_token_status] || props.item.refresh_token_label))
 const hasAccessIssuedAt = computed(() => Number(props.item.access_token_issued_at || 0) > 0)
 const hasAccessExpiresAt = computed(() => Number(props.item.access_token_expires_at || 0) > 0)
 const hasLastTokenRefreshAt = computed(() => Number(props.item.last_token_refresh_at || 0) > 0)

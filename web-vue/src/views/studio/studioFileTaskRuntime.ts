@@ -63,7 +63,7 @@ export function useStudioFileTaskRuntime(input: StudioFileTaskRuntimeInput) {
       if (!message.fileTaskId || !missing.has(message.fileTaskId)) return
       if (message.status === 'error') return
       message.status = 'error'
-      message.error = '文件任务已过期或不存在'
+      message.error = 'The file task has expired or does not exist'
       changedConversations.add(conversation)
       input.hooks.markConversationNotice(conversation.id, 'error')
     })
@@ -131,7 +131,7 @@ export function useStudioFileTaskRuntime(input: StudioFileTaskRuntimeInput) {
     },
     onRefreshSuccess: input.hooks.onRefreshSuccess,
     onRefreshError: (error) => {
-      input.hooks.onRefreshError(input.hooks.formatError(error, '刷新文件任务失败'))
+      input.hooks.onRefreshError(input.hooks.formatError(error, 'Failed to refresh file task'))
     },
   })
 

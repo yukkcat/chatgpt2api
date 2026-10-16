@@ -1,7 +1,7 @@
 <template>
   <ModalShell
     :open="Boolean(file)"
-    aria-label="图片预览"
+    aria-label="Image preview"
     close-on-overlay
     close-on-escape
     overlay-class="lightbox"
@@ -13,7 +13,7 @@
     @close="emit('close')"
   >
     <template v-if="file">
-      <CloseButton class="lightbox-close" label="关闭预览" tone="dark" @click="emit('close')" />
+      <CloseButton class="lightbox-close" label="Close preview" tone="dark" @click="emit('close')" />
         <img
           :src="imageUrl"
           :alt="file.filename"
@@ -25,15 +25,15 @@
           <span v-if="file.created_at">{{ file.created_at }}</span>
           <button v-if="canShowDownload" class="lightbox-btn" @click="emitFile('download')">
             <Icon icon="lucide:download" />
-            下载
+            Download
           </button>
           <button v-if="canShowCopy" class="lightbox-btn" @click="emitFile('copy')">
             <Icon :icon="copied ? 'lucide:check' : 'lucide:copy'" />
-            {{ copied ? '已复制' : '复制链接' }}
+            {{ copied ? 'Copied' : 'Copy link' }}
           </button>
           <button v-if="canShowTag" class="lightbox-btn" @click="emitFile('edit-tags')">
             <Icon icon="lucide:tag" />
-            标签
+            Tags
           </button>
         </div>
     </template>

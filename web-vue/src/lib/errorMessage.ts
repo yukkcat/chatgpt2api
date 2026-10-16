@@ -18,7 +18,7 @@ function normalizeGenericServerError(message: string, status?: number) {
       || /^request failed with status code 5\d\d$/i.test(raw)
     )
   ) {
-    return `服务器内部错误（HTTP ${status}），请查看后端日志`
+    return `Internal server error (HTTP ${status}). Check the server logs.`
   }
   return raw
 }
@@ -65,7 +65,7 @@ function objectMessage(value: Record<string, unknown>, status?: number): string 
 
 export function errorMessage(error: unknown, options: ErrorMessageOptions | string = {}): string {
   const config: ErrorMessageOptions = typeof options === 'string' ? { fallback: options } : options
-  const fallback = config.fallback === undefined ? '请求失败' : cleanString(config.fallback)
+  const fallback = config.fallback === undefined ? 'Request failed' : cleanString(config.fallback)
   const explicitStatus = config.status
   const status = explicitStatus
     || (error && typeof error === 'object' && 'status' in error ? Number((error as { status?: unknown }).status) || undefined : undefined)
@@ -87,7 +87,7 @@ export function errorMessage(error: unknown, options: ErrorMessageOptions | stri
   return message || fallback
 }
 
-export function prefixedErrorMessage(prefix: string, error: unknown, fallback = '请求失败') {
+export function prefixedErrorMessage(prefix: string, error: unknown, fallback = 'Request failed') {
   const message = errorMessage(error, fallback)
   return prefix ? `${prefix}: ${message}` : message
 }

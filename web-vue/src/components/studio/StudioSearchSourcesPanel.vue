@@ -1,8 +1,8 @@
 <template>
-  <section class="studio-search-sources-panel" aria-label="参考来源">
+  <section class="studio-search-sources-panel" aria-label="Sources">
     <ModalHeader
-      title="参考来源"
-      :subtitle="`${sourceViews.length} 条网页结果`"
+      title="Sources"
+      :subtitle="`${sourceViews.length} web results`"
       compact
       @close="$emit('close')"
     />
@@ -63,7 +63,7 @@ const sourceViews = computed(() => (props.message.searchSources || []).map((sour
 })))
 
 function sourceTitle(source: StudioSearchSource, index: number) {
-  return source.title?.trim() || source.url?.trim() || `来源 ${index + 1}`
+  return source.title?.trim() || source.url?.trim() || `Source ${index + 1}`
 }
 
 function sourceHost(url: string | undefined) {
