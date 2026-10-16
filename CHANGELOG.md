@@ -2,6 +2,8 @@
 
 ## Unreleased
 
++ [修复] Chat 与 Responses 的远程图片引用复用公共安全下载路径，逐跳校验公网 DNS 与重定向目标，并以流式方式保留 10MB 限制；内联图片数据也在解码前限制大小。
+
 ## 3.2.3 - 2026-09-09
 
 + [新增] Python 图片接口和共享模型列表支持 `gpt-image-2.5`、`gpt-image-2.5-flare`、`gpt-image-2.5-sunburst`，通过 ChatGPT Web 的 `auto` 路由兼容，不包含 `exact` 别名。

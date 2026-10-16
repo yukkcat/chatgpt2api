@@ -1,7 +1,6 @@
 import base64
 import hashlib
 import json
-import mimetypes
 import queue
 import re
 import threading
@@ -9,13 +8,12 @@ import time
 import uuid
 from pathlib import Path
 from typing import Any, Callable, Iterator
-from urllib.parse import urlparse
 
 from curl_cffi import requests
 from curl_cffi.requests.exceptions import RequestException
 from curl_cffi.requests.models import STREAM_END
 from fastapi import HTTPException
-from services.proxy_service import proxy_settings
+from utils.image_reference import _download_image_url
 from utils.log import logger
 
 WEB_IMAGE_MODELS = (
@@ -526,44 +524,18 @@ def _message_image_url(value: object) -> str:
 
 def _decode_message_image_url(value: object) -> tuple[bytes, str] | None:
     source = _message_image_url(value)
-    if source.startswith("data:"):
-        header, _, data = source.partition(",")
-        mime = header.split(";")[0].removeprefix("data:") or "image/png"
-        return base64.b64decode(data), mime
     if not source.startswith(("http://", "https://")):
-        return None
-    parsed = urlparse(source)
-    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-        return None
+        if not source.startswith("data:"):
+            return None
 
-    try:
-        response = requests.get(
-            source,
-            headers={"Accept": "image/*,*/*;q=0.8", "User-Agent": "chatgpt2api vision fetcher"},
-            timeout=REMOTE_IMAGE_TIMEOUT_SECONDS,
-            allow_redirects=True,
-            **proxy_settings.build_session_kwargs(),
-        )
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail={"error": f"image_url fetch failed: {exc}"}) from exc
-    if not 200 <= response.status_code < 300:
-        raise HTTPException(status_code=400, detail={"error": f"image_url fetch failed: HTTP {response.status_code}"})
-    content_length = str(response.headers.get("content-length") or "").strip()
-    if content_length.isdigit() and int(content_length) > MAX_JSON_IMAGE_BYTES:
-        raise HTTPException(status_code=400, detail={"error": "image_url exceeds 10MB limit"})
-    image_data = response.content
-    if not image_data:
-        raise HTTPException(status_code=400, detail={"error": "image_url returned empty content"})
-    if len(image_data) > MAX_JSON_IMAGE_BYTES:
-        raise HTTPException(status_code=400, detail={"error": "image_url exceeds 10MB limit"})
-    mime = str(response.headers.get("content-type") or "image/png").split(";", 1)[0].lower()
-    guessed_mime = mimetypes.guess_type(parsed.path)[0] or ""
-    if mime and not mime.startswith("image/") and mime not in {"application/octet-stream", "binary/octet-stream"}:
-        raise HTTPException(status_code=400, detail={"error": "image_url must point to an image"})
-    if not mime.startswith("image/") and guessed_mime.startswith("image/"):
-        mime = guessed_mime
-    if not mime.startswith("image/"):
-        mime = "image/png"
+    # Keep all client-supplied URL references on the same DNS-pinned,
+    # redirect-validating, streaming fetch path used by image edit requests.
+    # Chat messages retain their existing, smaller 10 MiB limit.
+    image_data, _, mime = _download_image_url(
+        source,
+        max_bytes=MAX_JSON_IMAGE_BYTES,
+        timeout_seconds=REMOTE_IMAGE_TIMEOUT_SECONDS,
+    )
     return image_data, mime
 
 
