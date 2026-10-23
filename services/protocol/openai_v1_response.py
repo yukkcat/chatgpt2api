@@ -20,6 +20,7 @@ from services.protocol.conversation import (
     text_backend,
 )
 from services.protocol.reasoning import thinking_effort_from_body
+from services.protocol.request_capabilities import validate_request_capabilities
 from services.protocol.web_search_tool import (
     WEB_SEARCH_TOOL_TYPES,
     has_unsupported_tools,
@@ -36,12 +37,6 @@ from utils.image_tokens import (
     image_usage,
     image_output_metadata,
     token_usage,
-)
-
-TOOL_UNAVAILABLE_SYSTEM_MESSAGE = (
-    "This compatibility backend cannot execute local tools, shell commands, non-search tools, "
-    "or file operations. Do not claim to have run tools or inspected external resources. "
-    "If a user asks you to use a tool, say that tool execution is unavailable through this backend."
 )
 
 RESPONSE_CONTENT_PART_TYPES = {"text", "input_text", "output_text", "image_url", "input_image", "image"}
@@ -293,10 +288,9 @@ def _backend_account_email(backend: object) -> str:
 
 
 def text_response_parts(body: dict[str, Any]) -> tuple[str, list[dict[str, Any]]]:
+    validate_request_capabilities(body, "responses")
     model = str(body.get("model") or "auto").strip() or "auto"
     messages = normalize_text_messages(normalize_messages(messages_from_input(body.get("input"), body.get("instructions"))))
-    if has_unsupported_response_tools(body):
-        messages.insert(0, {"role": "system", "content": TOOL_UNAVAILABLE_SYSTEM_MESSAGE})
     return model, messages
 
 
@@ -491,6 +485,7 @@ def response_events(body: dict[str, Any]) -> Iterator[dict[str, Any]]:
 
 
 def handle(body: dict[str, Any]) -> dict[str, Any] | Iterator[dict[str, Any]]:
+    validate_request_capabilities(body, "responses")
     events = response_events(body)
     if body.get("stream"):
         return events

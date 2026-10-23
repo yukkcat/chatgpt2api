@@ -11,6 +11,7 @@ from typing import Any
 
 from services.openai_backend_api import OpenAIBackendAPI
 from services.protocol.conversation import count_message_tokens, count_text_tokens, normalize_messages, text_backend
+from services.protocol.request_capabilities import validate_request_capabilities
 from services.protocol.openai_v1_chat_complete import collect_chat_content, stream_text_chat_completion
 
 XML_TOOL_RULE = """Tool output adapter: when calling tools, output ONLY this XML and no prose/markdown:
@@ -305,6 +306,7 @@ def _stream_buffered_blocks(content: list[dict[str, object]], start_index: int =
 
 
 def handle(body: dict[str, Any]) -> dict[str, Any] | Iterator[dict[str, Any]]:
+    validate_request_capabilities(body, "anthropic")
     request = message_request(body)
     if body.get("stream"):
         return stream_events(

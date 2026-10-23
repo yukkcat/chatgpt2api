@@ -169,6 +169,8 @@ Authorization: Bearer <auth-key>
 
 文件任务的创建、查询和删除按 API Key 隔离；任务返回的 `/files/...` 链接与生成图片一样无需鉴权，持有链接即可下载。公开下载会校验路径及文件类型，拒绝路径穿越。
 
+文本接口遇到不支持的工具执行能力或文件、PDF、音频等内容块时，会在调用模型前返回 HTTP 501，避免静默丢弃。Chat Completions 和 Responses 支持文档所列联网搜索工具，并继续接受已支持的图片输入。Anthropic Messages 会将声明的工具转换为客户端可见的 `tool_use` 块，但不会在服务器上执行工具。模型目录不提供逐模型工具或附件能力声明。
+
 <details>
 <summary>Chat Completions 示例</summary>
 

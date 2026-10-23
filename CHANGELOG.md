@@ -2,6 +2,8 @@
 
 ## Unreleased
 
++ [修复] Chat Completions、Responses 和 Anthropic Messages 在请求包含无法执行的工具调用或无法处理的文件、PDF、音频等内容块时，于缓存和模型调用前明确返回 HTTP 501；支持的图片和联网搜索仍可使用。
+
 ## 3.2.3 - 2026-09-09
 
 + [新增] Python 图片接口和共享模型列表支持 `gpt-image-2.5`、`gpt-image-2.5-flare`、`gpt-image-2.5-sunburst`，通过 ChatGPT Web 的 `auto` 路由兼容，不包含 `exact` 别名。
