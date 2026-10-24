@@ -42,7 +42,7 @@ export function useStudioConversationActionsRuntime(input: StudioConversationAct
     const now = new Date().toISOString()
     const conversation: StudioConversation = {
       id: createStudioId('studio'),
-      title: seedText ? buildStudioConversationTitle(seedText) : '新对话',
+      title: seedText ? buildStudioConversationTitle(seedText) : 'New chat',
       createdAt: now,
       updatedAt: now,
       messages: [],
@@ -61,7 +61,7 @@ export function useStudioConversationActionsRuntime(input: StudioConversationAct
     const conversation = input.conversationLookup.value.byId.get(conversationId)
     if (!conversation) return
     const nextTitle = title.trim()
-    conversation.title = nextTitle || '新对话'
+    conversation.title = nextTitle || 'New chat'
     touchConversation(conversation)
   }
 
@@ -113,7 +113,7 @@ export function useStudioConversationActionsRuntime(input: StudioConversationAct
     if (!conversation?.messages.length) return null
     input.hooks.cancelMessageEdit()
     conversation.messages = []
-    conversation.title = '新对话'
+    conversation.title = 'New chat'
     clearConversationNotice(conversation.id)
     touchConversation(conversation)
     input.hooks.resetTasks()

@@ -18,7 +18,7 @@ withDefaults(defineProps<{
   density?: 'compact' | 'normal'
 }>(), {
   hasItems: false,
-  emptyText: '暂无数据',
+  emptyText: 'No data',
   density: 'normal',
 })
 </script>

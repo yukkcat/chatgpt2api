@@ -29,15 +29,15 @@ export function buildDashboardTrendSeries<T>(
   colors: DashboardTrendColors,
 ): T[] {
   return [
-    createLineSeries('成功', trend.successRequests, colors.success, {
+    createLineSeries('Successful', trend.successRequests, colors.success, {
       areaOpacity: 0.25,
       zIndex: 1,
     }),
-    createLineSeries('失败', trend.finalFailedRequests, colors.failure, {
+    createLineSeries('Failed', trend.finalFailedRequests, colors.failure, {
       areaOpacity: 0.3,
       zIndex: 2,
     }),
-    createLineSeries('切号', trend.switchCount, colors.switchAccount, {
+    createLineSeries('Account switches', trend.switchCount, colors.switchAccount, {
       areaOpacity: 0,
       lineStyle: { type: 'dashed', width: 2 },
       zIndex: 3,

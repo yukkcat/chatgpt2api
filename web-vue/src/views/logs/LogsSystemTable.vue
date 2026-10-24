@@ -6,12 +6,12 @@
     sticky-header
     unframed
     :loading="isFetching && visibleLogs.length === 0"
-    loading-title="正在加载日志"
-    loading-description="正在获取最新日志数据。"
+    loading-title="Loading logs"
+    loading-description="Fetching the latest log data."
     :show-empty="!isFetching && visibleLogs.length === 0"
     :empty-colspan="9"
-    :empty-title="logsLoadError ? '日志加载失败' : '暂无日志'"
-    :empty-description="logsLoadError || '换个筛选条件或刷新后再看。'"
+    :empty-title="logsLoadError ? 'Failed to load logs' : 'No logs'"
+    :empty-description="logsLoadError || 'Try changing the filters or refreshing.'"
     :scroll-class="layoutMode === 'workspace' ? 'max-h-[min(36rem,60dvh)] lg:max-h-none' : ''"
     table-class="w-full min-w-[1080px] table-fixed"
     head-class="normal-case tracking-normal"
@@ -26,17 +26,17 @@
             :disabled="visibleLogs.length === 0"
             @update:model-value="emit('toggle-select-all-visible', $event)"
           >
-            <span class="sr-only">全选当前页日志</span>
+            <span class="sr-only">Select all logs on this page</span>
           </Checkbox>
         </th>
-        <th class="w-[8%] py-3 pr-5">时间</th>
-        <th class="w-[17%] py-3 pr-5">请求</th>
-        <th class="w-[13%] py-3 pr-5">执行</th>
-        <th class="w-[14%] py-3 pr-5">分辨率</th>
-        <th class="w-[8%] py-3 pr-5">耗时</th>
-        <th class="w-[7%] py-3 pr-5">图片</th>
-        <th class="w-[17%] py-3 pr-5">结果</th>
-        <th class="w-[13%] py-3 pr-4 text-right">操作</th>
+        <th class="w-[8%] py-3 pr-5">Time</th>
+        <th class="w-[17%] py-3 pr-5">Request</th>
+        <th class="w-[13%] py-3 pr-5">Execution</th>
+        <th class="w-[14%] py-3 pr-5">Resolution</th>
+        <th class="w-[8%] py-3 pr-5">Duration</th>
+        <th class="w-[7%] py-3 pr-5">Images</th>
+        <th class="w-[17%] py-3 pr-5">Result</th>
+        <th class="w-[13%] py-3 pr-4 text-right">Actions</th>
       </tr>
     </template>
 
@@ -60,7 +60,7 @@
         :layout-mode="layoutMode"
         :total-count="totalCount"
         :page-size-options="systemLogPageSizeOptions"
-        unit="条日志"
+        unit="logs"
         :disabled="isFetching"
         @update:page="emit('update:page', $event)"
         @update:page-size="emit('update:pageSize', $event)"

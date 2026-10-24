@@ -51,7 +51,7 @@ export async function preloadPromptLibrary(force = false) {
       return true
     } catch (error: any) {
       if (generation === loadGeneration && !mutationBusy.value) {
-        loadError.value = error?.message || '提示词加载失败，请稍后重试。'
+        loadError.value = error?.message || 'Failed to load prompts. Please try again later.'
       }
       return false
     } finally {
@@ -71,7 +71,7 @@ async function mutatePromptLibrary(
   sourceId: string,
   request: () => Promise<PromptLibraryView>,
 ) {
-  if (mutationBusy.value) throw new Error('提示词源正在更新，请稍后再试。')
+  if (mutationBusy.value) throw new Error('Prompt sources are being updated. Please try again later.')
 
   mutationBusy.value = true
   mutationAction.value = action
@@ -105,7 +105,7 @@ export function usePromptLibraryRuntime() {
 
   const enabledSourceCount = computed(() => snapshot.value?.enabled_source_count ?? 0)
   const sourceOptions = computed(() => [
-    { label: '全部来源', value: ALL_PROMPT_SOURCE },
+    { label: 'All sources', value: ALL_PROMPT_SOURCE },
     ...sources.value
       .filter((source) => source.enabled)
       .map((source) => ({

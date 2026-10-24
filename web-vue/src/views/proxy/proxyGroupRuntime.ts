@@ -65,7 +65,7 @@ export function normalizeImageConcurrencyLimit(value: unknown) {
 function createDefaultNode(index = 0): ProxyGroupNodeForm {
   return {
     id: createGeneratedId('node'),
-    name: `出口 ${index + 1}`,
+    name: `Egress ${index + 1}`,
     url: '',
     enabled: true,
     image_concurrency_limit: DEFAULT_PROXY_NODE_IMAGE_CONCURRENCY,
@@ -87,7 +87,7 @@ function normalizeGroupNode(item: ProxyGroupNodeForm | ProxyNode, index: number)
   const id = cleanProxyGroupDraftId(item.id || '') || createGeneratedId('node')
   return {
     id,
-    name: String(item.name || `出口 ${index + 1}`).trim(),
+    name: String(item.name || `Egress ${index + 1}`).trim(),
     url: String(item.url || '').trim(),
     enabled: item.enabled !== false,
     image_concurrency_limit: normalizeImageConcurrencyLimit(item.image_concurrency_limit ?? DEFAULT_PROXY_NODE_IMAGE_CONCURRENCY),
@@ -180,7 +180,7 @@ export function useProxyGroupRuntime() {
     groups.value = next
   }
 
-  async function copyText(value: string, message = '已复制') {
+  async function copyText(value: string, message = 'Copied') {
     const text = String(value || '').trim()
     if (!text) return
     try {
@@ -199,12 +199,12 @@ export function useProxyGroupRuntime() {
       }
       toast.success(message)
     } catch {
-      toast.error('复制失败')
+      toast.error('Copy failed')
     }
   }
 
   function copyProxyGroupReference(group: Pick<ProxyGroup, 'id' | 'reference_text'>) {
-    void copyText(proxyGroupReference(group), '代理组引用已复制')
+    void copyText(proxyGroupReference(group), 'Proxy group reference copied')
   }
 
   function resetGroupForm() {
@@ -243,10 +243,10 @@ export function useProxyGroupRuntime() {
       closingGroupModal.value = true
       try {
         const confirmed = await confirmDialog.ask({
-          title: '放弃代理组草稿',
-          message: '当前代理组有未保存的修改，关闭后这些内容将丢失。是否继续？',
-          confirmText: '放弃修改',
-          cancelText: '继续编辑',
+          title: 'Discard proxy group draft',
+          message: 'This proxy group has unsaved changes. Closing it will discard them. Continue?',
+          confirmText: 'Discard changes',
+          cancelText: 'Continue editing',
         })
         if (!confirmed) return
       } finally {
@@ -285,7 +285,7 @@ export function useProxyGroupRuntime() {
   async function saveProxyGroup() {
     const groupName = groupForm.name.trim()
     if (!groupName) {
-      toast.warning('请填写代理组名称')
+      toast.warning('Enter a proxy group name')
       return
     }
     const id = cleanProxyGroupDraftId(editingGroupId.value || groupForm.id) || createGeneratedId('pg')
@@ -293,7 +293,7 @@ export function useProxyGroupRuntime() {
       .map((node, index) => normalizeGroupNode(node, index))
       .filter((node) => node.url)
     if (!nodes.length) {
-      toast.warning('请至少填写一个代理节点地址')
+      toast.warning('Enter at least one proxy node address')
       return
     }
     savingGroupId.value = FORM_TEST_KEY
@@ -310,9 +310,9 @@ export function useProxyGroupRuntime() {
       upsertGroup(response.group)
       savingGroupId.value = ''
       finishCloseGroupModal()
-      toast.success(wasEditing ? '代理组已更新' : '代理组已创建')
+      toast.success(wasEditing ? 'Proxy group updated' : 'Proxy group created')
     } catch (error) {
-      toast.error(prefixedErrorMessage('保存代理组失败', error))
+      toast.error(prefixedErrorMessage('Failed to save proxy group', error))
     } finally {
       savingGroupId.value = ''
     }
@@ -321,10 +321,10 @@ export function useProxyGroupRuntime() {
   async function toggleProxyGroup(group: ProxyGroup) {
     const nextEnabled = !group.enabled
     const confirmed = await confirmDialog.ask({
-      title: nextEnabled ? '确认启用代理组' : '确认停用代理组',
-      message: `即将${nextEnabled ? '启用' : '停用'}代理组 ${group.name || group.id}。绑定到该组的账号组会受到影响，是否继续？`,
-      confirmText: nextEnabled ? '启用' : '停用',
-      cancelText: '取消',
+      title: nextEnabled ? 'Confirm enabling proxy group' : 'Confirm disabling proxy group',
+      message: `This will ${nextEnabled ? 'enable' : 'disable'} proxy group ${group.name || group.id}. Account groups assigned to it will be affected. Continue?`,
+      confirmText: nextEnabled ? 'Enable' : 'Disable',
+      cancelText: 'Cancel',
     })
     if (!confirmed) return
 
@@ -335,9 +335,9 @@ export function useProxyGroupRuntime() {
         enabled: nextEnabled,
       })
       upsertGroup(response.group)
-      toast.success(`代理组 ${group.name || group.id} 已${group.enabled ? '停用' : '启用'}`)
+      toast.success(`Proxy group ${group.name || group.id} ${group.enabled ? 'disabled' : 'enabled'}`)
     } catch (error) {
-      toast.error(prefixedErrorMessage('切换代理组失败', error))
+      toast.error(prefixedErrorMessage('Failed to change proxy group status', error))
     } finally {
       savingGroupId.value = ''
     }
@@ -347,10 +347,10 @@ export function useProxyGroupRuntime() {
     if (group.can_delete === false) return
 
     const confirmed = await confirmDialog.ask({
-      title: '删除代理组',
-      message: `确认删除代理组 ${group.name || group.id}？该代理组当前未被任何出口、账号组或账号引用，删除后无法恢复。`,
-      confirmText: '确认删除',
-      cancelText: '取消',
+      title: 'Delete proxy group',
+      message: `Delete proxy group ${group.name || group.id}? It is not currently referenced by any egress, account group, or account. This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
     })
     if (!confirmed) return
 
@@ -358,9 +358,9 @@ export function useProxyGroupRuntime() {
     try {
       const response = await proxyApi.deleteGroup(group.id)
       groups.value = groups.value.filter((item) => item.id !== response.deleted_id)
-      toast.success('代理组已删除')
+      toast.success('Proxy group deleted')
     } catch (error) {
-      toast.error(prefixedErrorMessage('删除代理组失败', error))
+      toast.error(prefixedErrorMessage('Failed to delete proxy group', error))
     } finally {
       deletingGroupId.value = ''
     }
@@ -375,15 +375,15 @@ export function useProxyGroupRuntime() {
   async function testProxyGroupNode(group: Pick<ProxyGroup, 'id' | 'name'>, node: ProxyGroupNodeForm | ProxyNode) {
     const value = node.url.trim()
     if (!value) {
-      toast.warning(`${node.name || node.id}：请先填写代理地址`)
+      toast.warning(`${node.name || node.id}: Enter a proxy address first`)
       return
     }
-    const groupLabel = group.name || (group.id === FORM_TEST_KEY ? '当前草稿' : group.id)
+    const groupLabel = group.name || (group.id === FORM_TEST_KEY ? 'Current draft' : group.id)
     const confirmed = await confirmDialog.ask({
-      title: '确认测试代理节点',
-      message: `即将使用代理组 ${groupLabel} 的节点 ${node.name || node.id} 发起外部网络测试请求。请确认当前允许测试该代理连接。`,
-      confirmText: '开始测试',
-      cancelText: '取消',
+      title: 'Confirm proxy node test',
+      message: `This will send an external network test request through node ${node.name || node.id} in proxy group ${groupLabel}. Confirm that testing this connection is allowed.`,
+      confirmText: 'Start test',
+      cancelText: 'Cancel',
     })
     if (!confirmed) return
 
@@ -394,10 +394,10 @@ export function useProxyGroupRuntime() {
       const response = await proxyApi.testGroup({ url: value })
       const result = response.result || response.results?.[0]?.result
       if (result) testResults[key] = result
-      if (result?.ok) toast.success(`节点检测通过，耗时 ${result.latency_ms}ms`)
-      else toast.warning(result?.error || '节点检测失败')
+      if (result?.ok) toast.success(`Node test passed, latency ${result.latency_ms}ms`)
+      else toast.warning(result?.error || 'Node test failed')
     } catch (error) {
-      const message = errorMessage(error, '节点检测失败')
+      const message = errorMessage(error, 'Node test failed')
       testResults[key] = {
         ok: false,
         status: 0,
@@ -412,20 +412,20 @@ export function useProxyGroupRuntime() {
 
   async function testProxyGroupAll(group: ProxyGroup) {
     const confirmed = await confirmDialog.ask({
-      title: '确认测试代理组',
-      message: `即将测试代理组 ${group.name || group.id} 内的 ${group.nodes.length} 个节点。每个节点都会发起外部网络测试请求，是否继续？`,
-      confirmText: '开始测试',
-      cancelText: '取消',
+      title: 'Confirm proxy group test',
+      message: `This will test all ${group.nodes.length} nodes in proxy group ${group.name || group.id}. Each node will send an external network test request. Continue?`,
+      confirmText: 'Start test',
+      cancelText: 'Cancel',
     })
     if (!confirmed) return
 
     const key = `group:${group.id}:all`
     testingKey.value = key
     await progressRuntime.start({
-      title: '检测代理组节点',
+      title: 'Test proxy group nodes',
       subtitle: group.name || group.id,
       total: group.nodes.length,
-      message: `正在检测 ${group.nodes.length} 个节点...`,
+      message: `Testing ${group.nodes.length} nodes...`,
     })
     try {
       const response = await proxyApi.testGroup({ id: group.id })
@@ -443,7 +443,7 @@ export function useProxyGroupRuntime() {
         progressRuntime.fail(response.summary.message, response.summary.total)
       }
     } catch (error) {
-      progressRuntime.fail(errorMessage(error, '代理组检测失败'))
+      progressRuntime.fail(errorMessage(error, 'Proxy group test failed'))
     } finally {
       testingKey.value = ''
     }

@@ -38,7 +38,7 @@ export function useStudioMessageRuntime(input: StudioMessageRuntimeInput) {
     conversation.messages.push(next)
     const inserted = conversation.messages[conversation.messages.length - 1] || next
     input.hooks.touchConversation(conversation)
-    if (conversation.title === '新对话' && message.role === 'user') {
+    if ((conversation.title === 'New chat' || conversation.title === '新对话') && message.role === 'user') {
       conversation.title = buildStudioConversationTitle(message.content)
     }
     input.hooks.scheduleScrollToBottom()

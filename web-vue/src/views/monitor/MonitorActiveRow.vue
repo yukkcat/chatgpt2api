@@ -27,7 +27,7 @@
     <td class="max-w-[14rem]">
       <p
         class="truncate"
-        :title="row.previous_account_email ? `上一账号：${row.previous_account_email}` : row.account_email"
+        :title="row.previous_account_email ? `Previous account: ${row.previous_account_email}` : row.account_email"
       >
         {{ row.account_email || '-' }}
       </p>

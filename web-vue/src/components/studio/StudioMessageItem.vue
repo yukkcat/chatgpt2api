@@ -72,7 +72,7 @@
               <p v-if="message.content" class="studio-user-prompt">{{ message.content }}</p>
               <div v-if="message.attachments?.length && !message.referenceImages?.length" class="studio-attachment-line">
                 <Icon icon="lucide:paperclip" class="h-3.5 w-3.5" />
-                {{ message.attachments.join('、') }}
+                {{ message.attachments.join(', ') }}
               </div>
             </template>
 
@@ -92,13 +92,13 @@
                 </div>
                 <div class="studio-file-task-body">
                   <strong>{{ fileTaskTitle(message) }}</strong>
-                  <span v-if="message.fileTaskDeleted">任务记录和本地文件已删除。</span>
+                  <span v-if="message.fileTaskDeleted">The task record and local files were deleted.</span>
                   <p v-else-if="fileTaskStatus(message) === 'error'">
                     {{ fileTaskError(message) }}
                   </p>
                   <span v-else-if="isFileTaskPending(message)">{{ fileTaskStatusText(message) }}</span>
-                  <span v-else-if="!message.fileTask">正在读取下载地址</span>
-                  <span v-else>可下载源文件或完整压缩包。</span>
+                  <span v-else-if="!message.fileTask">Loading download link</span>
+                  <span v-else>Download the source file or the complete ZIP archive.</span>
 
                   <div v-if="message.fileTask?.status === 'success'" class="studio-file-task-actions">
                     <button
@@ -108,7 +108,7 @@
                       @click="handleFileTaskDownload(message, message.fileTask.result.primary_url, 'file')"
                     >
                       <Icon icon="lucide:download" class="h-3.5 w-3.5" />
-                      下载 {{ fileKindLabel(message) }}
+                      Download {{ fileKindLabel(message) }}
                     </button>
                     <button
                       type="button"
@@ -117,7 +117,7 @@
                       @click="handleFileTaskDownload(message, message.fileTask.result.zip_url, 'zip')"
                     >
                       <Icon icon="lucide:archive" class="h-3.5 w-3.5" />
-                      下载 ZIP
+                      Download ZIP
                     </button>
                   </div>
                 </div>
@@ -154,9 +154,9 @@
                 @click="$emit('open-search-sources', message)"
               >
                 <Icon icon="lucide:external-link" class="studio-search-source-chip-icon" />
-                <span class="studio-search-source-chip-label">参考来源</span>
+                <span class="studio-search-source-chip-label">Sources</span>
                 <strong>{{ message.searchSources.length }}</strong>
-                <small>查看</small>
+                <small>View</small>
               </button>
               <div v-if="message.mode === 'search' && message.searchImageGroups?.length" class="studio-search-image-groups">
                 <div
@@ -166,7 +166,7 @@
                 >
                   <span class="studio-search-image-group-title">
                     <Icon icon="lucide:image" class="h-3.5 w-3.5" />
-                    图片参考<span v-if="group.aspectRatio"> {{ group.aspectRatio }}</span>
+                    Image reference<span v-if="group.aspectRatio"> {{ group.aspectRatio }}</span>
                   </span>
                   <span class="studio-search-image-group-queries">
                     <span v-for="query in group.queries" :key="query" class="studio-search-image-query">{{ query }}</span>
@@ -182,7 +182,7 @@
                 :class="{ 'is-error': message.task?.status === 'failed' }"
               >
                 <Icon :icon="message.task?.status === 'text_review' ? 'lucide:message-square-text' : 'lucide:circle-alert'" class="h-4 w-4" />
-                <span>{{ message.primaryMessage || message.error || '上游没有返回可用图片。' }}</span>
+                <span>{{ message.primaryMessage || message.error || 'The upstream service returned no usable images.' }}</span>
               </div>
 
               <div
@@ -200,54 +200,54 @@
                       type="button"
                       class="studio-result-media"
                       :class="{ 'has-image': Boolean(asset.url) }"
-                      @click="$emit('preview', asset.url, `结果 ${assetIndex + 1}`, asset.path)"
+                      @click="$emit('preview', asset.url, `Result ${assetIndex + 1}`, asset.path)"
                     >
                       <img
                         v-if="asset.url"
                         :src="asset.url"
-                        :alt="`结果 ${assetIndex + 1}`"
+                        :alt="`Result ${assetIndex + 1}`"
                         :width="asset.width || undefined"
                         :height="asset.height || undefined"
                         loading="lazy"
                       />
-                      <span v-else>无图片 URL</span>
+                      <span v-else>No image URL</span>
                     </button>
                     <div v-if="asset.url" class="studio-result-caption">
-                      <span v-if="message.imageSlotCount > 1" class="studio-result-caption-label">结果 {{ assetIndex + 1 }}</span>
+                      <span v-if="message.imageSlotCount > 1" class="studio-result-caption-label">Result {{ assetIndex + 1 }}</span>
                       <div class="studio-result-actions">
                         <Button
                           size="xs"
                           variant="outline"
                           root-class="studio-result-action"
-                          title="引用到输入框"
-                          aria-label="引用到输入框"
-                          @click="$emit('reference-image', asset, `结果 ${assetIndex + 1}`, message)"
+                          title="Add to message"
+                          aria-label="Add to message"
+                          @click="$emit('reference-image', asset, `Result ${assetIndex + 1}`, message)"
                         >
                           <Icon icon="lucide:image-plus" class="h-3.5 w-3.5" />
-                          <span>引用</span>
+                          <span>Reference</span>
                         </Button>
                         <Button
                           size="xs"
                           variant="outline"
                           root-class="studio-result-action"
-                          title="局部修改"
-                          aria-label="局部修改"
-                          @click="$emit('inpaint-image', asset, `结果 ${assetIndex + 1}`, message)"
+                          title="Inpaint"
+                          aria-label="Inpaint"
+                          @click="$emit('inpaint-image', asset, `Result ${assetIndex + 1}`, message)"
                         >
                           <Icon icon="lucide:scan-line" class="h-3.5 w-3.5" />
-                          <span>局部</span>
+                          <span>Inpaint</span>
                         </Button>
                         <Button
                           v-if="message.inpaintSource"
                           size="xs"
                           variant="outline"
                           root-class="studio-result-action"
-                          title="对比原图"
-                          aria-label="对比原图"
-                          @click="$emit('compare-image', message.inpaintSource, asset, `结果 ${assetIndex + 1}`)"
+                          title="Compare with original"
+                          aria-label="Compare with original"
+                          @click="$emit('compare-image', message.inpaintSource, asset, `Result ${assetIndex + 1}`)"
                         >
                           <Icon icon="lucide:columns-2" class="h-3.5 w-3.5" />
-                          <span>对比</span>
+                          <span>Compare</span>
                         </Button>
                       </div>
                     </div>
@@ -260,11 +260,11 @@
                   >
                     <div class="studio-result-media studio-result-placeholder">
                       <Icon icon="lucide:loader-circle" class="h-5 w-5 animate-spin" />
-                      <span>正在处理图片</span>
+                      <span>Processing image</span>
                       <small>{{ message.imagePendingStageText }}</small>
                     </div>
                     <div v-if="message.imageSlotCount > 1" class="studio-result-caption">
-                      <span>图片 {{ slot + 1 }}</span>
+                      <span>Image {{ slot + 1 }}</span>
                     </div>
                   </div>
 
@@ -275,10 +275,10 @@
                   >
                     <div class="studio-result-media studio-result-placeholder studio-result-placeholder-failed">
                       <Icon icon="lucide:circle-x" class="h-5 w-5" />
-                      <span>未生成</span>
+                      <span>Not generated</span>
                     </div>
                     <div v-if="message.imageSlotCount > 1" class="studio-result-caption">
-                      <span>图片 {{ slot + 1 }}</span>
+                      <span>Image {{ slot + 1 }}</span>
                     </div>
                   </div>
                 </div>
@@ -292,7 +292,7 @@
             class="chat-message-expand"
             @click.stop="$emit('toggle-expanded', message)"
           >
-            {{ message.isCollapsed ? '展开全部' : '收起' }}
+            {{ message.isCollapsed ? 'Expand all' : 'Collapse' }}
             <Icon :icon="message.isCollapsed ? 'lucide:chevron-down' : 'lucide:chevron-up'" class="h-3.5 w-3.5" />
           </button>
         </div>
@@ -308,9 +308,9 @@
           type="button"
           class="studio-message-reference-thumb"
           :title="reference.name"
-          @click="$emit('preview', reference.dataUrl, reference.name || `参考图 ${referenceIndex + 1}`)"
+          @click="$emit('preview', reference.dataUrl, reference.name || `Reference image ${referenceIndex + 1}`)"
         >
-          <img :src="reference.dataUrl" :alt="reference.name || `参考图 ${referenceIndex + 1}`" loading="lazy" />
+          <img :src="reference.dataUrl" :alt="reference.name || `Reference image ${referenceIndex + 1}`" loading="lazy" />
         </button>
       </div>
     </div>
@@ -386,21 +386,21 @@ const {
 
 function actionsForMessage(message: StudioMessageView): StudioMessageAction[] {
   const actions: StudioMessageAction[] = []
-  if (message.content) actions.push({ key: 'copy', label: '复制', icon: 'lucide:copy' })
+  if (message.content) actions.push({ key: 'copy', label: 'Copy', icon: 'lucide:copy' })
   if (message.role === 'user') {
-    if (message.content) actions.push({ key: 'edit', label: '编辑', icon: 'lucide:pencil' })
-    actions.push({ key: 'resend', label: '重发', icon: 'lucide:refresh-cw' })
-    if (message.content) actions.push({ key: 'fill', label: '填入', icon: 'lucide:clipboard-paste' })
+    if (message.content) actions.push({ key: 'edit', label: 'Edit', icon: 'lucide:pencil' })
+    actions.push({ key: 'resend', label: 'Resend', icon: 'lucide:refresh-cw' })
+    if (message.content) actions.push({ key: 'fill', label: 'Insert', icon: 'lucide:clipboard-paste' })
   } else if (
     message.mode === 'image'
     && isImageMessageWithoutResult(message)
     && message.task?.actions.resume_poll
   ) {
-    actions.push({ key: 'resume-poll', label: '继续任务', icon: 'lucide:refresh-cw' })
+    actions.push({ key: 'resume-poll', label: 'Resume task', icon: 'lucide:refresh-cw' })
   } else if (message.mode === 'file' ? fileTaskStatus(message) === 'error' : message.mode !== 'image' || isImageMessageWithoutResult(message)) {
-    actions.push({ key: 'retry', label: '重试并重新提交', icon: 'lucide:refresh-cw' })
+    actions.push({ key: 'retry', label: 'Retry and resubmit', icon: 'lucide:refresh-cw' })
   }
-  actions.push({ key: 'delete', label: '删除', icon: 'lucide:trash-2', danger: true })
+  actions.push({ key: 'delete', label: 'Delete', icon: 'lucide:trash-2', danger: true })
   return actions
 }
 
@@ -424,7 +424,7 @@ function isStandaloneErrorMessage(message: StudioMessageView) {
 }
 
 function standaloneErrorText(message: StudioMessageView) {
-  return textValue(message.error) || textValue(message.content) || '请求失败，请稍后重试。'
+  return textValue(message.error) || textValue(message.content) || 'Request failed. Please try again later.'
 }
 
 function isCodeMessage(message: StudioMessageView) {
@@ -450,20 +450,20 @@ function fileKindLabel(message: StudioMessageView) {
 
 function fileTaskTitle(message: StudioMessageView) {
   const kind = fileKindLabel(message)
-  if (message.fileTaskDeleted) return `${kind} 文件已删除`
+  if (message.fileTaskDeleted) return `${kind} file deleted`
   const status = fileTaskStatus(message)
-  if (status === 'success') return `${kind} 文件已生成`
-  if (status === 'error') return `${kind} 生成失败`
-  return `${kind} 文件`
+  if (status === 'success') return `${kind} file generated`
+  if (status === 'error') return `${kind} generation failed`
+  return `${kind} file`
 }
 
 function fileTaskStatusText(message: StudioMessageView) {
-  return fileTaskStatus(message) === 'running' ? '正在生成可编辑文件' : '等待开始生成'
+  return fileTaskStatus(message) === 'running' ? 'Generating editable file' : 'Waiting to start generation'
 }
 
 function fileTaskError(message: StudioMessageView) {
   if (message.fileTask?.status === 'error') return message.fileTask.error
-  return textValue(message.error) || textValue(message.content) || '文件生成失败，请稍后重试。'
+  return textValue(message.error) || textValue(message.content) || 'File generation failed. Please try again later.'
 }
 
 async function handleFileTaskDownload(

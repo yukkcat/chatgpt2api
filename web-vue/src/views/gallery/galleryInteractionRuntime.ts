@@ -81,13 +81,13 @@ export function useGalleryInteractionRuntime(options: GalleryInteractionRuntimeO
       const nextTags = result.tags || tags
       applyFileTags(file.path, nextTags)
     } catch (error) {
-      options.toast.error(errorMessage(error, '保存标签失败'), '保存失败')
+      options.toast.error(errorMessage(error, 'Failed to save tags'), 'Save failed')
       return
     } finally {
       isTagSaving.value = false
     }
     closeTagEditor()
-    options.toast.success('标签已保存。', '保存成功')
+    options.toast.success('Tags saved.', 'Saved')
     await options.loadGallery()
   }
 

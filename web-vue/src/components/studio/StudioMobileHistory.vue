@@ -3,8 +3,8 @@
     <div v-if="open" class="studio-mobile-history-backdrop" @click.self="$emit('close')">
       <div class="studio-mobile-history">
         <div class="studio-mobile-history-header">
-          <p>历史记录</p>
-          <CloseButton label="关闭历史记录" @click="$emit('close')" />
+          <p>History</p>
+          <CloseButton label="Close history" @click="$emit('close')" />
         </div>
         <div ref="historyListRef" class="studio-mobile-history-list custom-scrollbar" @scroll="handleWindowScroll">
           <div
@@ -23,9 +23,9 @@
                 class="studio-mobile-history-main"
                 @click="$emit('select', conversation.id); $emit('close')"
               >
-                <span class="studio-mobile-history-title">{{ conversation.title || '未命名对话' }}</span>
+                <span class="studio-mobile-history-title">{{ conversation.title || 'Untitled chat' }}</span>
                 <span class="studio-mobile-history-meta">
-                  {{ conversation.messages.length }} 条 · {{ formatTime(conversation.updatedAt) }}
+                  {{ conversation.messages.length }} messages · {{ formatTime(conversation.updatedAt) }}
                 </span>
                 <span
                   v-if="badges[conversation.id]"
@@ -38,8 +38,8 @@
               <button
                 type="button"
                 class="studio-mobile-history-delete"
-                title="删除对话"
-                aria-label="删除对话"
+                title="Delete chat"
+                aria-label="Delete chat"
                 @click.stop="$emit('delete', conversation.id)"
               >
                 <Icon icon="lucide:trash-2" class="h-3.5 w-3.5" />

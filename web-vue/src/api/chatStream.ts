@@ -95,7 +95,7 @@ function parseSseEvent(eventText: string) {
 }
 
 async function responseError(response: Response) {
-  const fallback = `请求失败（HTTP ${response.status}）`
+  const fallback = `Request failed (HTTP ${response.status})`
   const text = await response.text().catch(() => '')
   if (!text) return fallback
   try {
@@ -128,7 +128,7 @@ export async function streamChatCompletion(input: ChatStreamInput): Promise<Chat
   }
 
   if (!response.body) {
-    throw new Error('浏览器不支持流式响应')
+    throw new Error('This browser does not support streaming responses')
   }
 
   const reader = response.body.getReader()

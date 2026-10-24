@@ -9,19 +9,19 @@ type ConfirmOptions = {
 
 // Global singleton state: all callers share the same dialog instance.
 const open = ref(false)
-const title = ref('确认操作')
+const title = ref('Confirm action')
 const message = ref('')
-const confirmText = ref('确定')
-const cancelText = ref('取消')
+const confirmText = ref('Confirm')
+const cancelText = ref('Cancel')
 let resolver: ((value: boolean) => void) | null = null
 
 export function useConfirmDialog() {
   const ask = (options: ConfirmOptions) =>
     new Promise<boolean>((resolve) => {
-      title.value = options.title || '确认操作'
+      title.value = options.title || 'Confirm action'
       message.value = options.message
-      confirmText.value = options.confirmText || '确定'
-      cancelText.value = options.cancelText || '取消'
+      confirmText.value = options.confirmText || 'Confirm'
+      cancelText.value = options.cancelText || 'Cancel'
       open.value = true
       resolver = resolve
     })

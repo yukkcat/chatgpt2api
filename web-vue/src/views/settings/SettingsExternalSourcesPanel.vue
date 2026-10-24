@@ -4,11 +4,11 @@
       <div>
         <p class="ui-section-title">{{ activeTab === 'cpa' ? 'CPA' : 'Sub2API' }}</p>
         <p class="mt-1 text-xs text-muted-foreground">
-          账号管理页的远程导入会读取这里保存的连接。
+          Remote imports on the Accounts page use the connections saved here.
         </p>
       </div>
       <Button size="sm" variant="outline" :disabled="externalSourcesLoading" @click="$emit('load')">
-        {{ externalSourcesLoading ? '刷新中...' : '刷新连接' }}
+        {{ externalSourcesLoading ? 'Refreshing...' : 'Refresh connections' }}
       </Button>
     </div>
 
@@ -16,13 +16,13 @@
       <div v-if="activeTab === 'cpa'" class="rounded-xl border border-border bg-card p-4">
         <div class="flex items-center justify-between gap-3">
           <div>
-            <p class="text-sm font-semibold text-foreground">CPA 连接管理</p>
-            <p class="mt-1 text-xs text-muted-foreground">保存 CLIProxyAPI 地址和管理密钥，供远程 CPA 导入使用。</p>
+            <p class="text-sm font-semibold text-foreground">CPA connections</p>
+            <p class="mt-1 text-xs text-muted-foreground">Save CLIProxyAPI URLs and admin keys for remote CPA imports.</p>
           </div>
           <div class="flex shrink-0 items-center gap-2">
-            <span class="text-xs text-muted-foreground">{{ cpaPools.length }} 个连接</span>
+            <span class="text-xs text-muted-foreground">{{ cpaPools.length }} connections</span>
             <Button size="xs" variant="outline" :disabled="savingExternalSource === 'cpa'" @click="$emit('createCpa')">
-              新增
+              Add
             </Button>
           </div>
         </div>
@@ -39,19 +39,19 @@
                 <p class="mt-1 truncate font-mono text-muted-foreground">{{ pool.base_url }}</p>
               </div>
               <div class="flex gap-1.5">
-                <Button size="xs" variant="outline" root-class="w-14 justify-center whitespace-nowrap" :disabled="remoteImportActive" @click="$emit('importCpa', pool)">导入</Button>
+                <Button size="xs" variant="outline" root-class="w-14 justify-center whitespace-nowrap" :disabled="remoteImportActive" @click="$emit('importCpa', pool)">Import</Button>
                 <Button size="xs" variant="outline" root-class="w-14 justify-center whitespace-nowrap" :disabled="testingExternalSource === pool.id" @click="$emit('testCpa', pool)">
-                  {{ testingExternalSource === pool.id ? '测试中' : '测试' }}
+                  {{ testingExternalSource === pool.id ? 'Testing...' : 'Test' }}
                 </Button>
-                <Button size="xs" variant="outline" root-class="w-14 justify-center whitespace-nowrap" @click="$emit('editCpa', pool)">编辑</Button>
+                <Button size="xs" variant="outline" root-class="w-14 justify-center whitespace-nowrap" @click="$emit('editCpa', pool)">Edit</Button>
                 <Button size="xs" variant="outline" root-class="w-14 justify-center whitespace-nowrap text-rose-600" :disabled="savingExternalSource === pool.id" @click="$emit('deleteCpa', pool)">
-                  删除
+                  Delete
                 </Button>
               </div>
             </div>
           </div>
           <StateBlock v-if="!cpaLoading && cpaPools.length === 0" tag="p" compact dashed>
-            暂无 CPA 连接。
+            No CPA connections yet.
           </StateBlock>
         </div>
       </div>
@@ -59,13 +59,13 @@
       <div v-if="activeTab === 'sub2api'" class="rounded-xl border border-border bg-card p-4">
         <div class="flex items-center justify-between gap-3">
           <div>
-            <p class="text-sm font-semibold text-foreground">Sub2API 连接管理</p>
-            <p class="mt-1 text-xs text-muted-foreground">保存 Sub2API 服务器，用于读取 OpenAI OAuth 账号并导入本地号池。</p>
+            <p class="text-sm font-semibold text-foreground">Sub2API connections</p>
+            <p class="mt-1 text-xs text-muted-foreground">Save Sub2API servers to read OpenAI OAuth accounts and import them into the local pool.</p>
           </div>
           <div class="flex shrink-0 items-center gap-2">
-            <span class="text-xs text-muted-foreground">{{ sub2apiServers.length }} 个连接</span>
+            <span class="text-xs text-muted-foreground">{{ sub2apiServers.length }} connections</span>
             <Button size="xs" variant="outline" :disabled="savingExternalSource === 'sub2api'" @click="$emit('createSub2api')">
-              新增
+              Add
             </Button>
           </div>
         </div>
@@ -81,18 +81,18 @@
                 <p class="truncate font-medium text-foreground">{{ server.name || server.id }}</p>
                 <p class="mt-1 truncate font-mono text-muted-foreground">{{ server.base_url }}</p>
                 <p class="mt-1 text-muted-foreground">
-                  {{ server.email || '未填邮箱' }} · {{ server.has_api_key ? '已配置 API Key' : '未配置 API Key' }}
-                  <span v-if="server.group_id"> · 分组 {{ server.group_id }}</span>
+                  {{ server.email || 'No email' }} · {{ server.has_api_key ? 'API key configured' : 'No API key' }}
+                  <span v-if="server.group_id"> · Group {{ server.group_id }}</span>
                 </p>
               </div>
               <div class="flex flex-wrap justify-end gap-1.5">
-                <Button size="xs" variant="outline" root-class="w-14 justify-center whitespace-nowrap" :disabled="remoteImportActive" @click="$emit('importSub2api', server)">导入</Button>
+                <Button size="xs" variant="outline" root-class="w-14 justify-center whitespace-nowrap" :disabled="remoteImportActive" @click="$emit('importSub2api', server)">Import</Button>
                 <Button size="xs" variant="outline" root-class="w-14 justify-center whitespace-nowrap" :disabled="testingExternalSource === server.id" @click="$emit('testSub2api', server)">
-                  {{ testingExternalSource === server.id ? '测试中' : '测试' }}
+                  {{ testingExternalSource === server.id ? 'Testing...' : 'Test' }}
                 </Button>
-                <Button size="xs" variant="outline" root-class="w-14 justify-center whitespace-nowrap" @click="$emit('editSub2api', server)">编辑</Button>
+                <Button size="xs" variant="outline" root-class="w-14 justify-center whitespace-nowrap" @click="$emit('editSub2api', server)">Edit</Button>
                 <Button size="xs" variant="outline" root-class="w-14 justify-center whitespace-nowrap text-rose-600" :disabled="savingExternalSource === server.id" @click="$emit('deleteSub2api', server)">
-                  删除
+                  Delete
                 </Button>
               </div>
             </div>
@@ -110,7 +110,7 @@
             </div>
           </div>
           <StateBlock v-if="!sub2apiLoading && sub2apiServers.length === 0" tag="p" compact dashed>
-            暂无 Sub2API 连接。
+            No Sub2API connections yet.
           </StateBlock>
         </div>
       </div>

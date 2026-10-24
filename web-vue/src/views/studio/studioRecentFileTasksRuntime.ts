@@ -16,7 +16,7 @@ export type StudioRecentFileTasksRuntimeInput = {
 
 function defaultErrorMessage(error: unknown) {
   if (error instanceof Error && error.message.trim()) return error.message
-  return '最近文件任务加载失败'
+  return 'Failed to load recent file tasks'
 }
 
 function taskActionError(error: unknown, fallback: string) {
@@ -87,7 +87,7 @@ export function useStudioRecentFileTasksRuntime(input: StudioRecentFileTasksRunt
       tasks.value = tasks.value.filter((item) => item.id !== response.task_id)
       return true
     } catch (deleteError) {
-      actionError.value = taskActionError(deleteError, '删除文件任务失败')
+      actionError.value = taskActionError(deleteError, 'Failed to delete file task')
       return false
     } finally {
       setTaskBusy(task.id, false)
@@ -102,7 +102,7 @@ export function useStudioRecentFileTasksRuntime(input: StudioRecentFileTasksRunt
       await copyText(task.error)
       return true
     } catch (copyError) {
-      actionError.value = taskActionError(copyError, '复制错误信息失败')
+      actionError.value = taskActionError(copyError, 'Failed to copy error details')
       return false
     } finally {
       setTaskBusy(task.id, false)

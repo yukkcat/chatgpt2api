@@ -17,9 +17,9 @@
         :aria-expanded="detailsVisible"
         @click.stop="emit('toggle-details')"
       >
-        <span>步骤明细</span>
+        <span>Step details</span>
         <strong>
-          {{ detailsVisible ? '收起' : '展开' }}
+          {{ detailsVisible ? 'Collapse' : 'Expand' }}
           <Icon
             icon="lucide:chevron-down"
             :class="{ 'timeline-breakdown__chevron--open': detailsVisible }"

@@ -63,13 +63,13 @@ export function useSettingsExternalSourcesRuntime(options: SettingsExternalSourc
     runtime: options.runtime,
     key: options.cpaRequestKey,
     loading: cpaLoading,
-    errorMessage: '加载 CPA 连接失败',
+    errorMessage: 'Failed to load CPA connections',
   })
   const sub2apiServersQuery = usePageQuery({
     runtime: options.runtime,
     key: options.sub2apiRequestKey,
     loading: sub2apiLoading,
-    errorMessage: '加载 Sub2API 连接失败',
+    errorMessage: 'Failed to load Sub2API connections',
   })
 
   function resetCPAForm() {
@@ -110,11 +110,11 @@ export function useSettingsExternalSourcesRuntime(options: SettingsExternalSourc
   async function saveCPAPool() {
     const payload = buildCPAPayload(cpaForm.value)
     if (!payload.base_url) {
-      toast.warning('请输入 CPA 地址')
+      toast.warning('Enter a CPA URL')
       return
     }
     if (!editingCPAPoolId.value && !payload.secret_key) {
-      toast.warning('新增 CPA 连接需要管理密钥')
+      toast.warning('An admin key is required to add a CPA connection')
       return
     }
 
@@ -130,9 +130,9 @@ export function useSettingsExternalSourcesRuntime(options: SettingsExternalSourc
       cpaPools.value = response.pools || []
       resetCPAForm()
       externalSourceModal.value = ''
-      toast.success('CPA 连接已保存')
+      toast.success('CPA connection saved')
     } catch (error) {
-      toast.error(errorMessage(error, '保存 CPA 连接失败'))
+      toast.error(errorMessage(error, 'Failed to save CPA connection'))
     } finally {
       savingExternalSource.value = ''
     }
@@ -140,10 +140,10 @@ export function useSettingsExternalSourcesRuntime(options: SettingsExternalSourc
 
   async function deleteCPAPool(pool: CPAPool) {
     const confirmed = await confirmDialog.ask({
-      title: '删除 CPA 连接',
-      message: `确定删除 ${pool.name || pool.base_url}？账号页将不能再从这个 CPA 连接导入。`,
-      confirmText: '删除',
-      cancelText: '取消',
+      title: 'Delete CPA connection',
+      message: `Delete ${pool.name || pool.base_url}? You will no longer be able to import from this CPA connection on the Accounts page.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
     })
     if (!confirmed) return
 
@@ -152,9 +152,9 @@ export function useSettingsExternalSourcesRuntime(options: SettingsExternalSourc
       const response = await accountImportsApi.deleteCPAPool(pool.id)
       cpaPools.value = response.pools || []
       if (editingCPAPoolId.value === pool.id) resetCPAForm()
-      toast.success('CPA 连接已删除')
+      toast.success('CPA connection deleted')
     } catch (error) {
-      toast.error(errorMessage(error, '删除 CPA 连接失败'))
+      toast.error(errorMessage(error, 'Failed to delete CPA connection'))
     } finally {
       savingExternalSource.value = ''
     }
@@ -162,19 +162,19 @@ export function useSettingsExternalSourcesRuntime(options: SettingsExternalSourc
 
   async function testCPAPool(pool: CPAPool) {
     const confirmed = await confirmDialog.ask({
-      title: '测试 CPA 连接',
-      message: `即将访问 CPA 连接 ${pool.name || pool.base_url || pool.id} 并读取远程文件列表。请确认当前允许连接该外部服务。`,
-      confirmText: '开始测试',
-      cancelText: '取消',
+      title: 'Test CPA connection',
+      message: `This will access CPA connection ${pool.name || pool.base_url || pool.id} and read its remote file list. Confirm that this external service is allowed.`,
+      confirmText: 'Start test',
+      cancelText: 'Cancel',
     })
     if (!confirmed) return
 
     testingExternalSource.value = pool.id
     try {
       const response = await accountImportsApi.listCPAPoolFiles(pool.id)
-      toast.success(`CPA 连接可用，读取到 ${response.files?.length || 0} 个文件`)
+      toast.success(`CPA connection is available; found ${response.files?.length || 0} files`)
     } catch (error) {
-      toast.error(errorMessage(error, 'CPA 连接测试失败'))
+      toast.error(errorMessage(error, 'CPA connection test failed'))
     } finally {
       testingExternalSource.value = ''
     }
@@ -218,11 +218,11 @@ export function useSettingsExternalSourcesRuntime(options: SettingsExternalSourc
   async function saveSub2APIServer() {
     const payload = buildSub2APIPayload(sub2apiForm.value)
     if (!payload.base_url) {
-      toast.warning('请输入 Sub2API 地址')
+      toast.warning('Enter a Sub2API URL')
       return
     }
     if (!editingSub2APIId.value && !hasSub2APICredentials(payload)) {
-      toast.warning('新增 Sub2API 连接需要邮箱密码或 Admin API Key')
+      toast.warning('An email and password or an Admin API key is required to add a Sub2API connection')
       return
     }
 
@@ -241,9 +241,9 @@ export function useSettingsExternalSourcesRuntime(options: SettingsExternalSourc
       sub2apiServers.value = response.servers || []
       resetSub2APIForm()
       externalSourceModal.value = ''
-      toast.success('Sub2API 连接已保存')
+      toast.success('Sub2API connection saved')
     } catch (error) {
-      toast.error(errorMessage(error, '保存 Sub2API 连接失败'))
+      toast.error(errorMessage(error, 'Failed to save Sub2API connection'))
     } finally {
       savingExternalSource.value = ''
     }
@@ -251,10 +251,10 @@ export function useSettingsExternalSourcesRuntime(options: SettingsExternalSourc
 
   async function deleteSub2APIServer(server: Sub2APIServer) {
     const confirmed = await confirmDialog.ask({
-      title: '删除 Sub2API 连接',
-      message: `确定删除 ${server.name || server.base_url}？账号页将不能再从这个 Sub2API 连接导入。`,
-      confirmText: '删除',
-      cancelText: '取消',
+      title: 'Delete Sub2API connection',
+      message: `Delete ${server.name || server.base_url}? You will no longer be able to import from this Sub2API connection on the Accounts page.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
     })
     if (!confirmed) return
 
@@ -266,9 +266,9 @@ export function useSettingsExternalSourcesRuntime(options: SettingsExternalSourc
       delete nextGroups[server.id]
       sub2apiGroups.value = nextGroups
       if (editingSub2APIId.value === server.id) resetSub2APIForm()
-      toast.success('Sub2API 连接已删除')
+      toast.success('Sub2API connection deleted')
     } catch (error) {
-      toast.error(errorMessage(error, '删除 Sub2API 连接失败'))
+      toast.error(errorMessage(error, 'Failed to delete Sub2API connection'))
     } finally {
       savingExternalSource.value = ''
     }
@@ -276,10 +276,10 @@ export function useSettingsExternalSourcesRuntime(options: SettingsExternalSourc
 
   async function testSub2APIServer(server: Sub2APIServer) {
     const confirmed = await confirmDialog.ask({
-      title: '测试 Sub2API 连接',
-      message: `即将访问 Sub2API 连接 ${server.name || server.base_url || server.id} 并读取远程分组列表。请确认当前允许连接该外部服务。`,
-      confirmText: '开始测试',
-      cancelText: '取消',
+      title: 'Test Sub2API connection',
+      message: `This will access Sub2API connection ${server.name || server.base_url || server.id} and read its remote groups. Confirm that this external service is allowed.`,
+      confirmText: 'Start test',
+      cancelText: 'Cancel',
     })
     if (!confirmed) return
 
@@ -290,9 +290,9 @@ export function useSettingsExternalSourcesRuntime(options: SettingsExternalSourc
         ...sub2apiGroups.value,
         [server.id]: response.groups || [],
       }
-      toast.success(`Sub2API 连接可用，读取到 ${response.groups?.length || 0} 个分组`)
+      toast.success(`Sub2API connection is available; found ${response.groups?.length || 0} groups`)
     } catch (error) {
-      toast.error(errorMessage(error, 'Sub2API 连接测试失败'))
+      toast.error(errorMessage(error, 'Sub2API connection test failed'))
     } finally {
       testingExternalSource.value = ''
     }
@@ -306,7 +306,7 @@ export function useSettingsExternalSourcesRuntime(options: SettingsExternalSourc
       accountGroups.value = Array.isArray(response.groups) ? response.groups : []
       accountGroupsLoaded.value = true
     } catch (error) {
-      toast.error(errorMessage(error, '加载账号组失败'))
+      toast.error(errorMessage(error, 'Failed to load account groups'))
     } finally {
       accountGroupsLoading.value = false
     }
@@ -314,7 +314,7 @@ export function useSettingsExternalSourcesRuntime(options: SettingsExternalSourc
 
   function openCPAImport(pool: CPAPool) {
     if (remoteImportActive.value) {
-      toast.warning('请等待当前账号导入任务完成')
+      toast.warning('Wait for the current account import to finish')
       return
     }
     remoteImportCPAPoolId.value = pool.id
@@ -328,7 +328,7 @@ export function useSettingsExternalSourcesRuntime(options: SettingsExternalSourc
 
   function openSub2APIImport(server: Sub2APIServer, groupId?: string) {
     if (remoteImportActive.value) {
-      toast.warning('请等待当前账号导入任务完成')
+      toast.warning('Wait for the current account import to finish')
       return
     }
     remoteImportCPAPoolId.value = ''

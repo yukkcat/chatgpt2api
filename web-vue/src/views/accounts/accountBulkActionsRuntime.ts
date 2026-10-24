@@ -48,9 +48,9 @@ function uniqueIds(ids: readonly string[]) {
 
 function bulkActionMeta(action: AccountMutationAction) {
   return {
-    enable: { title: '批量启用账号', confirmText: '确认启用' },
-    disable: { title: '批量禁用账号', confirmText: '确认禁用' },
-    delete: { title: '批量删除账号', confirmText: '确认删除' },
+    enable: { title: 'Enable accounts in bulk', confirmText: 'Enable accounts' },
+    disable: { title: 'Disable accounts in bulk', confirmText: 'Disable accounts' },
+    delete: { title: 'Delete accounts in bulk', confirmText: 'Delete accounts' },
   }[action]
 }
 
@@ -60,8 +60,8 @@ function accountLabel(accountId: string, labels?: Readonly<Record<string, string
 
 function credentialActionMeta(action: AccountCredentialAction) {
   return action === 'sync'
-    ? { title: '批量同步账号与额度', verb: '同步', kind: 'sync' as const }
-    : { title: '批量刷新 AT', verb: '刷新 AT', kind: 'credentials' as const }
+    ? { title: 'Sync accounts and quotas in bulk', verb: 'sync', kind: 'sync' as const }
+    : { title: 'Refresh AT in bulk', verb: 'refresh AT', kind: 'credentials' as const }
 }
 
 export function useAccountBulkActionsRuntime(options: AccountBulkActionsRuntimeOptions) {
@@ -78,10 +78,10 @@ export function useAccountBulkActionsRuntime(options: AccountBulkActionsRuntimeO
     const confirmed = await confirmDialog.ask({
       title: meta.title,
       message: useSelectionScope
-        ? `即将${meta.verb}当前筛选条件下选中的 ${targetCount} 个账号，是否继续？`
-        : `即将${meta.verb} ${targetCount} 个账号，后端会按账号批量任务并发执行。是否继续？`,
-      confirmText: `开始${meta.verb}`,
-      cancelText: '取消',
+        ? `About to ${meta.verb} ${targetCount} selected accounts matching the current filters. Continue?`
+        : `About to ${meta.verb} ${targetCount} accounts. The server will run one concurrent task per account. Continue?`,
+      confirmText: `Start ${meta.verb}`,
+      cancelText: 'Cancel',
     })
     if (!confirmed) return
 
@@ -104,7 +104,7 @@ export function useAccountBulkActionsRuntime(options: AccountBulkActionsRuntimeO
       const operationResult = progress?.result
       const updatedIds = uniqueIds(operationResult?.updated_ids || [])
       const removedIds = uniqueIds(operationResult?.removed_ids || [])
-      if (!progress) throw new Error('账号操作响应缺少进度投影')
+      if (!progress) throw new Error('Account operation response is missing progress data.')
       options.bulkProgress.finish({
         ...progress,
         total: Number(progress?.total || targetCount),
@@ -120,7 +120,7 @@ export function useAccountBulkActionsRuntime(options: AccountBulkActionsRuntimeO
         Number(options.bulkProgress.refreshProgress.value?.processed || 0),
         options.normalizeErrorMessage(error),
       )
-      options.setError(`${meta.title}失败`, error, false)
+      options.setError(`${meta.title} failed`, error, false)
       await options.loadData({ silentErrorToast: true })
     } finally {
       options.bulkProgress.end()
@@ -140,7 +140,7 @@ export function useAccountBulkActionsRuntime(options: AccountBulkActionsRuntimeO
       ? options.accountSelection.selectionScope.value
       : targetIds
     if (!targetCount) {
-      toast.warning('请先选择账号')
+      toast.warning('Select at least one account first.')
       return
     }
 
@@ -152,16 +152,16 @@ export function useAccountBulkActionsRuntime(options: AccountBulkActionsRuntimeO
     const actionMeta = bulkActionMeta(action)
     const isSingleDelete = action === 'delete' && !useSelectionScope && targetCount === 1
     const confirmed = await confirmDialog.ask({
-      title: isSingleDelete ? '删除账号' : actionMeta.title,
+      title: isSingleDelete ? 'Delete account' : actionMeta.title,
       message: isSingleDelete
-        ? `确认删除账号 ${accountLabel(targetIds[0], labels)} 吗？此操作不可恢复。`
-        : `确认对选中的 ${targetCount} 个账号执行该操作吗？`,
+        ? `Delete account ${accountLabel(targetIds[0], labels)}? This action cannot be undone.`
+        : `Run this action on the ${targetCount} selected accounts?`,
       confirmText: actionMeta.confirmText,
-      cancelText: '取消',
+      cancelText: 'Cancel',
     })
     if (!confirmed) return
 
-    await options.bulkProgress.start(isSingleDelete ? '删除账号' : actionMeta.title, targetCount, 'mutation')
+    await options.bulkProgress.start(isSingleDelete ? 'Delete account' : actionMeta.title, targetCount, 'mutation')
     try {
       const request = action === 'disable'
         ? accountsApi.bulkDisable
@@ -178,7 +178,7 @@ export function useAccountBulkActionsRuntime(options: AccountBulkActionsRuntimeO
       const updatedIds = uniqueIds(operationResult?.updated_ids || [])
       const removedIds = uniqueIds(operationResult?.removed_ids || [])
       const completedIds = uniqueIds([...updatedIds, ...removedIds])
-      if (!progress) throw new Error('账号操作响应缺少进度投影')
+      if (!progress) throw new Error('Account operation response is missing progress data.')
       options.bulkProgress.finish(progress)
       if (useSelectionScope) options.accountSelection.clearSelection()
       else options.accountSelection.removeSelectedIds(completedIds)
@@ -189,7 +189,7 @@ export function useAccountBulkActionsRuntime(options: AccountBulkActionsRuntimeO
         Number(options.bulkProgress.refreshProgress.value?.processed || 0),
         options.normalizeErrorMessage(error),
       )
-      options.setError(`${actionMeta.title}失败`, error, false)
+      options.setError(`${actionMeta.title} failed`, error, false)
       await options.loadData({ silentErrorToast: true })
     } finally {
       options.bulkProgress.end()
@@ -205,40 +205,40 @@ export function useAccountBulkActionsRuntime(options: AccountBulkActionsRuntimeO
       ? options.accountSelection.selectionScope.value
       : targetIds
     if (!targetCount) {
-      toast.warning('请先选择账号')
+      toast.warning('Select at least one account first.')
       return
     }
     const nextGroupId = options.selectedBindGroupId.value === '__ungrouped__' ? '' : options.selectedBindGroupId.value.trim()
     if (options.selectedBindGroupId.value !== '__ungrouped__' && !nextGroupId) {
-      toast.warning('请先选择要绑定的账号组')
+      toast.warning('Select the account group to bind first.')
       return
     }
     const groupName = nextGroupId
       ? options.accountGroups.value.find((group) => group.id === nextGroupId)?.name || nextGroupId
-      : '未分组'
+      : 'No group'
     const confirmed = await confirmDialog.ask({
-      title: '批量绑定账号组',
-      message: `确认把选中的 ${targetCount} 个账号绑定到 ${groupName} 吗？`,
-      confirmText: '确认绑定',
-      cancelText: '取消',
+      title: 'Bind accounts to a group',
+      message: `Bind the ${targetCount} selected accounts to ${groupName}?`,
+      confirmText: 'Bind accounts',
+      cancelText: 'Cancel',
     })
     if (!confirmed) return
 
-    await options.bulkProgress.start('批量绑定账号组', targetCount, 'mutation')
+    await options.bulkProgress.start('Bind accounts to a group', targetCount, 'mutation')
     try {
       const result = await accountsApi.bindGroup(target, nextGroupId)
       const updatedIds = uniqueIds(result.updated_ids || [])
       const removedIds = uniqueIds(result.removed_ids || [])
       const completedIds = uniqueIds([...updatedIds, ...removedIds])
       options.applyAccountGroupsPayload({ groups: result.groups, proxy_groups: options.proxyGroups.value })
-      if (!result.progress) throw new Error('账号操作响应缺少进度投影')
+      if (!result.progress) throw new Error('Account operation response is missing progress data.')
       options.bulkProgress.finish(result.progress)
       if (useSelectionScope) options.accountSelection.clearSelection()
       else options.accountSelection.removeSelectedIds(completedIds)
       await options.loadData({ silentErrorToast: true })
     } catch (error) {
       options.bulkProgress.fail(targetCount, 0, options.normalizeErrorMessage(error))
-      options.setError('批量绑定账号组失败', error, false)
+      options.setError('Failed to bind accounts to a group', error, false)
     } finally {
       options.bulkProgress.end()
     }

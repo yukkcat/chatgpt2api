@@ -18,10 +18,10 @@ export function useSettingsPromptSourcesOperationRuntime(
   async function refreshAllSources() {
     const sourceCount = options.sources.value.length
     await progressRuntime.start({
-      title: '更新提示词快照',
-      subtitle: sourceCount > 0 ? `${sourceCount} 个词源` : '',
+      title: 'Update prompt snapshot',
+      subtitle: sourceCount > 0 ? `${sourceCount} sources` : '',
       total: 1,
-      message: '正在从 image-prompts 下载并更新本地快照...',
+      message: 'Downloading and updating the local snapshot from image-prompts…',
     })
     try {
       const result = await options.refreshSources()
@@ -31,7 +31,7 @@ export function useSettingsPromptSourcesOperationRuntime(
       else progressRuntime.succeed(summary.message, 1)
       return result
     } catch (error) {
-      progressRuntime.fail(errorMessage(error, '提示词源更新失败'))
+      progressRuntime.fail(errorMessage(error, 'Failed to update prompt sources.'))
       return null
     }
   }

@@ -1,11 +1,11 @@
 <template>
   <label class="block text-xs">
-    <span class="ui-field-label">目标分组</span>
+    <span class="ui-field-label">Target group</span>
     <GroupedSelectMenu
       :model-value="modelValue"
       :options="options"
       selected-indicator="none"
-      aria-label="目标分组"
+      aria-label="Target group"
       block
       :disabled="disabled || loading"
       @update:model-value="$emit('update:modelValue', String($event))"
@@ -34,8 +34,8 @@ defineEmits<{
 }>()
 
 const options = computed(() => [
-  { label: '保留来源分组', value: '__preserve__' },
-  { label: '未分组', value: '' },
+  { label: 'Keep source group', value: '__preserve__' },
+  { label: 'No group', value: '' },
   ...props.groups.map((group) => ({
     label: group.name || group.id,
     value: group.id,

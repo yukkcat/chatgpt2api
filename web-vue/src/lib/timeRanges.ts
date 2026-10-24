@@ -6,7 +6,7 @@ export const DASHBOARD_TIME_RANGE_OPTIONS: Array<{
   label: string
   value: DashboardTimeRange
 }> = [
-  { label: '24小时', value: '24h' },
-  { label: '7天', value: '7d' },
-  { label: '30天', value: '30d' },
+  { label: '24 hours', value: '24h' },
+  { label: '7 days', value: '7d' },
+  { label: '30 days', value: '30d' },
 ]

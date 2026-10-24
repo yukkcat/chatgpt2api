@@ -1,10 +1,10 @@
 <template>
   <NanocatConfirmDialog
     :open="open"
-    :title="title || '确认操作'"
+    :title="title || 'Confirm action'"
     :message="message"
-    :confirm-text="confirmText || '确定'"
-    :cancel-text="cancelText || '取消'"
+    :confirm-text="confirmText || 'Confirm'"
+    :cancel-text="cancelText || 'Cancel'"
     @confirm="emit('confirm')"
     @cancel="emit('cancel')"
   />

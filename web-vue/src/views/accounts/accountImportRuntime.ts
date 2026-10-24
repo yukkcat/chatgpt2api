@@ -18,14 +18,14 @@ export {
 } from './remoteAccountImportTrackingRuntime'
 
 export const ACCOUNT_IMPORT_MODE_CATALOG = [
-  { label: 'OAuth 登录已有账号', value: 'oauth_login' },
-  { label: '导入完整备份文件', value: 'backup_json' },
-  { label: '导入 Access Token', value: 'access_token' },
-  { label: '导入 Session JSON', value: 'session_json' },
-  { label: '导入 CPA JSON 文件', value: 'cpa_json' },
-  { label: '导入 Sub2API JSON 文件', value: 'sub2api_json' },
-  { label: '从远程 CPA 服务器导入', value: 'remote_cpa' },
-  { label: '从 Sub2API 服务器导入', value: 'sub2api' },
+  { label: 'Sign in with OAuth', value: 'oauth_login' },
+  { label: 'Import full backup', value: 'backup_json' },
+  { label: 'Import access token', value: 'access_token' },
+  { label: 'Import session JSON', value: 'session_json' },
+  { label: 'Import CPA JSON file', value: 'cpa_json' },
+  { label: 'Import Sub2API JSON file', value: 'sub2api_json' },
+  { label: 'Import from remote CPA server', value: 'remote_cpa' },
+  { label: 'Import from Sub2API server', value: 'sub2api' },
 ] as const
 
 export type AccountImportMode = typeof ACCOUNT_IMPORT_MODE_CATALOG[number]['value']
@@ -60,13 +60,13 @@ function parseTokenLines(text: string) {
 
 export function parseAccountArchive(rawText: string, label: string) {
   const text = rawText.trim()
-  if (!text) throw new Error(`${label} 是空文件`)
+  if (!text) throw new Error(`${label} is empty.`)
   const parsed = JSON.parse(text)
   const candidates = accountArchiveRows(parsed)
   const accounts = candidates
     .map(normalizeAccountImportPayload)
     .filter((item): item is AccountImportPayload => Boolean(item))
-  if (!accounts.length) throw new Error(`${label} 中没有找到 access_token`)
+  if (!accounts.length) throw new Error(`No access_token was found in ${label}.`)
   return accounts
 }
 
@@ -135,13 +135,13 @@ function normalizeAccountImportPayload(value: unknown): AccountImportPayload | n
 
 export function parseSessionJsonPayload(rawText: string) {
   const text = rawText.trim()
-  if (!text) throw new Error('请先粘贴 Session JSON')
+  if (!text) throw new Error('Paste the session JSON first.')
   const parsed = JSON.parse(text)
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error('Session JSON 格式不正确')
+    throw new Error('Invalid session JSON format.')
   }
   const payload = normalizeAccountImportPayload(parsed)
-  if (!payload) throw new Error('Session JSON 中没有找到 accessToken')
+  if (!payload) throw new Error('No accessToken was found in the session JSON.')
   return payload
 }
 
@@ -171,7 +171,7 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
 
   async function openImportModal(mode: AccountImportMode = 'access_token') {
     if (options.bulkProgress.batchBusy.value) {
-      toast.warning('请等待当前账号任务完成')
+      toast.warning('Wait for the current account task to finish.')
       return
     }
     options.bulkProgress.close()
@@ -205,20 +205,20 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
     try {
       preview = await accountsApi.cleanupImportedAbnormalAccounts(importedAccountIds, false)
     } catch (error) {
-      options.setError('检查本次确认失效账号失败，已先保留', error)
+      options.setError('Failed to check accounts confirmed as invalid in this import. They have been kept.', error)
       return
     }
 
     if (!preview.abnormal) {
-      toast.info('本次导入有同步失败，但没有确认失效账号；暂时检测失败的账号会保留')
+      toast.info('Some accounts failed to sync, but none were confirmed as invalid. Accounts that could not be checked are being kept.')
       return
     }
 
     const confirmed = await confirmDialog.ask({
-      title: '移除本次确认失效账号？',
-      message: `本次导入同步失败 ${errorCount} 个。\n后端确认其中 ${preview.abnormal} 个账号鉴权已经失效，是否直接删除？\n\n只会删除本次导入且已确认失效的账号；正常、限流、暂时检测失败和历史账号都会保留。`,
-      confirmText: `删除 ${preview.abnormal} 个`,
-      cancelText: '先保留',
+      title: 'Remove accounts confirmed as invalid?',
+      message: `${errorCount} accounts failed to sync in this import.\nThe server confirmed that ${preview.abnormal} of them have invalid credentials. Delete them now?\n\nOnly accounts from this import that are confirmed as invalid will be deleted. Normal, rate-limited, temporarily unchecked, and existing accounts will be kept.`,
+      confirmText: `Delete ${preview.abnormal}`,
+      cancelText: 'Keep them',
     })
 
     if (!confirmed) return
@@ -227,7 +227,7 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
       const result = await accountsApi.cleanupImportedAbnormalAccounts(importedAccountIds, true)
       options.bulkProgress.appendEvents(result.events || [])
     } catch (error) {
-      options.setError('移除本次确认失效账号失败', error, false)
+      options.setError('Failed to remove accounts confirmed as invalid in this import', error, false)
     } finally {
       await options.loadData({ silentErrorToast: true })
     }
@@ -236,7 +236,7 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
   async function importTokenBatch(tokens: string[], sourceType: AccountSourceType, title: string) {
     const normalizedTokens = uniqueTokens(tokens)
     if (!normalizedTokens.length) {
-      toast.warning('没有可导入的 access token')
+      toast.warning('No access tokens to import.')
       return
     }
     await importCredentialPayloadBatch(
@@ -289,16 +289,16 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
     progressAlreadyStarted = false,
   ) {
     const behavior = restore
-      ? '完整备份会恢复凭据、配置与状态；已存在账号会覆盖更新。'
+      ? 'The full backup restores credentials, settings, and status. Existing accounts will be overwritten.'
       : syncAfterImport
-        ? '已存在账号会更新凭据；导入后同步账号与额度。'
-        : '已存在账号会更新凭据和配置。'
+        ? 'Credentials for existing accounts will be updated. Account details and quotas will sync after import.'
+        : 'Credentials and settings for existing accounts will be updated.'
     if (!alreadyConfirmed) {
       const confirmed = await confirmDialog.ask({
         title,
-        message: `即将导入 ${accountPayloads.length} 个账号。${behavior}是否继续？`,
-        confirmText: '确认导入',
-        cancelText: '取消',
+        message: `About to import ${accountPayloads.length} accounts. ${behavior} Continue?`,
+        confirmText: 'Import accounts',
+        cancelText: 'Cancel',
       })
       if (!confirmed) return
     }
@@ -313,7 +313,7 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
       total,
       processed: 0,
       stage: 'read_credentials',
-      stage_label: '读取凭据',
+      stage_label: 'Reading credentials',
     })
     let added = 0
     let skipped = 0
@@ -326,7 +326,7 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
         total,
         processed: 0,
         stage: 'save_accounts',
-        stage_label: '保存账号',
+        stage_label: 'Saving accounts',
       })
       const result = await accountsApi.importAccounts(accountPayloads, sourceType, {
         syncAfterImport: false,
@@ -346,7 +346,7 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
           total,
           processed: 0,
           stage: 'sync_accounts',
-          stage_label: '同步账号与额度',
+          stage_label: 'Syncing account details and quotas',
         })
         const syncResult = await accountsApi.syncAccountsWithProgress(
           importedAccountIds,
@@ -357,7 +357,7 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
               processed: Math.min(total, Number(progress.processed || 0)),
               done: false,
               stage: 'sync_accounts',
-              stage_label: '同步账号与额度',
+              stage_label: 'Syncing account details and quotas',
             })
           },
           importedAccountIds.length,
@@ -375,7 +375,7 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
         total,
         processed: total,
         stage: 'completed',
-        stage_label: '完成',
+        stage_label: 'Done',
         import_result: importResult,
       })
       refreshAccountListInBackground()
@@ -391,8 +391,8 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
           ? Math.max(0, Number(options.bulkProgress.refreshProgress.value?.processed || 0))
           : 0,
         stage: 'completed',
-        stage_label: '完成',
-        error: accountsSaved ? `账号已保存，后续同步未完成：${message}` : message,
+        stage_label: 'Done',
+        error: accountsSaved ? `Accounts were saved, but the follow-up sync did not finish: ${message}` : message,
         import_result: {
           added,
           skipped,
@@ -400,7 +400,7 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
           failed: Math.max(1, errors.length),
         },
       })
-      options.setError(accountsSaved ? `${title}已保存，但同步失败` : `${title}失败`, error, false)
+      options.setError(accountsSaved ? `${title} saved, but sync failed` : `${title} failed`, error, false)
       if (accountsSaved) {
         refreshAccountListInBackground()
         return {
@@ -419,7 +419,7 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
   }
 
   async function importManualTokenText() {
-    await importTokenBatch(parseTokenLines(manualTokenText.value), 'web', '导入 Access Token')
+    await importTokenBatch(parseTokenLines(manualTokenText.value), 'web', 'Import Access Tokens')
   }
 
   async function importTokenTextFile(file: File | null | undefined) {
@@ -429,7 +429,7 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
       const text = await file.text()
       manualTokenText.value = text
     } catch (error) {
-      options.setError('读取 Access Token 文件失败', error)
+      options.setError('Failed to read access token file', error)
       return
     } finally {
       importBusy.value = false
@@ -442,10 +442,10 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
       await importCredentialPayloadBatch(
         [parseSessionJsonPayload(sessionJsonText.value)],
         'web',
-        '导入 Session JSON',
+        'Import Session JSON',
       )
     } catch (error) {
-      options.setError('解析 Session JSON 失败', error)
+      options.setError('Failed to parse session JSON', error)
     }
   }
 
@@ -458,12 +458,12 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
       oauthRedirectUriPrefix.value = String(result.redirect_uri_prefix || '')
       oauthCallbackText.value = ''
       if (!oauthSessionId.value || !oauthAuthorizeUrl.value) {
-        throw new Error('后端没有返回完整的 OAuth 授权会话')
+        throw new Error('The server did not return a complete OAuth authorization session.')
       }
       window.open(oauthAuthorizeUrl.value, '_blank', 'noopener,noreferrer')
-      toast.success('OAuth 授权链接已生成')
+      toast.success('OAuth authorization link generated.')
     } catch (error) {
-      options.setError('生成 OAuth 授权链接失败', error)
+      options.setError('Failed to generate OAuth authorization link', error)
     } finally {
       importBusy.value = false
     }
@@ -480,14 +480,14 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
   async function copyOAuthAuthorizeUrl() {
     const value = oauthAuthorizeUrl.value.trim()
     if (!value) {
-      toast.warning('请先生成 OAuth 授权链接')
+      toast.warning('Generate an OAuth authorization link first.')
       return
     }
     try {
       await navigator.clipboard.writeText(value)
-      toast.success('授权链接已复制')
+      toast.success('Authorization link copied.')
     } catch (error) {
-      options.setError('复制 OAuth 授权链接失败', error)
+      options.setError('Failed to copy OAuth authorization link', error)
     }
   }
 
@@ -495,22 +495,22 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
     const sessionId = oauthSessionId.value.trim()
     const callback = oauthCallbackText.value.trim()
     if (!sessionId) {
-      toast.warning('请先生成 OAuth 授权链接')
+      toast.warning('Generate an OAuth authorization link first.')
       return
     }
     if (!callback) {
-      toast.warning('请先粘贴 callback URL 或 code')
+      toast.warning('Paste the callback URL or code first.')
       return
     }
 
     importBusy.value = true
     showImportModal.value = false
-    await options.bulkProgress.start('OAuth 登录导入', 1, 'import')
+    await options.bulkProgress.start('Import with OAuth', 1, 'import')
     options.bulkProgress.update({
       total: 1,
       processed: 0,
       stage: 'read_credentials',
-      stage_label: '读取凭据',
+      stage_label: 'Reading credentials',
     })
     let added = 0
     let skipped = 0
@@ -523,7 +523,7 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
         total: 1,
         processed: 0,
         stage: 'save_accounts',
-        stage_label: '保存账号',
+        stage_label: 'Saving account',
       })
       const result = await accountImportsApi.finishOAuthLogin(sessionId, callback, targetGroupId())
       credentialsSaved = true
@@ -542,7 +542,7 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
           total: 1,
           processed: 0,
           stage: 'sync_accounts',
-          stage_label: '同步账号与额度',
+          stage_label: 'Syncing account details and quotas',
         })
         const syncResult = await accountsApi.syncAccountsWithProgress(
           accountIds,
@@ -553,7 +553,7 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
               processed: Math.min(1, Number(progress.processed || 0)),
               done: false,
               stage: 'sync_accounts',
-              stage_label: '同步账号与额度',
+              stage_label: 'Syncing account details and quotas',
             })
           },
           accountIds.length,
@@ -570,7 +570,7 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
         total: 1,
         processed: 1,
         stage: 'completed',
-        stage_label: '完成',
+        stage_label: 'Done',
         import_result: { added, skipped, synced, failed: errors.length },
       })
       oauthEmailHint.value = ''
@@ -588,8 +588,8 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
         total: 1,
         processed: credentialsSaved ? 1 : 0,
         stage: 'completed',
-        stage_label: '完成',
-        error: credentialsSaved ? `凭据已保存，后续同步未完成：${message}` : message,
+        stage_label: 'Done',
+        error: credentialsSaved ? `Credentials were saved, but the follow-up sync did not finish: ${message}` : message,
         import_result: {
           added,
           skipped,
@@ -597,7 +597,7 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
           failed: Math.max(1, errors.length),
         },
       })
-      options.setError(credentialsSaved ? 'OAuth 凭据已保存，但同步失败' : 'OAuth 登录导入失败', error, false)
+      options.setError(credentialsSaved ? 'OAuth credentials were saved, but sync failed' : 'OAuth import failed', error, false)
       if (credentialsSaved) {
         oauthEmailHint.value = ''
         oauthCallbackText.value = ''
@@ -626,17 +626,17 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
     const restoringBackup = importMode.value === 'backup_json'
     const importingSub2API = importMode.value === 'sub2api_json'
     const title = restoringBackup
-      ? '导入完整备份文件'
+      ? 'Import full backup file'
       : importingSub2API
-        ? '导入 Sub2API JSON 文件'
-        : '导入 CPA JSON 文件'
+        ? 'Import Sub2API JSON file'
+        : 'Import CPA JSON file'
     const confirmed = await confirmDialog.ask({
       title,
       message: restoringBackup
-        ? `即将读取 ${fileList.length} 个备份文件并恢复其中的账号凭据、配置与状态。是否继续？`
-        : `即将读取 ${fileList.length} 个 ${importingSub2API ? 'Sub2API' : 'CPA'} JSON 文件，保存账号后同步账号与额度。是否继续？`,
-      confirmText: '确认导入',
-      cancelText: '取消',
+        ? `About to read ${fileList.length} backup files and restore their account credentials, settings, and status. Continue?`
+        : `About to read ${fileList.length} ${importingSub2API ? 'Sub2API' : 'CPA'} JSON files, save the accounts, and sync account details and quotas. Continue?`,
+      confirmText: 'Import accounts',
+      cancelText: 'Cancel',
     })
     if (!confirmed) return
 
@@ -647,7 +647,7 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
       total: fileList.length,
       processed: 0,
       stage: 'read_credentials',
-      stage_label: '读取凭据',
+      stage_label: 'Reading credentials',
     })
     await nextTick()
     try {
@@ -659,7 +659,7 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
           total: fileList.length,
           processed: index + 1,
           stage: 'read_credentials',
-          stage_label: '读取凭据',
+          stage_label: 'Reading credentials',
         })
         await nextTick()
       }
@@ -682,12 +682,12 @@ export function useAccountImportRuntime(options: AccountImportRuntimeOptions) {
         total: fileList.length,
         processed: Math.max(0, Number(options.bulkProgress.refreshProgress.value?.processed || 0)),
         stage: 'completed',
-        stage_label: '完成',
+        stage_label: 'Done',
         error: message,
         import_result: { added: 0, skipped: 0, synced: 0, failed: 1 },
       })
       options.bulkProgress.end()
-      options.setError(`${title}失败`, error, false)
+      options.setError(`${title} failed`, error, false)
     } finally {
       importBusy.value = false
     }

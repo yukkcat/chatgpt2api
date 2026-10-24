@@ -65,10 +65,10 @@ export function useGalleryFileActions(options: GalleryFileActionsOptions = {}) {
     try {
       await copyTextToClipboard(resolveUrl(file.url))
       markCopied(file)
-      toast.success(options.copySuccessMessage || '图片链接已复制。', options.copySuccessTitle || '复制成功')
+      toast.success(options.copySuccessMessage || 'Image link copied.', options.copySuccessTitle || 'Copy succeeded')
     } catch {
       clearCopyState()
-      toast.error(options.copyErrorMessage || '复制链接失败。', options.copyErrorTitle || '复制失败')
+      toast.error(options.copyErrorMessage || 'Failed to copy image link.', options.copyErrorTitle || 'Copy failed')
     }
   }
 
@@ -78,14 +78,14 @@ export function useGalleryFileActions(options: GalleryFileActionsOptions = {}) {
       await downloadUrlAsFile(resolveUrl(file.url), file.filename, { localPath: file.path })
       if (options.showDownloadSuccess !== false) {
         toast.success(
-          options.downloadSuccessMessage?.(file) || `已开始下载 ${file.filename}`,
+          options.downloadSuccessMessage?.(file) || `Download started ${file.filename}`,
           options.downloadSuccessTitle,
         )
       }
     } catch (error) {
       toast.error(
-        options.downloadErrorMessage?.(error, file) || errorMessage(error, '') || '无法读取图片文件',
-        options.downloadErrorTitle || '下载失败',
+        options.downloadErrorMessage?.(error, file) || errorMessage(error, '') || 'Unable to read image file',
+        options.downloadErrorTitle || 'Download failed',
       )
     }
   }

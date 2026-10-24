@@ -14,7 +14,7 @@ withDefaults(defineProps<{
   description?: string
   compact?: boolean
 }>(), {
-  title: '正在加载',
+  title: 'Loading',
   description: '',
   compact: false,
 })

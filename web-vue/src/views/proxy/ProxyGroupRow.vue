@@ -6,13 +6,13 @@
   >
     <td class="py-3 pr-4 align-top">
       <p class="truncate font-medium">{{ group.name || group.id }}</p>
-      <p class="mt-1 text-xs text-muted-foreground">多出口 · {{ group.nodes.length }} 个节点</p>
+      <p class="mt-1 text-xs text-muted-foreground">Multiple egress · {{ group.nodes.length }} nodes</p>
       <p class="mt-1 truncate font-mono text-[11px] text-muted-foreground" :title="group.id">ID：{{ group.id }}</p>
       <p v-if="group.notes" class="mt-1 truncate text-xs text-muted-foreground" :title="group.notes">{{ group.notes }}</p>
     </td>
     <td class="py-3 pr-4 align-top">
       <StateBadge :tone="group.enabled ? 'success' : 'muted'" size="sm">
-        {{ group.enabled ? '启用' : '停用' }}
+        {{ group.enabled ? 'Enabled' : 'Disabled' }}
       </StateBadge>
     </td>
     <td class="py-3 pr-4 align-top">
@@ -28,7 +28,7 @@
       <button
         type="button"
         class="max-w-full truncate rounded-md border border-border bg-muted/20 px-2 py-1 text-left font-mono text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
-        :title="`点击复制 ${reference}`"
+        :title="`Click to copy ${reference}`"
         @click="emitWithGroup('copy-reference')"
       >
         {{ reference }}
@@ -50,10 +50,10 @@
     <td class="py-3 text-right align-top">
       <div class="flex items-center justify-end gap-2">
         <Button size="xs" variant="outline" root-class="w-14 justify-center" @click="emitWithGroup('edit')">
-          编辑
+          Edit
         </Button>
         <FloatingActionMenu
-          label="更多"
+          label="More"
           :items="actionItems"
           align="right"
           size="sm"

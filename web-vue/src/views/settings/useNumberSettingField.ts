@@ -32,12 +32,12 @@ export function useNumberSettingField(
   const error = computed(() => {
     if (!validationEnabled.value) return ''
     const raw = input.value.trim()
-    if (!raw) return '请输入数值'
+    if (!raw) return 'Enter a number.'
     const value = Number(raw)
-    if (!Number.isFinite(value)) return '请输入有效数值'
-    if (options.integer && !Number.isInteger(value)) return '请输入整数'
-    if (min.value != null && value < min.value) return `不能小于 ${min.value}`
-    if (max.value != null && value > max.value) return `不能大于 ${max.value}`
+    if (!Number.isFinite(value)) return 'Enter a valid number.'
+    if (options.integer && !Number.isInteger(value)) return 'Enter a whole number.'
+    if (min.value != null && value < min.value) return `Must be at least ${min.value}.`
+    if (max.value != null && value > max.value) return `Must be no greater than ${max.value}.`
     return ''
   })
   const isValid = computed(() => !error.value)

@@ -7,7 +7,7 @@
       <p class="request-detail-summary__title">{{ title }}</p>
     </div>
     <div class="request-detail-summary__duration">
-      <span>总耗时</span>
+      <span>Total duration</span>
       <strong>{{ duration || '-' }}</strong>
       <small v-if="durationBreakdown">{{ durationBreakdown }}</small>
     </div>

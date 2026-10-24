@@ -380,7 +380,7 @@ function accountOperationPresentation(
     || !Array.isArray(response.summary_items)
     || !Array.isArray(response.events)
   ) {
-    throw new Error('账号操作响应缺少后端展示投影')
+    throw new Error('The account operation response is missing the backend presentation projection')
   }
   return {
     status_label: statusLabel,
@@ -435,7 +435,7 @@ async function pollAccountOperation(
   const selection = selectionPayload(target)
   const explicitCount = 'account_ids' in selection ? selection.account_ids.length : 0
   const targetCount = Math.max(0, Number(options?.targetCount || explicitCount))
-  if (!targetCount && Array.isArray(target)) throw new Error('没有可操作的账号')
+  if (!targetCount && Array.isArray(target)) throw new Error('No accounts are available for this operation')
 
   const payload = { ...selection, ...(options?.extraPayload || {}) }
   const start = options?.method === 'DELETE'
@@ -471,7 +471,7 @@ async function pollAccountOperation(
     ))
   }
 
-  throw new Error('账号操作超时，请稍后重新打开列表查看结果')
+  throw new Error('The account operation timed out. Reopen the list later to check the result.')
 }
 
 async function updateStatusBatch(
@@ -627,7 +627,7 @@ export const accountsApi = {
     }
 
     const accessToken = cleanString(payload.access_token)
-    if (!accessToken) throw new Error('请填写 access token')
+    if (!accessToken) throw new Error('Enter an access token')
     const response = await apiClient.post<
       { tokens: string[]; accounts: AccountImportPayload[]; return_items: boolean },
       AccountMutationResponse

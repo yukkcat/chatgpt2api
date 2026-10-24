@@ -32,7 +32,7 @@ export const useSettingsStore = defineStore('settings', () => {
   async function updateSettingsPatch(patch: SettingsPatch): Promise<SettingsMutationResult> {
     const revision = view.value?.revision
     if (!revision) {
-      throw new Error('设置版本尚未加载，请刷新设置后重试')
+      throw new Error('The settings version has not loaded yet. Refresh the settings and try again.')
     }
     loadSeq += 1
     const response = await settingsApi.updatePartial({

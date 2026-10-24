@@ -1,32 +1,32 @@
 <template>
   <ModalShell
     :open="open"
-    aria-label="搜索 Skill"
+    aria-label="Search Skill"
     panel-class="studio-search-skill-modal"
     close-on-backdrop
     @close="emit('close')"
   >
     <ModalHeader
-      title="搜索 Skill"
-      subtitle="将当前搜索接口安装为本地 Skill"
+      title="Search Skill"
+      subtitle="Install the current search endpoint as a local skill"
       compact
       @close="emit('close')"
     />
 
     <ModalBody density="compact" class="search-skill-body">
       <div class="search-skill-meta">
-        <span class="search-skill-meta-label">接口</span>
+        <span class="search-skill-meta-label">Endpoint</span>
         <code>{{ endpoint }}</code>
         <span class="search-skill-auth">
           <Icon icon="lucide:shield-check" class="h-3.5 w-3.5" />
-          密钥由环境变量提供
+          Key provided by environment variable
         </span>
       </div>
 
       <ConsoleSegmentedTabs
         v-model="language"
         :options="languageOptions"
-        aria-label="安装指令语言"
+        aria-label="Install prompt language"
         fit="content"
       />
 
@@ -38,7 +38,7 @@
     <ModalFooter align="between" compact>
       <span class="search-skill-warning">
         <Icon icon="lucide:shield-check" class="h-3.5 w-3.5" />
-        安装指令不包含当前密钥；运行前设置 CHATGPT2API_API_KEY
+        The install prompt does not contain your key. Set CHATGPT2API_API_KEY before running it.
       </span>
       <Button
         size="sm"
@@ -82,7 +82,7 @@ const emit = defineEmits<{
 const language = ref<SearchSkillLanguage>('zh')
 const isCopying = ref(false)
 const languageOptions = [
-  { label: '中文', value: 'zh' },
+  { label: 'Chinese', value: 'zh' },
   { label: 'English', value: 'en' },
 ]
 const { apiBaseUrl, loadPublicRuntimeConfig } = usePublicRuntimeConfig()
@@ -92,8 +92,8 @@ const installPrompt = computed(() => buildSearchSkillInstallPrompt({
   language: language.value,
 }))
 const copyButtonText = computed(() => {
-  if (isCopying.value) return language.value === 'zh' ? '正在读取接口' : 'Loading endpoint'
-  return language.value === 'zh' ? '复制安装指令' : 'Copy install prompt'
+  if (isCopying.value) return 'Loading endpoint'
+  return 'Copy install prompt'
 })
 
 async function handleCopy() {

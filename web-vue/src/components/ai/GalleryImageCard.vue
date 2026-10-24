@@ -15,28 +15,28 @@
       />
       <div v-else class="media-fallback">
         <Icon icon="lucide:image-off" class="h-8 w-8" />
-        <span>无法预览</span>
+        <span>Preview unavailable</span>
       </div>
 
       <div class="media-topline">
         <Checkbox
           :model-value="selected"
-          :aria-label="`选择图片 ${file.filename}`"
+          :aria-label="`Select image ${file.filename}`"
           @click.stop
           @update:model-value="handleSelect"
         />
-        <span v-if="file.expired" class="media-badge danger">已过期</span>
+        <span v-if="file.expired" class="media-badge danger">Expired</span>
         <span v-else class="media-badge">{{ storageLabel }}</span>
       </div>
 
       <div class="media-overlay">
-        <button class="overlay-btn" title="复制链接" @click.stop="handleCopy">
+        <button class="overlay-btn" title="Copy link" @click.stop="handleCopy">
           <Icon :icon="copied ? 'lucide:check' : 'lucide:copy'" />
         </button>
-        <button class="overlay-btn" title="编辑标签" @click.stop="handleEditTags">
+        <button class="overlay-btn" title="Edit tags" @click.stop="handleEditTags">
           <Icon icon="lucide:tag" />
         </button>
-        <button class="overlay-btn" title="下载" @click.stop="handleDownload">
+        <button class="overlay-btn" title="Download" @click.stop="handleDownload">
           <Icon icon="lucide:download" />
         </button>
         <button
@@ -44,7 +44,7 @@
           class="overlay-btn"
           :class="{ 'is-busy': genboxBusy }"
           :disabled="genboxBusy"
-          :title="genboxBusy ? '正在推送 GenBox' : '推送到 GenBox'"
+          :title="genboxBusy ? 'Pushing to GenBox' : 'Push to GenBox'"
           @click.stop="handleGenBoxPush"
         >
           <Icon
@@ -52,7 +52,7 @@
             :class="{ 'animate-spin': genboxBusy }"
           />
         </button>
-        <button class="overlay-btn danger" title="删除" @click.stop="handleDelete">
+        <button class="overlay-btn danger" title="Delete" @click.stop="handleDelete">
           <Icon icon="lucide:trash-2" />
         </button>
       </div>
@@ -69,7 +69,7 @@
         </span>
         <Tooltip
           v-if="file.expires_in_seconds !== null && !file.expired && timeRemaining"
-          :text="'将在 ' + timeRemaining + ' 后自动删除'"
+          :text="'Will be deleted automatically in ' + timeRemaining"
         >
           <span class="file-countdown">{{ timeRemaining }}</span>
         </Tooltip>

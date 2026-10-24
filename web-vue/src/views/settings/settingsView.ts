@@ -22,7 +22,7 @@ export type NumberSettingOptions = {
 
 export type SettingsFields = Record<string, SettingsFieldMetadata>
 
-const dateTimeFormatter = new Intl.DateTimeFormat('zh-CN', {
+const dateTimeFormatter = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
   month: '2-digit',
   day: '2-digit',
@@ -31,13 +31,13 @@ const dateTimeFormatter = new Intl.DateTimeFormat('zh-CN', {
 })
 
 export const settingsTabs: SettingsSelectOption[] = [
-  { value: 'basic', label: '基础配置' },
-  { value: 'storage', label: '图片存储与审核' },
-  { value: 'prompts', label: '提示词源' },
-  { value: 'backup', label: 'R2 备份' },
-  { value: 'keys', label: '用户密钥' },
-  { value: 'api-docs', label: '接口接入' },
-  { value: 'canvas', label: '外部服务' },
+  { value: 'basic', label: 'Basic settings' },
+  { value: 'storage', label: 'Image storage and review' },
+  { value: 'prompts', label: 'Prompt sources' },
+  { value: 'backup', label: 'R2 backups' },
+  { value: 'keys', label: 'User keys' },
+  { value: 'api-docs', label: 'API access' },
+  { value: 'canvas', label: 'External services' },
   { value: 'cpa', label: 'CPA' },
   { value: 'sub2api', label: 'Sub2API' },
 ]
@@ -48,14 +48,14 @@ const settingsOptionLabels: Record<string, Record<string, string>> = {
     pillow_lanczos: 'Pillow / Lanczos',
   },
   'image_storage.mode': {
-    local: '仅本地',
-    webdav: '仅 WebDAV',
-    both: '本地 + WebDAV',
+    local: 'Local only',
+    webdav: 'WebDAV only',
+    both: 'Local + WebDAV',
   },
   'backup.include': {
-    image_tasks: '图片任务记录',
-    editable_files: 'PPT / PSD 文件',
-    images: '图片文件目录',
+    image_tasks: 'Image task records',
+    editable_files: 'PPT / PSD files',
+    images: 'Image files',
   },
 }
 
@@ -108,11 +108,11 @@ export function settingsBooleanFieldOptions(
 }
 
 export function backupStatusText(state: BackupState | null | undefined) {
-  if (!state) return '未加载'
-  if (state.running) return '备份中'
-  if (state.last_status === 'success') return '最近成功'
-  if (state.last_status === 'error') return '最近失败'
-  return state.last_status || '未执行'
+  if (!state) return 'Not loaded'
+  if (state.running) return 'Backing up'
+  if (state.last_status === 'success') return 'Last run succeeded'
+  if (state.last_status === 'error') return 'Last run failed'
+  return state.last_status || 'Not run'
 }
 
 export function formatBytes(value: unknown) {
@@ -145,87 +145,87 @@ export function buildApiDocItems(serviceBaseUrl: string, currentApiKey: string):
   const openAIBaseUrl = `${cleanServiceBaseUrl}/v1`
   return [
     {
-      title: '模型列表',
+      title: 'Model list',
       method: 'GET',
       path: '/v1/models',
-      description: '返回 OpenAI 兼容模型列表。',
+      description: 'Returns the list of models supported by the OpenAI-compatible API.',
       example: `curl ${openAIBaseUrl}/models \\\n  -H "Authorization: Bearer ${currentApiKey}"`,
     },
     {
-      title: '聊天补全',
+      title: 'Chat completions',
       method: 'POST',
       path: '/v1/chat/completions',
-      description: 'OpenAI 兼容聊天补全接口，图片兼容场景也会解析 n 等参数。',
+      description: 'OpenAI-compatible chat completions. Image-compatible requests also support parameters such as n.',
       example: `curl ${openAIBaseUrl}/chat/completions \\\n  -H "Content-Type: application/json" \\\n  -H "Authorization: Bearer ${currentApiKey}" \\\n  -d '{"model":"gpt-5-mini","messages":[{"role":"user","content":"你好"}]}'`,
     },
     {
       title: 'Responses',
       method: 'POST',
       path: '/v1/responses',
-      description: '兼容 Responses 输入结构，支持文本与工具调用场景。',
+      description: 'Accepts the Responses input format for text and tool-calling requests.',
       example: `curl ${openAIBaseUrl}/responses \\\n  -H "Content-Type: application/json" \\\n  -H "Authorization: Bearer ${currentApiKey}" \\\n  -d '{"model":"gpt-5-mini","input":"生成一张未来城市图片"}'`,
     },
     {
       title: 'Messages',
       method: 'POST',
       path: '/v1/messages',
-      description: 'Anthropic Messages 兼容入口，支持 Authorization Bearer 或 x-api-key 鉴权。',
+      description: 'Anthropic Messages-compatible endpoint. Supports Authorization Bearer and x-api-key authentication.',
       example: `curl ${openAIBaseUrl}/messages \\\n  -H "Content-Type: application/json" \\\n  -H "Authorization: Bearer ${currentApiKey}" \\\n  -d '{"model":"gpt-5-mini","max_tokens":1024,"messages":[{"role":"user","content":"你好"}]}'`,
     },
     {
-      title: '联网搜索',
+      title: 'Web search',
       method: 'POST',
       path: '/v1/search',
-      description: '本地搜索兼容入口，返回 answer 与 sources。',
+      description: 'Search-compatible endpoint that returns answer and sources.',
       example: `curl ${openAIBaseUrl}/search \\\n  -H "Content-Type: application/json" \\\n  -H "Authorization: Bearer ${currentApiKey}" \\\n  -d '{"prompt":"今天的 OpenAI 新闻"}'`,
     },
     {
-      title: '图片生成',
+      title: 'Image generation',
       method: 'POST',
       path: '/v1/images/generations',
-      description: '图片生成接口，支持 prompt、model、n、size、quality 等参数。',
+      description: 'Image generation endpoint. Supports prompt, model, n, size, quality, and other parameters.',
       example: `curl ${openAIBaseUrl}/images/generations \\\n  -H "Content-Type: application/json" \\\n  -H "Authorization: Bearer ${currentApiKey}" \\\n  -d '{"model":"gpt-image-2","prompt":"一张极简产品海报","n":1}'`,
     },
     {
-      title: '图片编辑',
+      title: 'Image editing',
       method: 'POST',
       path: '/v1/images/edits',
-      description: '图片编辑接口，支持 multipart 上传参考图。',
+      description: 'Image editing endpoint with multipart reference image uploads.',
       example: `curl ${openAIBaseUrl}/images/edits \\\n  -H "Authorization: Bearer ${currentApiKey}" \\\n  -F "model=gpt-image-2" \\\n  -F "prompt=改成赛博朋克夜景" \\\n  -F "image=@./input.png"`,
     },
     {
-      title: '创建可编辑文件任务',
+      title: 'Create editable file task',
       method: 'POST',
       path: '/v1/editable-file-tasks',
-      description: '统一创建 PPT/PSD 文件任务，kind 可填 ppt 或 psd。',
+      description: 'Create a PPT or PSD file task. Set kind to ppt or psd.',
       example: `curl ${openAIBaseUrl}/editable-file-tasks \\\n  -H "Content-Type: application/json" \\\n  -H "Authorization: Bearer ${currentApiKey}" \\\n  -d '{"kind":"ppt","prompt":"做一份产品发布会 PPT"}'`,
     },
     {
-      title: '查询可编辑文件任务',
+      title: 'Get editable file tasks',
       method: 'GET',
       path: '/v1/editable-file-tasks?ids={taskId1,taskId2}',
-      description: '按任务 ID 查询 PPT/PSD 文件生成状态。',
+      description: 'Get the status of PPT or PSD file tasks by task ID.',
       example: `curl "${openAIBaseUrl}/editable-file-tasks?ids=task_1,task_2" \\\n  -H "Authorization: Bearer ${currentApiKey}"`,
     },
     {
-      title: 'PPT 生成任务',
+      title: 'PPT generation task',
       method: 'POST',
       path: '/v1/ppt/generations',
-      description: '直接创建 PPT 生成任务，返回任务 ID 后再查询状态。',
+      description: 'Create a PPT generation task. Use the returned task ID to check its status.',
       example: `curl ${openAIBaseUrl}/ppt/generations \\\n  -H "Content-Type: application/json" \\\n  -H "Authorization: Bearer ${currentApiKey}" \\\n  -d '{"prompt":"生成一份市场分析 PPT"}'`,
     },
     {
-      title: 'PSD 生成任务',
+      title: 'PSD generation task',
       method: 'POST',
       path: '/v1/psd/generations',
-      description: '直接创建 PSD 生成任务，返回任务 ID 后再查询状态。',
+      description: 'Create a PSD generation task. Use the returned task ID to check its status.',
       example: `curl ${openAIBaseUrl}/psd/generations \\\n  -H "Content-Type: application/json" \\\n  -H "Authorization: Bearer ${currentApiKey}" \\\n  -d '{"prompt":"生成一张电商海报 PSD"}'`,
     },
     {
-      title: '文件下载',
+      title: 'File download',
       method: 'GET',
       path: '/files/{file_path}',
-      description: '公开下载 PPT/PSD 任务生成的文件或压缩包，无需鉴权。',
+      description: 'Download files or archives generated by PPT/PSD tasks. Authentication is not required.',
       example: `curl ${cleanServiceBaseUrl}/files/{file_path}`,
     },
   ]

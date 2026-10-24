@@ -3,25 +3,25 @@
     <PagePanel v-if="localSettings" class="settings-page-panel space-y-5">
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p class="ui-section-title">设置</p>
-          <p class="mt-1 text-xs text-muted-foreground">按原版模块分组维护系统配置。</p>
+          <p class="ui-section-title">Settings</p>
+          <p class="mt-1 text-xs text-muted-foreground">Manage system settings by module.</p>
         </div>
         <div class="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" :disabled="settingsStore.isLoading || isSaving" @click="reloadSettings">
-            {{ settingsStore.isLoading ? '刷新中...' : '刷新' }}
+            {{ settingsStore.isLoading ? 'Refreshing…' : 'Refresh' }}
           </Button>
           <Button size="sm" variant="primary" :disabled="settingsStore.isLoading || isSaving || !localSettings || hasInvalidNumberSettings" @click="handleSave">
-            {{ isSaving ? '保存中...' : '保存设置' }}
+            {{ isSaving ? 'Saving…' : 'Save settings' }}
           </Button>
         </div>
       </div>
 
-      <ConsoleSegmentedTabs v-model="activeSettingsTab" :options="settingsTabs" aria-label="设置分组" />
+      <ConsoleSegmentedTabs v-model="activeSettingsTab" :options="settingsTabs" aria-label="Settings sections" />
 
       <div v-if="activeSettingsTab === 'basic'" class="space-y-4">
         <SurfaceBox density="compact">
           <p class="text-xs leading-5 text-muted-foreground">
-            管理员登录密钥继续从部署配置读取，不在此页面展示；如需分发给其他人，请到“用户密钥”创建普通用户密钥。
+            The admin sign-in key is read from the deployment configuration and is not shown here. To give someone access, create a user key in “User keys.”
           </p>
         </SurfaceBox>
 
@@ -44,27 +44,27 @@
 
             <SettingsDashboardPreferencesPanel />
 
-            <FormSection title="全局附加指令">
-              <FormField label="全局系统提示词">
+            <FormSection title="Global instructions">
+              <FormField label="Global system prompt">
                 <template #label-extra>
-                  <HelpTip text="每次请求都会作为 system 消息注入。" />
+                  <HelpTip text="Added to every request as a system message." />
                 </template>
                 <textarea
                   v-model="localSettings.global_system_prompt"
                   rows="5"
                   class="ui-textarea-sm"
                   :disabled="fieldReadOnly('global_system_prompt')"
-                  placeholder="例如：先判断用户提示词是否合规；遇到违法、色情、暴力、仇恨等请求时拒绝回答。"
+                  placeholder="Example: Check whether the request is allowed. Refuse requests involving illegal activity, sexual content, violence, or hate."
                 ></textarea>
               </FormField>
 
-              <FormField label="敏感词">
+              <FormField label="Blocked terms">
                 <textarea
                   v-model="sensitiveWordsText"
                   rows="5"
                   class="ui-textarea-sm"
                   :disabled="fieldReadOnly('sensitive_words')"
-                  placeholder="一行一个，命中即拒绝"
+                  placeholder="One term per line. Matching requests are refused."
                 ></textarea>
               </FormField>
             </FormSection>
@@ -163,16 +163,16 @@
     <PagePanel v-if="!localSettings" class="py-10 text-center text-sm text-muted-foreground">
       <PageLoadingState
         v-if="settingsStore.isLoading"
-        title="正在加载设置"
-        description="读取系统配置、存储配置和外部连接。"
+        title="Loading settings"
+        description="Loading system settings, storage settings, and external connections."
       />
       <StateBlock
         v-else
-        title="设置加载失败"
-        :description="settingsLoadError || '未获取到系统配置，请重新加载。'"
+        title="Settings failed to load"
+        :description="settingsLoadError || 'System settings could not be loaded. Please reload.'"
       >
         <Button size="sm" variant="outline" root-class="mt-4" @click="reloadSettings">
-          重新加载
+          Reload
         </Button>
       </StateBlock>
     </PagePanel>
@@ -201,14 +201,14 @@
 
     <ModalShell
       :open="Boolean(remoteImportModal)"
-      :aria-label="remoteImportModal === 'cpa' ? '从 CPA 导入账号' : '从 Sub2API 导入账号'"
+      :aria-label="remoteImportModal === 'cpa' ? 'Import accounts from CPA' : 'Import accounts from Sub2API'"
       :z-index="135"
       close-on-backdrop
       @close="closeRemoteImportModal"
     >
       <ModalHeader
-        :title="remoteImportModal === 'cpa' ? '从 CPA 导入账号' : '从 Sub2API 导入账号'"
-        :subtitle="remoteImportModal === 'cpa' ? '读取已保存 CPA 连接中的账号文件。' : '读取已保存 Sub2API 连接中的 OpenAI 账号。'"
+        :title="remoteImportModal === 'cpa' ? 'Import accounts from CPA' : 'Import accounts from Sub2API'"
+        :subtitle="remoteImportModal === 'cpa' ? 'Read account files from the saved CPA connection.' : 'Read OpenAI accounts from the saved Sub2API connection.'"
         :close-disabled="remoteImportBusy"
         :bordered="false"
         @close="closeRemoteImportModal"

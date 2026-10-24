@@ -10,7 +10,7 @@
         :model-value="selected"
         @update:model-value="handleSelect"
       >
-        <span class="sr-only">选择日志 {{ item.time || item.id }}</span>
+        <span class="sr-only">Select log {{ item.time || item.id }}</span>
       </Checkbox>
     </td>
     <td class="py-4 pr-5 align-middle text-xs">
@@ -56,14 +56,14 @@
           tone="warning"
           chip-class="shrink-0"
         >
-          切换 {{ item.accountSwitchCount }} 次
+          {{ item.accountSwitchCount }} switches
         </MetaChip>
       </div>
     </td>
     <td class="py-4 pr-5 align-middle">
       <p
         class="break-words font-mono text-xs tabular-nums text-foreground"
-        :title="item.presentation.result.resolution ? `实际分辨率：${item.presentation.result.resolution}` : ''"
+        :title="item.presentation.result.resolution ? `Actual resolution: ${item.presentation.result.resolution}` : ''"
       >
         {{ item.presentation.result.resolution || '-' }}
       </p>
@@ -92,7 +92,7 @@
       <LogImagePreviewCell
         :image-urls="item.imageUrls"
         :first-image-broken="firstImageBroken"
-        :alt="item.preview || '日志结果图片'"
+        :alt="item.preview || 'Log result image'"
         @preview-click="handleOpenDetail"
         @image-error="handleImageError"
       />
@@ -127,7 +127,7 @@
           variant="outline"
           @click="handleOpenDetail"
         >
-          查看详情
+          View details
         </Button>
         <Button
           size="xs"
@@ -135,7 +135,7 @@
           root-class="text-rose-600 hover:text-rose-700"
           @click="handleRequestDelete"
         >
-          删除
+          Delete
         </Button>
       </div>
     </td>

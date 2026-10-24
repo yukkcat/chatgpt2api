@@ -1,7 +1,7 @@
 import type { PromptLibraryItem, PromptSource } from '@/api/prompts'
 
 export const ALL_PROMPT_SOURCE = 'all'
-export const ALL_PROMPT_CATEGORY = '全部'
+export const ALL_PROMPT_CATEGORY = 'All'
 
 export function promptCategoryLabel(item: Pick<PromptLibraryItem, 'category' | 'sub_category'>) {
   return [item.category, item.sub_category].filter(Boolean).join(' / ')
@@ -33,7 +33,7 @@ export function promptDisplaySummary(item: PromptLibraryItem) {
     cleanPromptDisplayText(item.prompt) ||
     cleanPromptDisplayText(promptCategoryLabel(item)) ||
     cleanPromptDisplayText(item.source_name) ||
-    '图片提示词'
+    'Image prompts'
   )
 }
 
@@ -42,9 +42,9 @@ export function promptSourceLabel(source: PromptSource) {
 }
 
 export function promptSyncTime(value: string) {
-  if (!value) return '未同步'
+  if (!value) return 'Not synced'
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '未知'
+  if (Number.isNaN(date.getTime())) return 'Unknown'
   return date.toLocaleString('zh-CN', {
     month: '2-digit',
     day: '2-digit',

@@ -49,7 +49,7 @@ export function useAccountsPage() {
     key: ACCOUNT_LIST_REQUEST_KEY,
     pageSize,
     loading,
-    errorMessage: '加载失败',
+    errorMessage: 'Failed to load accounts',
     fetch: ({ page, pageSize: size }) => accountsApi.list({
       page,
       page_size: size,
@@ -71,7 +71,7 @@ export function useAccountsPage() {
       accountSelection.pruneToCurrentAccounts()
     },
     onError: (_message, error) => {
-      setError('加载失败', error)
+      setError('Failed to load accounts', error)
     },
   })
   const visibleAccounts = computed(() => accounts.value)
@@ -79,18 +79,18 @@ export function useAccountsPage() {
   const currentPage = accountListQuery.currentPage
   const accountListTotal = accountListQuery.total
   const statusFilterOptions = [
-    { label: '全部状态', value: 'all' },
-    { label: '正常', value: 'normal' },
-    { label: '限流', value: 'limited' },
-    { label: '异常', value: 'abnormal' },
-    { label: '禁用', value: 'disabled' },
+    { label: 'All statuses', value: 'all' },
+    { label: 'Normal', value: 'normal' },
+    { label: 'Rate limited', value: 'limited' },
+    { label: 'Invalid', value: 'abnormal' },
+    { label: 'Disabled', value: 'disabled' },
   ] as const
 
   const groupFilterOptions = computed(() => [
-    { label: '全部账号组', value: 'all' },
-    { label: '未分组', value: '__ungrouped__' },
+    { label: 'All account groups', value: 'all' },
+    { label: 'No group', value: '__ungrouped__' },
     ...accountGroups.value.map((group) => ({
-      label: `${group.enabled === false ? '停用 · ' : ''}${group.name || group.id}`,
+      label: `${group.enabled === false ? 'Disabled · ' : ''}${group.name || group.id}`,
       value: group.id,
     })),
   ])
@@ -264,13 +264,13 @@ export function useAccountsPage() {
         ? await accountsApi.getAccessToken(item.id)
         : await accountsApi.getRefreshToken(item.id)
       if (!token) {
-        toast.warning(`当前账号没有可复制的 ${label}`)
+        toast.warning(`This account has no ${label} to copy.`)
         return
       }
       await navigator.clipboard.writeText(token)
-      toast.success(`${label} 已复制`)
+      toast.success(`${label} copied.`)
     } catch (error) {
-      setError(`复制 ${label} 失败`, error)
+      setError(`Failed to copy ${label}`, error)
     }
   }
 
@@ -297,7 +297,7 @@ export function useAccountsPage() {
       const preview = await accountsApi.previewSelection(selection)
       return accountSelection.reconcileScopedSelection(preview, expectedRevision)
     } catch (error) {
-      if (notify) setError('核对已选账号数量失败', error)
+      if (notify) setError('Failed to verify the number of selected accounts', error)
       return false
     }
   }

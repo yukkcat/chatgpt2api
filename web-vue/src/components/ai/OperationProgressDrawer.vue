@@ -38,19 +38,19 @@
           </Button>
           <CloseButton
             icon="lucide:minus"
-            label="收起任务面板"
+            label="Collapse task panel"
             @click="minimized = true"
           />
           <CloseButton
             :disabled="resolvedCloseDisabled"
-            :label="resolvedCloseDisabled ? '任务运行中，暂时无法关闭' : '关闭任务记录'"
+            :label="resolvedCloseDisabled ? 'Task is running and cannot be closed yet' : 'Close task log'"
             @click="emit('close')"
           />
         </div>
       </header>
 
-      <section class="operation-progress-summary" aria-label="任务进度">
-        <ProgressBar :value="progressValue" :aria-label="`${title}进度`" />
+      <section class="operation-progress-summary" aria-label="Task progress">
+        <ProgressBar :value="progressValue" :aria-label="`${title} progress`" />
         <div v-if="resolvedSummaryItems.length" class="operation-progress-metrics">
           <div
             v-for="item in resolvedSummaryItems"
@@ -63,10 +63,10 @@
         </div>
       </section>
 
-      <section class="operation-progress-events" aria-label="任务记录">
+      <section class="operation-progress-events" aria-label="Task log">
         <div class="operation-progress-events__header">
-          <p class="text-xs font-semibold text-foreground">任务记录</p>
-          <span class="text-[11px] text-muted-foreground">{{ events.length }} 条</span>
+          <p class="text-xs font-semibold text-foreground">Task log</p>
+          <span class="text-[11px] text-muted-foreground">{{ events.length }} events</span>
         </div>
 
         <ol
@@ -76,7 +76,7 @@
           @scroll.passive="handleEventListScroll"
         >
           <li v-if="events.length === 0" class="operation-progress-events__empty">
-            {{ busy ? '等待任务记录...' : '暂无任务记录' }}
+            {{ busy ? 'Waiting for task events...' : 'No task events' }}
           </li>
           <template v-else>
             <li
@@ -117,7 +117,7 @@
   <SideDock
     :open="open && minimized"
     :draggable="true"
-    aria-label="展开任务面板"
+    aria-label="Expand task panel"
     :aria-describedby="dockStatusId"
     :z-index="zIndex"
     @click="minimized = false"
@@ -170,12 +170,12 @@ const props = withDefaults(defineProps<{
   total: 0,
   current: 0,
   percent: undefined,
-  statusLabel: '已处理',
+  statusLabel: 'Processed',
   error: '',
   busy: false,
   canCancel: false,
   cancelDisabled: false,
-  cancelLabel: '停止',
+  cancelLabel: 'Stop',
   closeDisabled: undefined,
   zIndex: () => OVERLAY_LAYER.confirm - 1,
   tone: 'success',
@@ -206,9 +206,9 @@ const resolvedCloseDisabled = computed(() => props.closeDisabled ?? props.busy)
 const resolvedSummaryItems = computed<OperationSummaryItem[]>(() => {
   if (props.summaryItems.length) return props.summaryItems
   return [
-    { key: 'processed', label: '已处理', value: props.current },
-    { key: 'remaining', label: '待处理', value: Math.max(0, props.total - props.current) },
-    { key: 'total', label: '总数', value: props.total },
+    { key: 'processed', label: 'Processed', value: props.current },
+    { key: 'remaining', label: 'Remaining', value: Math.max(0, props.total - props.current) },
+    { key: 'total', label: 'Total', value: props.total },
   ]
 })
 

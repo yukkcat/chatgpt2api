@@ -7,10 +7,10 @@
       :disabled="busy"
       @click="emit('edit')"
     >
-      编辑
+      Edit
     </Button>
     <FloatingActionMenu
-      label="更多"
+      label="More"
       :items="menuItems"
       align="right"
       size="sm"
@@ -57,15 +57,15 @@ const alignClass = computed(() => (
 ))
 
 const refreshAccessTokenLabel = computed(() => {
-  if (props.refreshingAccessToken) return '刷新 AT 中...'
-  return '刷新 AT'
+  if (props.refreshingAccessToken) return 'Refreshing AT...'
+  return 'Refresh AT'
 })
 
 const menuItems = computed<ActionMenuItem[]>(() => actionMenuGroups(
   [
     {
       key: 'test',
-      label: '测试',
+      label: 'Test',
       disabled: props.busy,
     },
     {
@@ -75,7 +75,7 @@ const menuItems = computed<ActionMenuItem[]>(() => actionMenuGroups(
     },
     {
       key: 'sync-account',
-      label: props.syncing ? '同步中...' : '同步账号与额度',
+      label: props.syncing ? 'Syncing...' : 'Sync accounts and quota',
       disabled: props.busy,
     },
   ],
@@ -89,7 +89,7 @@ const menuItems = computed<ActionMenuItem[]>(() => actionMenuGroups(
   [
     {
       key: 'remove',
-      label: '删除账号',
+      label: 'Delete account',
       danger: true,
       disabled: props.busy,
     },

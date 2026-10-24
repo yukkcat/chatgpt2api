@@ -1,18 +1,18 @@
 <template>
   <div class="space-y-6">
     <PagePanel class="space-y-5">
-      <PanelHeader title="代理管理" align="start">
+      <PanelHeader title="Proxy Management" align="start">
         <template #copy>
           <p class="mt-1 text-xs text-muted-foreground">
-            出口优先级：账号个人代理 > 账号组代理/代理组 > 默认出口；默认出口可配置代理组、代理 URL 或直连。
+            Egress priority: account proxy > account-group proxy / proxy group > default egress. Configure the default egress with a proxy group, proxy URL, or direct connection.
           </p>
         </template>
         <template #actions>
           <Button size="sm" variant="outline" :disabled="loading" @click="loadData">
-            {{ loading ? '刷新中...' : '刷新' }}
+            {{ loading ? 'Refreshing...' : 'Refresh' }}
           </Button>
           <Button size="sm" variant="primary" :disabled="savingDefaultProxy || loading" @click="saveDefaultProxy">
-            {{ savingDefaultProxy ? '保存中...' : '保存出口配置' }}
+            {{ savingDefaultProxy ? 'Saving...' : 'Save egress settings' }}
           </Button>
         </template>
       </PanelHeader>
@@ -21,11 +21,11 @@
         <FormSection density="roomy">
           <div class="grid grid-cols-1 gap-3 md:grid-cols-[12rem_minmax(0,1fr)]">
             <label class="block text-xs">
-              <span class="ui-field-label">默认出口模式</span>
+              <span class="ui-field-label">Default egress mode</span>
               <GroupedSelectMenu
                 :model-value="defaultProxyMode"
                 :options="defaultProxyModeOptions"
-                aria-label="默认出口模式"
+                aria-label="Default egress mode"
                 selected-indicator="none"
                 block
                 @update:model-value="setDefaultProxyMode"
@@ -33,12 +33,12 @@
             </label>
 
             <label v-if="defaultProxyMode === 'group'" class="block text-xs">
-              <span class="ui-field-label">默认出口代理组</span>
+              <span class="ui-field-label">Default egress proxy group</span>
               <GroupedSelectMenu
                 :model-value="selectedDefaultProxyGroupId"
                 :options="defaultProxyGroupOptions"
                 :disabled="loading"
-                aria-label="默认出口代理组"
+                aria-label="Default egress proxy group"
                 selected-indicator="none"
                 block
                 @update:model-value="selectDefaultProxyGroup"
@@ -46,36 +46,36 @@
             </label>
 
             <label v-else-if="defaultProxyMode === 'custom'" class="block text-xs">
-              <span class="ui-field-label">自定义代理 URL</span>
+              <span class="ui-field-label">Custom proxy URL</span>
               <Input
                 :model-value="defaultCustomProxyInput"
                 block
                 root-class="font-mono"
-                placeholder="http://127.0.0.1:7890 或 socks5://127.0.0.1:7890"
+                placeholder="http://127.0.0.1:7890 or socks5://127.0.0.1:7890"
                 @update:model-value="setDefaultCustomProxyInput"
               />
             </label>
 
             <div v-else class="flex min-h-[2.5rem] items-center rounded-lg border border-dashed border-border bg-muted/20 px-3 text-xs text-muted-foreground">
-              未指定账号或账号组代理时直连。
+              Connect directly when no account or account-group proxy is specified.
             </div>
           </div>
           <ActionRow class="mt-3" gap="tight">
             <Button size="xs" variant="outline" :disabled="testingKey === DEFAULT_TEST_KEY || !canTestDefaultProxy" @click="testDefaultProxy">
-              {{ testingKey === DEFAULT_TEST_KEY ? '测试中...' : '测试默认出口' }}
+              {{ testingKey === DEFAULT_TEST_KEY ? 'Testing...' : 'Test default egress' }}
             </Button>
             <Button size="xs" variant="outline" :disabled="savingDefaultProxy || testingKey === DEFAULT_TEST_KEY" @click="setDefaultProxyDirect">
-              设为直连
+              Set to direct
             </Button>
           </ActionRow>
           <div class="mt-4 border-t border-border pt-4">
             <div class="grid grid-cols-1 gap-3 md:grid-cols-[12rem_minmax(0,1fr)]">
               <label class="block text-xs">
-                <span class="ui-field-label">备用出口模式</span>
+                <span class="ui-field-label">Fallback egress mode</span>
                 <GroupedSelectMenu
                   :model-value="fallbackProxyMode"
                   :options="fallbackProxyModeOptions"
-                  aria-label="备用出口模式"
+                  aria-label="Fallback egress mode"
                   selected-indicator="none"
                   block
                   @update:model-value="setFallbackProxyMode"
@@ -83,12 +83,12 @@
               </label>
 
               <label v-if="fallbackProxyMode === 'group'" class="block text-xs">
-                <span class="ui-field-label">备用出口代理组</span>
+                <span class="ui-field-label">Fallback egress proxy group</span>
                 <GroupedSelectMenu
                   :model-value="selectedFallbackProxyGroupId"
                   :options="fallbackProxyGroupOptions"
                   :disabled="loading"
-                  aria-label="备用出口代理组"
+                  aria-label="Fallback egress proxy group"
                   selected-indicator="none"
                   block
                   @update:model-value="selectFallbackProxyGroup"
@@ -96,45 +96,45 @@
               </label>
 
               <label v-else-if="fallbackProxyMode === 'custom'" class="block text-xs">
-                <span class="ui-field-label">备用代理 URL</span>
+                <span class="ui-field-label">Fallback proxy URL</span>
                 <Input
                   :model-value="fallbackCustomProxyInput"
                   block
                   root-class="font-mono"
-                  placeholder="http://127.0.0.1:7890 或 socks5://127.0.0.1:7890"
+                  placeholder="http://127.0.0.1:7890 or socks5://127.0.0.1:7890"
                   @update:model-value="setFallbackCustomProxyInput"
                 />
               </label>
 
               <div v-else class="flex min-h-[2.5rem] items-center rounded-lg border border-dashed border-border bg-muted/20 px-3 text-xs text-muted-foreground">
-                {{ fallbackProxyMode === 'direct' ? '早期连接失败时重试直连一次。' : '未启用备用出口。' }}
+                {{ fallbackProxyMode === 'direct' ? 'Retry once with a direct connection after an early connection failure.' : 'Fallback egress is disabled.' }}
               </div>
             </div>
             <p class="mt-2 text-xs text-muted-foreground">
-              仅图片请求在早期 TLS / 连接超时且尚未收到上游事件时重试一次；生成中断和轮询超时不会切换。
+              Image requests are retried once only for an early TLS or connection timeout before any upstream event arrives. Generation interruptions and polling timeouts do not trigger a switch.
             </p>
           </div>
         </FormSection>
 
         <FormSection density="roomy" surface="background">
-          <p class="text-xs text-muted-foreground">默认出口测试结果</p>
+          <p class="text-xs text-muted-foreground">Default egress test result</p>
           <div v-if="defaultTestResult" class="mt-3 space-y-1 text-xs">
             <p :class="defaultTestResult.ok ? 'text-emerald-600' : 'text-rose-600'">
-              {{ defaultTestResult.ok ? '可用' : '不可用' }}
+              {{ defaultTestResult.ok ? 'Available' : 'Unavailable' }}
             </p>
             <p class="text-muted-foreground">HTTP {{ defaultTestResult.status || '-' }} · {{ defaultTestResult.latency_ms || 0 }}ms</p>
             <p v-if="defaultTestResult.error" class="break-all text-rose-600">{{ defaultTestResult.error }}</p>
           </div>
-          <p v-else class="mt-3 text-xs text-muted-foreground">尚未测试</p>
+          <p v-else class="mt-3 text-xs text-muted-foreground">Not tested yet</p>
         </FormSection>
       </div>
     </PagePanel>
 
     <PagePanel class="space-y-4">
-      <PanelHeader title="代理组 / 多出口">
+      <PanelHeader title="Proxy Groups / Multiple Egress Nodes">
         <template #copy>
           <p class="mt-1 text-xs text-muted-foreground">
-            一个代理组就是一组多出口节点；图片请求会从未满的节点里随机选择一个，请求结束前固定该出口，出口满了会等待，不会自动绕到直连。
+            A proxy group contains multiple egress nodes. Image requests randomly select a node with available capacity and stay on it until the request ends. Requests wait when all nodes are full; they do not fall back to a direct connection.
           </p>
         </template>
         <template #actions>
@@ -142,10 +142,10 @@
             :model-value="groupKeyword"
             block
             root-class="min-w-[12rem] md:w-80"
-            placeholder="搜索代理组 / 节点 / 地址"
+            placeholder="Search proxy groups / nodes / addresses"
             @update:model-value="groupKeyword = $event.trim()"
           />
-          <Button size="sm" variant="primary" @click="openCreateGroupModal">新建代理组</Button>
+          <Button size="sm" variant="primary" @click="openCreateGroupModal">Create proxy group</Button>
         </template>
       </PanelHeader>
       <TableShell
@@ -154,12 +154,12 @@
         sticky-header
         :scroll-mode="isWorkspaceLayout ? 'contained' : 'page'"
         :loading="loading && filteredGroups.length === 0"
-        loading-title="正在加载代理"
-        loading-description="读取代理组、节点和健康状态。"
+        loading-title="Loading proxies"
+        loading-description="Loading proxy groups, nodes, and health status."
         :show-empty="!loading && filteredGroups.length === 0"
         :empty-colspan="6"
-        empty-title="暂无代理组"
-        empty-description="新建代理组后，可绑定账号组、账号或默认出口使用。"
+        empty-title="No proxy groups"
+        empty-description="Create a proxy group to assign it to an account group, an account, or the default egress."
         :scroll-class="isWorkspaceLayout ? 'max-h-[min(36rem,65dvh)]' : ''"
         table-class="min-w-[1080px] w-full table-fixed text-left text-sm"
         head-class="tracking-[0.16em]"
@@ -174,12 +174,12 @@
         </template>
         <template #head>
           <tr>
-            <th class="py-3 pr-4">代理组</th>
-            <th class="py-3 pr-4">状态</th>
-            <th class="py-3 pr-4">节点</th>
-            <th class="py-3 pr-4">引用</th>
-            <th class="py-3 pr-4">健康</th>
-            <th class="py-3 text-right">操作</th>
+            <th class="py-3 pr-4">Proxy group</th>
+            <th class="py-3 pr-4">Status</th>
+            <th class="py-3 pr-4">Nodes</th>
+            <th class="py-3 pr-4">References</th>
+            <th class="py-3 pr-4">Health</th>
+            <th class="py-3 text-right">Actions</th>
           </tr>
         </template>
         <ProxyGroupRow
@@ -205,14 +205,14 @@
 
     <ModalShell
       :open="showGroupModal"
-      :aria-label="editingGroupId ? '编辑代理组' : '新建代理组'"
+      :aria-label="editingGroupId ? 'Edit proxy group' : 'Create proxy group'"
       :z-index="120"
       :close-on-escape="!showNodeImportModal"
       scrollable
       @close="closeGroupModal"
     >
       <ModalHeader
-        :title="editingGroupId ? '编辑代理组' : '新建代理组'"
+        :title="editingGroupId ? 'Edit proxy group' : 'Create proxy group'"
         :close-disabled="savingGroupId === FORM_TEST_KEY || closingGroupModal"
         :bordered="false"
         compact
@@ -220,19 +220,19 @@
       />
 
       <ModalBody class="space-y-4">
-        <FormSection title="基础信息" surface="plain">
+        <FormSection title="Basic information" surface="plain">
               <div class="grid grid-cols-1 gap-2.5 md:grid-cols-[minmax(0,1fr)_16rem]">
                 <label class="text-xs">
-                  <span class="ui-field-label">代理组名称</span>
+                  <span class="ui-field-label">Proxy group name</span>
                   <Input
                     :model-value="groupForm.name"
                     block
-                    placeholder="香港代理池"
+                    placeholder="Hong Kong proxy pool"
                     @update:model-value="groupForm.name = $event.trim()"
                   />
                 </label>
                 <label class="text-xs">
-                  <span class="ui-field-label">代理组 ID</span>
+                  <span class="ui-field-label">Proxy group ID</span>
                   <Input
                     :model-value="groupForm.id"
                     block
@@ -244,28 +244,28 @@
               </div>
               <div class="grid grid-cols-1 gap-2.5 md:grid-cols-[minmax(0,1fr)_auto]">
                 <label class="text-xs">
-                  <span class="ui-field-label">备注</span>
+                  <span class="ui-field-label">Notes</span>
                   <Input
                     :model-value="groupForm.notes"
                     block
-                    placeholder="可选"
+                    placeholder="Optional"
                     @update:model-value="groupForm.notes = $event.trim()"
                   />
                 </label>
                 <div class="flex items-end">
-                  <Checkbox v-model="groupForm.enabled">启用代理组</Checkbox>
+                  <Checkbox v-model="groupForm.enabled">Enable proxy group</Checkbox>
                 </div>
               </div>
         </FormSection>
 
               <div class="space-y-3">
                 <div class="flex flex-wrap items-center justify-between gap-2">
-                  <p class="text-xs font-medium text-foreground">代理节点</p>
+                  <p class="text-xs font-medium text-foreground">Proxy nodes</p>
                   <div class="flex flex-wrap items-center gap-2">
                     <Button size="xs" variant="outline" @click="openNodeImportModal">
-                      批量添加节点
+                      Add nodes in bulk
                     </Button>
-                    <Button size="xs" variant="outline" @click="addGroupNode">添加节点</Button>
+                    <Button size="xs" variant="outline" @click="addGroupNode">Add node</Button>
                   </div>
                 </div>
                 <div class="space-y-3">
@@ -276,7 +276,7 @@
                   >
                     <div class="grid grid-cols-1 gap-2 md:grid-cols-[10rem_minmax(0,1fr)_8rem_auto]">
                       <label class="text-xs">
-                        <span class="ui-field-label">名称</span>
+                        <span class="ui-field-label">Name</span>
                         <Input
                           :model-value="node.name"
                           block
@@ -284,7 +284,7 @@
                         />
                       </label>
                       <label class="text-xs">
-                        <span class="ui-field-label">代理 URL</span>
+                        <span class="ui-field-label">Proxy URL</span>
                         <Input
                           :model-value="node.url"
                           block
@@ -294,29 +294,29 @@
                         />
                       </label>
                       <label class="text-xs">
-                        <span class="ui-field-label">图片并发</span>
+                        <span class="ui-field-label">Image concurrency</span>
                         <Input
                           :model-value="String(node.image_concurrency_limit ?? 0)"
                           block
                           type="number"
                           min="0"
                           step="1"
-                          placeholder="默认 30，0 不限"
-                          title="限制该节点同时处理的图片请求数；超出后等待同组节点空位，不会改走直连。0 表示不限制。"
+                          placeholder="Default: 30; 0 = unlimited"
+                          title="Maximum number of concurrent image requests for this node. Additional requests wait for capacity on another node in the group and never switch to a direct connection. 0 means unlimited."
                           @update:model-value="node.image_concurrency_limit = normalizeImageConcurrencyLimit($event)"
                         />
                       </label>
                       <div class="flex items-end gap-2">
-                        <Checkbox v-model="node.enabled">启用</Checkbox>
+                        <Checkbox v-model="node.enabled">Enabled</Checkbox>
                       </div>
                     </div>
                     <div class="mt-2 flex flex-wrap items-center justify-between gap-2">
                       <label class="min-w-[12rem] flex-1 text-xs">
-                        <span class="ui-field-label">备注</span>
+                        <span class="ui-field-label">Notes</span>
                         <Input
                           :model-value="node.notes || ''"
                           block
-                          placeholder="可选"
+                          placeholder="Optional"
                           @update:model-value="node.notes = $event.trim()"
                         />
                       </label>
@@ -327,10 +327,10 @@
                           :disabled="!node.url || testingKey === `group:${editingGroupId || groupForm.id || FORM_TEST_KEY}:${node.id}`"
                           @click="testProxyGroupNode({ id: editingGroupId || groupForm.id || FORM_TEST_KEY, name: groupForm.name }, node)"
                         >
-                          {{ testingKey === `group:${editingGroupId || groupForm.id || FORM_TEST_KEY}:${node.id}` ? '检测中...' : '检测' }}
+                          {{ testingKey === `group:${editingGroupId || groupForm.id || FORM_TEST_KEY}:${node.id}` ? 'Testing...' : 'Test' }}
                         </Button>
                         <Button size="xs" variant="outline" root-class="text-rose-600" @click="removeGroupNode(index)">
-                          删除
+                          Delete
                         </Button>
                       </div>
                     </div>
@@ -341,10 +341,10 @@
 
       <ModalFooter :bordered="false">
         <Button size="xs" variant="outline" root-class="min-w-14 justify-center" :disabled="savingGroupId === FORM_TEST_KEY || closingGroupModal" @click="closeGroupModal">
-          取消
+          Cancel
         </Button>
         <Button size="xs" variant="primary" root-class="min-w-14 justify-center" :disabled="savingGroupId === FORM_TEST_KEY" @click="saveProxyGroup">
-          {{ savingGroupId === FORM_TEST_KEY ? '保存中...' : editingGroupId ? '更新' : '保存' }}
+          {{ savingGroupId === FORM_TEST_KEY ? 'Saving...' : editingGroupId ? 'Update' : 'Save' }}
         </Button>
       </ModalFooter>
     </ModalShell>

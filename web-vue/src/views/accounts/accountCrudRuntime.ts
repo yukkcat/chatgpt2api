@@ -92,7 +92,7 @@ export function useAccountCrudRuntime(options: AccountCrudRuntimeOptions) {
   function finishMutationTask(
     progress: AccountOperationProgress | null | undefined,
   ) {
-    if (!progress) throw new Error('账号操作响应缺少进度投影')
+    if (!progress) throw new Error('Account operation response is missing progress data.')
     options.bulkProgress.finish(progress)
   }
 
@@ -100,7 +100,7 @@ export function useAccountCrudRuntime(options: AccountCrudRuntimeOptions) {
     options.bulkProgress.fail(
       1,
       Number(options.bulkProgress.refreshProgress.value?.processed || 0),
-      `账号 ${label} ${action}失败：${options.normalizeErrorMessage(error)}`,
+      `Account ${label}: failed to ${action}. ${options.normalizeErrorMessage(error)}`,
     )
   }
 
@@ -145,7 +145,7 @@ export function useAccountCrudRuntime(options: AccountCrudRuntimeOptions) {
       showModal.value = true
     } catch (error) {
       if (editingId.value === item.id) resetForm()
-      options.setError('加载账号详情失败', error)
+      options.setError('Failed to load account details', error)
     } finally {
       endAccountOperation(item.id)
     }
@@ -158,7 +158,7 @@ export function useAccountCrudRuntime(options: AccountCrudRuntimeOptions) {
 
   async function saveAccount() {
     if (!editingId.value && !form.access_token.trim()) {
-      toast.warning('Access token 不能为空')
+      toast.warning('Access token cannot be empty.')
       return
     }
 
@@ -182,20 +182,20 @@ export function useAccountCrudRuntime(options: AccountCrudRuntimeOptions) {
         ? [firstError.code, firstError.message].filter(Boolean).join(': ')
         : ''
       if (result.removed_ids.length > 0) {
-        throw new Error(errorDetail || '账号校验失败并已自动移除')
+        throw new Error(errorDetail || 'Account validation failed and the account was removed automatically.')
       }
       if (result.errors.length > 0) {
-        toast.warning(`账号已保存，但账号与额度同步失败${errorDetail ? `：${errorDetail}` : ''}`)
+        toast.warning(`Account saved, but syncing account details and quota failed${errorDetail ? `: ${errorDetail}` : ''}.`)
         closeModal()
         await options.loadData({ silentErrorToast: true })
         return
       }
-      if (!result.account) throw new Error('后端未返回更新后的账号')
-      toast.success(isEditing ? `账号 ${accountLabel(result.account)} 已更新` : '账号已添加')
+      if (!result.account) throw new Error('The server did not return the updated account.')
+      toast.success(isEditing ? `Account ${accountLabel(result.account)} updated.` : 'Account added.')
       closeModal()
       await options.loadData({ silentErrorToast: true })
     } catch (error) {
-      options.setError('保存失败', error)
+      options.setError('Failed to save account', error)
       await options.loadData({ silentErrorToast: true })
     } finally {
       saving.value = false
@@ -206,14 +206,14 @@ export function useAccountCrudRuntime(options: AccountCrudRuntimeOptions) {
     if (!beginAccountOperation(item.id)) return
     const label = accountLabel(item)
     const action = item.enabled_action
-    const actionLabel = item.enabled_action_label
+    const actionLabel = item.enabled_action_label === '启用' ? 'Enable' : item.enabled_action_label === '停用' ? 'Disable' : item.enabled_action_label
     let taskStarted = false
     try {
       const confirmed = await confirmDialog.ask({
-        title: `确认${actionLabel}`,
-        message: `即将对账号 ${label} 执行“${actionLabel}”。这会影响该账号是否参与后续请求分配，是否继续？`,
+        title: `Confirm ${actionLabel.toLowerCase()}`,
+        message: `About to ${actionLabel.toLowerCase()} account ${label}. This affects whether it is selected for future requests. Continue?`,
         confirmText: actionLabel,
-        cancelText: '取消',
+        cancelText: 'Cancel',
       })
       if (!confirmed) return
 
@@ -226,7 +226,7 @@ export function useAccountCrudRuntime(options: AccountCrudRuntimeOptions) {
       await options.loadData({ silentErrorToast: true })
     } catch (error) {
       if (taskStarted) failAccountTask(label, actionLabel, error)
-      options.setError(`${actionLabel}失败`, error, !taskStarted)
+      options.setError(`${actionLabel} failed`, error, !taskStarted)
     } finally {
       if (taskStarted) options.bulkProgress.end()
       endAccountOperation(item.id)
@@ -240,14 +240,14 @@ export function useAccountCrudRuntime(options: AccountCrudRuntimeOptions) {
     let taskStarted = false
     try {
       const confirmed = await confirmDialog.ask({
-        title: '同步账号与额度',
-        message: `即将同步账号 ${label} 的远端信息和额度，是否继续？`,
-        confirmText: '开始同步',
-        cancelText: '取消',
+        title: 'Sync account and quota',
+        message: `Sync remote account details and quota for ${label}?`,
+        confirmText: 'Start sync',
+        cancelText: 'Cancel',
       })
       if (!confirmed) return
 
-      await options.bulkProgress.start('同步账号与额度', 1, 'sync')
+      await options.bulkProgress.start('Sync account and quota', 1, 'sync')
       taskStarted = true
       setAccountPending(syncingAccountIds, accountId, true)
       const result = await accountsApi.syncAccountsWithProgress([accountId], (progress) => {
@@ -258,11 +258,11 @@ export function useAccountCrudRuntime(options: AccountCrudRuntimeOptions) {
           done: false,
         })
       }, 1)
-      if (!result.progress) throw new Error('账号操作响应缺少进度投影')
+      if (!result.progress) throw new Error('Account operation response is missing progress data.')
       options.bulkProgress.finish(result.progress)
       await options.loadData({ silentErrorToast: true })
     } catch (error) {
-      if (taskStarted) failAccountTask(label, '同步', error)
+      if (taskStarted) failAccountTask(label, 'sync', error)
       await options.loadData({ silentErrorToast: true })
     } finally {
       setAccountPending(syncingAccountIds, accountId, false)
@@ -278,14 +278,14 @@ export function useAccountCrudRuntime(options: AccountCrudRuntimeOptions) {
     let taskStarted = false
     try {
       const confirmed = await confirmDialog.ask({
-        title: '刷新 AT',
-        message: `即将使用账号 ${label} 的 RT 刷新 AT，是否继续？`,
-        confirmText: '开始刷新',
-        cancelText: '取消',
+        title: 'Refresh AT',
+        message: `Refresh the AT for ${label} using its RT?`,
+        confirmText: 'Start refresh',
+        cancelText: 'Cancel',
       })
       if (!confirmed) return
 
-      await options.bulkProgress.start('刷新 AT', 1, 'credentials')
+      await options.bulkProgress.start('Refresh AT', 1, 'credentials')
       taskStarted = true
       setAccountPending(refreshingAccessTokenAccountIds, accountId, true)
       const result = await accountsApi.refreshAccessTokensWithProgress([accountId], (progress) => {
@@ -296,11 +296,11 @@ export function useAccountCrudRuntime(options: AccountCrudRuntimeOptions) {
           done: false,
         })
       }, 1)
-      if (!result.progress) throw new Error('账号操作响应缺少进度投影')
+      if (!result.progress) throw new Error('Account operation response is missing progress data.')
       options.bulkProgress.finish(result.progress)
       await options.loadData({ silentErrorToast: true })
     } catch (error) {
-      if (taskStarted) failAccountTask(label, '刷新 AT', error)
+      if (taskStarted) failAccountTask(label, 'refresh AT', error)
       await options.loadData({ silentErrorToast: true })
     } finally {
       setAccountPending(refreshingAccessTokenAccountIds, accountId, false)

@@ -49,17 +49,17 @@ export function buildStudioChatMessages(conversation: StudioConversation, curren
 }
 
 export function studioModeRequestErrorFallback(mode: StudioComposeMode) {
-  if (mode === 'image') return '图片生成失败'
-  if (mode === 'file') return '文件任务提交失败'
-  if (mode === 'search') return '搜索请求失败'
-  return '对话请求失败'
+  if (mode === 'image') return 'Image generation failed'
+  if (mode === 'file') return 'Failed to submit file task'
+  if (mode === 'search') return 'Search request failed'
+  return 'Chat request failed'
 }
 
 export function studioModeRetryErrorFallback(mode: StudioComposeMode) {
-  if (mode === 'image') return '图片重新生成失败'
-  if (mode === 'file') return '文件任务重新提交失败'
-  if (mode === 'search') return '搜索重新请求失败'
-  return '对话重新生成失败'
+  if (mode === 'image') return 'Failed to regenerate image'
+  if (mode === 'file') return 'Failed to resubmit file task'
+  if (mode === 'search') return 'Failed to retry search'
+  return 'Failed to regenerate response'
 }
 
 export function studioErrorMessage(error: unknown, fallback: string) {

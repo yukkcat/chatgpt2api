@@ -15,7 +15,7 @@
       <template v-if="minimizable" #actions>
         <CloseButton
           icon="lucide:minus"
-          label="收起详情面板"
+          label="Collapse details panel"
           @click="minimized = true"
         />
       </template>
@@ -42,13 +42,13 @@
   <SideDock
     :open="open && minimizable && minimized"
     :draggable="true"
-    aria-label="展开详情面板"
+    aria-label="Expand details panel"
     :z-index="zIndex"
     width="10rem"
     @click="minimized = false"
   >
     <span class="request-detail-dock__title">{{ title }}</span>
-    <small class="request-detail-dock__hint">点击展开</small>
+    <small class="request-detail-dock__hint">Click to expand</small>
   </SideDock>
 </template>
 

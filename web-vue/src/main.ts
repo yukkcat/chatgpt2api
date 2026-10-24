@@ -1,6 +1,6 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import { nanocatZhCN, setNanocatLocale } from 'nanocat-ui'
+import { nanocatEnUS, setNanocatLocale } from 'nanocat-ui'
 import 'nanocat-ui/styles.css'
 import router from './router'
 import { setUnauthorizedHandler } from './api/client'
@@ -11,7 +11,7 @@ import App from './App.vue'
 import './style.css'
 import './styles/features.css'
 
-setNanocatLocale(nanocatZhCN)
+setNanocatLocale(nanocatEnUS)
 registerLocalIcons()
 applyThemeMode(getStoredThemeMode())
 

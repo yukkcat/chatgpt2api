@@ -85,11 +85,11 @@ export function useAccountBulkProgressRuntime() {
 
   const refreshProgressStatusText = computed(() => {
     const progress = refreshProgress.value
-    if (bulkStopRequested.value) return '停止中'
+    if (bulkStopRequested.value) return 'Stopping'
     if (progress?.status_label) return progress.status_label
-    if (progress?.error) return '失败'
-    if (progress?.done) return '已完成'
-    return progress?.stage_label || '处理中'
+    if (progress?.error) return 'Failed'
+    if (progress?.done) return 'Completed'
+    return progress?.stage_label || 'Processing'
   })
 
   const canStopRefreshProgress = computed(() => (

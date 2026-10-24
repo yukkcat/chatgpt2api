@@ -37,10 +37,10 @@ export function useProxyNodeImportRuntime(options: ProxyNodeImportRuntimeOptions
 
   function resultSummary(result: ProxyNodeImportResult) {
     return [
-      result.added_count ? `已添加 ${result.added_count} 个` : '',
-      result.duplicate_count ? `跳过重复 ${result.duplicate_count} 个` : '',
-      result.invalid_count ? `${result.invalid_count} 行格式错误` : '',
-    ].filter(Boolean).join('，') || '没有可添加的代理节点'
+      result.added_count ? `Added ${result.added_count}` : '',
+      result.duplicate_count ? `Skipped ${result.duplicate_count} duplicates` : '',
+      result.invalid_count ? `${result.invalid_count} invalid lines` : '',
+    ].filter(Boolean).join(', ') || 'No proxy nodes to add'
   }
 
   function activate() {
@@ -71,10 +71,10 @@ export function useProxyNodeImportRuntime(options: ProxyNodeImportRuntimeOptions
     const total = sourceLineCount()
 
     await progressRuntime.start({
-      title: '批量添加代理节点',
-      subtitle: total ? `${total} 行` : '',
+      title: 'Add proxy nodes in bulk',
+      subtitle: total ? `${total} lines` : '',
       total,
-      message: '正在解析并去重...',
+      message: 'Parsing and removing duplicates...',
     })
     if (generation !== requestGeneration) return
 
@@ -92,7 +92,7 @@ export function useProxyNodeImportRuntime(options: ProxyNodeImportRuntimeOptions
       if (result.invalid_count || !result.added_count) {
         progressRuntime.warn(summary, total)
       } else {
-        progressRuntime.succeed(`${summary}；保存代理组后生效`, total)
+        progressRuntime.succeed(`${summary}. Save the proxy group to apply changes.`, total)
       }
     } catch (error) {
       if (generation !== requestGeneration) return

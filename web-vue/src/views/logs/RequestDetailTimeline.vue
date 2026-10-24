@@ -2,8 +2,8 @@
   <section class="request-detail-timeline">
     <div class="request-detail-timeline__header">
       <div>
-        <span>步骤耗时</span>
-        <p>按执行顺序展示，条形长度表示相对耗时</p>
+        <span>Step timings</span>
+        <p>Shown in execution order; bar length indicates relative duration.</p>
       </div>
       <RequestTimelineSummary
         :step-count="stepCount"
@@ -43,7 +43,7 @@ withDefaults(defineProps<{
   detailsVisible: boolean
   emptyMessage?: string
 }>(), {
-  emptyMessage: '该请求没有可展示的步骤耗时。',
+  emptyMessage: 'This request has no step timings to display.',
 })
 
 const emit = defineEmits<{

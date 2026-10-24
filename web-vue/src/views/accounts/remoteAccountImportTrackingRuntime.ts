@@ -68,8 +68,8 @@ export function useRemoteAccountImportTrackingRuntime(
         total,
         processed: Number(options.bulkProgress.refreshProgress.value?.processed || 0),
         stage: 'completed',
-        stage_label: '完成',
-        status_label: '失败',
+        stage_label: 'Completed',
+        status_label: 'Failed',
         tone: 'danger',
         error: value.error,
         import_result: { added: 0, skipped: 0, synced: 0, failed: 1 },
@@ -84,8 +84,8 @@ export function useRemoteAccountImportTrackingRuntime(
         total,
         processed: 0,
         stage: 'read_credentials',
-        stage_label: '正在创建任务',
-        status_label: '正在创建任务',
+        stage_label: 'Creating job',
+        status_label: 'Creating job',
         tone: 'info',
       })
       return false
@@ -162,8 +162,8 @@ export function useRemoteAccountImportTrackingRuntime(
           total: Math.max(0, Number(current?.total || request.total)),
           processed: Math.max(0, Number(current?.processed || 0)),
           done: false,
-          stage_label: '连接中断，正在重试',
-          status_label: '连接中断，正在重试',
+          stage_label: 'Connection interrupted; retrying',
+          status_label: 'Connection interrupted; retrying',
           tone: 'warning',
         })
       }
@@ -179,8 +179,8 @@ export function useRemoteAccountImportTrackingRuntime(
       total: Math.max(0, Number(current?.total || request.total)),
       processed: Math.max(0, Number(current?.processed || 0)),
       done: false,
-      stage_label: '后台继续执行',
-      status_label: '后台继续执行',
+      stage_label: 'Continuing in the background',
+      status_label: 'Continuing in the background',
       tone: 'info',
     })
     options.bulkProgress.end()
@@ -232,7 +232,7 @@ export function useRemoteAccountImportTrackingRuntime(
           candidates.push({
             mode: 'cpa',
             source_id: pool.id,
-            title: '导入远程 CPA',
+            title: 'Import remote CPA',
             total: job.total,
             job,
             updatedAt: Date.parse(job.updated_at || job.created_at || '') || 0,
@@ -246,7 +246,7 @@ export function useRemoteAccountImportTrackingRuntime(
           candidates.push({
             mode: 'sub2api',
             source_id: server.id,
-            title: '导入 Sub2API 账号',
+            title: 'Import Sub2API accounts',
             total: job.total,
             job,
             updatedAt: Date.parse(job.updated_at || job.created_at || '') || 0,
