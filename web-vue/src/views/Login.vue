@@ -1,5 +1,8 @@
 <template>
-  <div class="min-h-screen px-4">
+  <div class="relative min-h-screen px-4">
+    <div class="absolute right-4 top-4">
+      <LanguageToggle />
+    </div>
     <div class="flex min-h-screen items-center justify-center">
       <div class="w-full max-w-md rounded-[2.5rem] border border-border bg-card p-10 shadow-2xl shadow-black/10">
         <div class="text-center">
@@ -57,6 +60,7 @@
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Button, Input } from 'nanocat-ui'
+import LanguageToggle from '@/components/ui/LanguageToggle.vue'
 import { useToast } from '@/composables/useToast'
 import { resolveLoginRedirect } from '@/router/routes'
 import { useAuthStore } from '@/stores/auth'
