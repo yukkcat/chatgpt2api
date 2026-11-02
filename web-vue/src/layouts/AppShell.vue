@@ -211,6 +211,7 @@
           </div>
           <div class="ml-auto flex shrink-0 items-center gap-[12px]">
             <div class="flex items-center gap-[8px]">
+              <LanguageToggle />
               <Tooltip :text="themeButtonTitle" placement="bottom">
                 <Button
                   size="sm"
@@ -697,6 +698,7 @@ import { useListLayoutPreference } from '@/composables/useListLayoutPreference'
 import { useOperationProgressRuntime } from '@/composables/useOperationProgressRuntime'
 import { ActionMenu, Button, Tooltip, ValueSurface, type ActionMenuItem } from 'nanocat-ui'
 import ConfirmDialog from '@/components/ui/AppConfirmDialog.vue'
+import LanguageToggle from '@/components/ui/LanguageToggle.vue'
 import MetaChip from '@/components/ai/MetaChip.vue'
 import ModalFooter from '@/components/ai/ModalFooter.vue'
 import ModalHeader from '@/components/ai/ModalHeader.vue'
