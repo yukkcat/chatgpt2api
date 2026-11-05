@@ -2,12 +2,14 @@
 
 ## Unreleased
 
+## 3.2.4 - 2026-11-06
+
 + [新增] 图片接口注册 `gpt-image-2.6` 系列模型，设置页支持按模型控制 GIF；生成、编辑、聊天和 Responses 图片入口接入 GIF 参数并保留原始 GIF 字节。
 + [新增] `output_format` 支持 `gif`、`png`、`jpg/jpeg` 和 `webp`，非 GIF 格式会在共享图片结果链路中转换后返回。
 
 ## 3.2.3 - 2026-09-09
 
-+ [新增] Python 图片接口和共享模型列表支持 `gpt-image-2.5`、`gpt-image-2.5-flare`、`gpt-image-2.5-sunburst`，通过 ChatGPT Web 的 `auto` 路由兼容，不包含 `exact` 别名。
++ [新增] Python 图片接口和共享模型列表支持 `gpt-image-2.5`、`gpt-image-2.5-flare`、`gpt-image-2.5-sunburst`，通过 ChatGPT Web 的 `auto` 路由兼容。
 + [优化] 默认聊天模型精简为 `gpt-5.6` 和 `auto`，保留现有图片模型；`/v1/models` 与控制台共用模型目录，不再追加上游实时发现的其他模型。
 + [优化] 图片调用日志补齐实际出图分辨率与数量，覆盖普通响应、SSE 和 Studio 异步任务；列表直接展示实际分辨率，请求尺寸、质量和返回格式放在详情中，终端完成日志增加实际宽高，复用已解析的图片信息。
 + [优化] 控制台页面切换增加延迟显示的加载进度与淡入效果，保留侧边栏原有样式。
