@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "chatgpt2api"
 version = "3.2.3"
@@ -22,6 +26,17 @@ dev = [
     "httpx>=0.28.1",
     "pytest>=8.4.2,<10",
 ]
+
+[tool.setuptools]
+include-package-data = true
+py-modules = ["main"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["api*", "contracts*", "services*", "utils*"]
+
+[tool.setuptools.package-data]
+services = ["*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
