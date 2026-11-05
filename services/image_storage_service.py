@@ -23,7 +23,7 @@ from utils.timezone import beijing_datetime_from_timestamp, beijing_now, beijing
 
 IMAGE_INDEX_FILE = DATA_DIR / "image_index.json"
 IMAGE_INDEX_LOCK = Lock()
-IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
 IMAGE_SYNC_MERGE_BATCH_SIZE = 64
 IMAGE_MUTATION_BATCH_SIZE = 16
 
@@ -115,6 +115,27 @@ def _image_dimensions(payload: bytes) -> tuple[int, int] | None:
         return None
 
 
+def image_media_type(relative_path: str = "", payload: bytes | None = None) -> str:
+    """Return the media type for an image asset without decoding/re-encoding it."""
+    data = bytes(payload or b"")
+    if data.startswith((b"GIF87a", b"GIF89a")):
+        return "image/gif"
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if data.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if data.startswith(b"RIFF") and data[8:12] == b"WEBP":
+        return "image/webp"
+    suffix = Path(str(relative_path or "")).suffix.lower()
+    return {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".webp": "image/webp",
+        ".gif": "image/gif",
+        ".png": "image/png",
+    }.get(suffix, "image/png")
+
+
 def _is_image_rel(path: str) -> bool:
     try:
         safe_rel = normalize_image_relative_path(path)
@@ -194,10 +215,15 @@ class WebDAVClient:
             if response.status_code >= 400:
                 raise ImageStorageError(f"WebDAV MKCOL failed: HTTP {response.status_code}")
 
-    def put(self, rel: str, payload: bytes, content_type: str = "image/png") -> str:
+    def put(self, rel: str, payload: bytes, content_type: str | None = None) -> str:
         self.ensure_dirs(rel)
         url = self.remote_url(rel)
-        self._request("PUT", url, data=payload, headers={"Content-Type": content_type})
+        self._request(
+            "PUT",
+            url,
+            data=payload,
+            headers={"Content-Type": content_type or image_media_type(rel, payload)},
+        )
         return url
 
     def get(self, rel: str) -> bytes:
@@ -405,9 +431,18 @@ class ImageStorageService:
             f"{normalize_image_relative_path(rel)}"
         )
 
-    def make_relative_path(self, image_data: bytes) -> str:
+    def make_relative_path(self, image_data: bytes, mime_type: str | None = None) -> str:
         file_hash = hashlib.md5(image_data).hexdigest()
-        filename = f"{int(time.time())}_{file_hash}.png"
+        extension = {
+            "image/jpeg": ".jpg",
+            "image/jpg": ".jpg",
+            "image/webp": ".webp",
+            "image/gif": ".gif",
+            "image/png": ".png",
+        }.get(str(mime_type or "").strip().lower())
+        if extension is None:
+            extension = ".gif" if image_data.startswith((b"GIF87a", b"GIF89a")) else ".png"
+        filename = f"{int(time.time())}_{file_hash}{extension}"
         now = beijing_now()
         relative_dir = Path(now.strftime("%Y"), now.strftime("%m"), now.strftime("%d"))
         return f"{relative_dir.as_posix()}/{filename}"
@@ -417,10 +452,12 @@ class ImageStorageService:
         image_data: bytes,
         base_url: str | None = None,
         *,
+        mime_type: str | None = None,
         deadline_monotonic: float | None = None,
     ) -> StoredImage:
         _raise_if_save_deadline_elapsed(deadline_monotonic)
-        rel = self.make_relative_path(image_data)
+        resolved_mime_type = image_media_type(payload=image_data) if not mime_type else str(mime_type).strip().lower()
+        rel = self.make_relative_path(image_data, resolved_mime_type)
         with self._item_guard(rel):
             # Once the physical mutation starts, finish the catalog commit so a
             # deadline cannot leave an unindexed local or remote asset behind.
@@ -441,7 +478,7 @@ class ImageStorageService:
             if mode in {"webdav", "both"}:
                 client = WebDAVClient(self.settings())
                 try:
-                    remote_url = client.put(rel, image_data)
+                    remote_url = client.put(rel, image_data, content_type=resolved_mime_type)
                     stored_webdav = True
                 finally:
                     client.session.close()

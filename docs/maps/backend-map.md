@@ -28,10 +28,19 @@ explicit configured overrides. The console and `/v1/models` consume the same
 catalog; listing models does not query upstream or append upstream-only entries.
 
 `utils.helper.WEB_IMAGE_MODELS` owns the built-in Web image identifiers:
-`gpt-image-2`, `gpt-image-2.5`, `gpt-image-2.5-flare`, and
-`gpt-image-2.5-sunburst`. Model validation and `ModelCatalogService` consume this
-list; Studio consumes the backend catalog. Explicit catalog configuration still
-takes precedence over the built-in list. No `exact` aliases are added.
+`gpt-image-2`, the gpt-image-2.5 aliases, and the
+`gpt-image-2.6`, `gpt-image-2.6-flare`, and `gpt-image-2.6-sunburst` aliases.
+The three 2.6 aliases use the existing `auto` upstream Web slug. Model
+validation and `ModelCatalogService` consume this list; Studio consumes the
+backend catalog. Explicit catalog configuration still takes precedence over
+the built-in list. No `exact` aliases are added.
+
+The persisted `gif_models` setting controls GIF eligibility per image model.
+It defaults to the three 2.6 aliases and is projected through `/api/settings`.
+GIF requests carry optional `output_format`, `frame_count`, and
+`frame_duration_ms` values through the shared image execution request. GIF
+bytes bypass raster upscaling/re-encoding and are stored with `.gif` and
+`image/gif`; existing `n` and multi-image behavior is unchanged.
 
 The 2.5 identifiers use the existing `auto` upstream Web model slug. They are
 compatibility names and do not force a particular official API image engine or

@@ -83,6 +83,7 @@ export interface Settings {
   image_remove_conversation_after_result: boolean
   image_settle_enabled: boolean
   image_settle_secs: number
+  gif_models: string[]
   auto_remove_invalid_accounts: boolean
   auto_remove_rate_limited_accounts: boolean
   log_levels: string[]

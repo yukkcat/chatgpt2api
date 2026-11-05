@@ -81,6 +81,9 @@ def _payload_from_fields(fields: dict[str, Any]) -> dict[str, Any]:
         "response_format": _clean(fields.get("response_format"), "b64_json"),
         "stream": _parse_bool(fields.get("stream")),
     }
+    for field in ("output_format", "frame_count", "frame_duration_ms"):
+        if field in fields:
+            payload[field] = fields[field]
     if "client_task_id" in fields:
         payload["client_task_id"] = _clean(fields.get("client_task_id"))
     return payload
@@ -195,7 +198,10 @@ async def parse_image_edit_request(request: Request) -> tuple[dict[str, Any], li
 
     form = await request.form()
     fields: dict[str, Any] = {}
-    for key in ("client_task_id", "prompt", "model", "n", "size", "quality", "response_format", "stream"):
+    for key in (
+        "client_task_id", "prompt", "model", "n", "size", "quality",
+        "response_format", "output_format", "frame_count", "frame_duration_ms", "stream",
+    ):
         value = form.get(key)
         if isinstance(value, str):
             fields[key] = value

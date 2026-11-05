@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from services.protocol.chat_completion_cache import cache_key, chat_completion_cache, normalize_text_messages
 from services.protocol.conversation import (
     ConversationRequest,
+    MISSING_IMAGE_OPTION,
     ImageOutput,
     count_message_image_tokens,
     count_message_text_tokens,
@@ -16,6 +17,7 @@ from services.protocol.conversation import (
     encode_images,
     normalize_messages,
     stream_image_outputs_with_pool,
+    validate_gif_request,
     stream_text_deltas,
     text_backend,
 )
@@ -476,12 +478,19 @@ def response_events(body: dict[str, Any]) -> Iterator[dict[str, Any]]:
         images = None
     input_image_tokens = count_image_content_tokens(_input_image_parts(body.get("input")), model)
     tool = response_image_tool(body)
+    output_format = tool.get("output_format")
+    frame_count = tool.get("frame_count", MISSING_IMAGE_OPTION)
+    frame_duration_ms = tool.get("frame_duration_ms", MISSING_IMAGE_OPTION)
+    validate_gif_request(model, output_format, stream=bool(body.get("stream")))
     image_outputs = stream_image_outputs_with_pool(ConversationRequest(
         prompt=prompt,
         model=model,
         size=tool.get("size"),
         quality=str(tool.get("quality") or "auto"),
         response_format="b64_json",
+        output_format=str(output_format) if output_format is not None else None,
+        frame_count=frame_count,
+        frame_duration_ms=frame_duration_ms,
         images=images,
         message_as_error=True,
         call_id=str(body.get("_call_id") or ""),
@@ -491,6 +500,13 @@ def response_events(body: dict[str, Any]) -> Iterator[dict[str, Any]]:
 
 
 def handle(body: dict[str, Any]) -> dict[str, Any] | Iterator[dict[str, Any]]:
+    if body.get("stream") and has_response_image_generation_tool(body):
+        tool = response_image_tool(body)
+        validate_gif_request(
+            str(body.get("model") or "gpt-image-2").strip() or "gpt-image-2",
+            tool.get("output_format"),
+            stream=True,
+        )
     events = response_events(body)
     if body.get("stream"):
         return events

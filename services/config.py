@@ -105,6 +105,12 @@ DEFAULT_THIRD_PARTY_APPS = {
     },
 }
 
+DEFAULT_GIF_MODELS = [
+    "gpt-image-2.6",
+    "gpt-image-2.6-flare",
+    "gpt-image-2.6-sunburst",
+]
+
 
 def _normalize_bool(value: object, default: bool = False) -> bool:
     if isinstance(value, str):
@@ -355,6 +361,16 @@ def _normalize_third_party_apps_settings(value: object) -> dict[str, object]:
     return normalized
 
 
+def _normalize_gif_models(value: object) -> list[str]:
+    source = value if isinstance(value, list) else DEFAULT_GIF_MODELS
+    normalized: list[str] = []
+    for item in source:
+        model = str(item or "").strip().lower()
+        if model and model not in normalized:
+            normalized.append(model)
+    return normalized
+
+
 def _legacy_basic_from_settings(value: object, settings: dict[str, object]) -> dict[str, object]:
     source = dict(value) if isinstance(value, dict) else {}
     source["proxy"] = str(settings.get("proxy") or "").strip()
@@ -576,6 +592,11 @@ class ConfigStore:
         return value if value in {"sharp_lanczos3", "pillow_lanczos"} else "sharp_lanczos3"
 
     @property
+    def gif_models(self) -> list[str]:
+        self.reload_if_changed()
+        return _normalize_gif_models(self.data.get("gif_models"))
+
+    @property
     def account_processing_concurrency(self) -> int:
         self.reload_if_changed()
         return normalize_integer_setting(
@@ -709,6 +730,7 @@ class ConfigStore:
             data["image_account_retry_enabled"] = self.image_account_retry_enabled
             data["image_upscale_enabled"] = self.image_upscale_enabled
             data["image_upscale_engine"] = self.image_upscale_engine
+            data["gif_models"] = self.gif_models
             data["image_max_account_attempts"] = self.image_max_account_attempts
             data["image_parallel_generation"] = self.image_parallel_generation
             data["image_remove_conversation_after_result"] = self.image_remove_conversation_after_result
@@ -814,6 +836,8 @@ class ConfigStore:
                 )
             if "third_party_apps" in updates:
                 updates["third_party_apps"] = _normalize_third_party_apps_settings(updates.get("third_party_apps"))
+            if "gif_models" in updates:
+                updates["gif_models"] = _normalize_gif_models(updates.get("gif_models"))
             if "proxy_runtime" in updates:
                 incoming_runtime = updates.get("proxy_runtime")
                 if isinstance(incoming_runtime, dict):

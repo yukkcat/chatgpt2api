@@ -94,6 +94,24 @@
       </FormField>
     </FormSection>
 
+    <FormSection title="GIF 模型">
+      <div class="settings-check-grid settings-check-grid--single">
+        <div
+          v-for="model in gifModelOptions"
+          :key="model.value"
+          class="settings-check-item"
+        >
+          <div class="settings-check-control">
+            <Checkbox
+              :model-value="props.settings.gif_models.includes(model.value)"
+              :disabled="fieldReadOnly('gif_models')"
+              @update:model-value="setGifModel(model.value, Boolean($event))"
+            >{{ model.label }}</Checkbox>
+          </div>
+        </div>
+      </div>
+    </FormSection>
+
     <FormSection title="控制台日志级别">
       <div class="settings-check-grid settings-check-grid--single mt-3">
         <div
@@ -148,6 +166,16 @@ const imageUpscaleEngineOptions = computed(() => (
 const logLevelOptions = computed(() => (
   settingsFieldOptions(props.fields, 'log_levels', props.settings.log_levels)
 ))
+const gifModelOptions = computed(() => (
+  settingsFieldOptions(props.fields, 'gif_models', props.settings.gif_models)
+))
+
+function setGifModel(model: string, enabled: boolean) {
+  const next = new Set(props.settings.gif_models)
+  if (enabled) next.add(model)
+  else next.delete(model)
+  props.settings.gif_models = Array.from(next)
+}
 </script>
 
 <style scoped>

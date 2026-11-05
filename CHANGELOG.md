@@ -2,6 +2,8 @@
 
 ## Unreleased
 
++ [新增] 图片接口注册 `gpt-image-2.6` 系列模型，设置页支持按模型控制 GIF；生成、编辑、聊天和 Responses 图片入口接入 GIF 参数并保留原始 GIF 字节。
+
 ## 3.2.3 - 2026-09-09
 
 + [新增] Python 图片接口和共享模型列表支持 `gpt-image-2.5`、`gpt-image-2.5-flare`、`gpt-image-2.5-sunburst`，通过 ChatGPT Web 的 `auto` 路由兼容，不包含 `exact` 别名。

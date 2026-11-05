@@ -16,6 +16,7 @@ from typing import Any, Callable, Iterable, Iterator
 
 import tiktoken
 from curl_cffi.requests import exceptions as curl_exceptions
+from fastapi import HTTPException
 
 from services.account_service import ImageAccountSelectionError, account_service
 from services.config import config
@@ -38,7 +39,7 @@ from services.image_failure import (
     public_image_error_message,
     terminal_assistant_text,
 )
-from services.image_storage_service import image_storage_service
+from services.image_storage_service import image_media_type, image_storage_service
 from services.image_upscale_service import upscale_image_if_needed
 from services.openai_backend_api import OpenAIBackendAPI
 from services.proxy_service import ImageEgressDeadlineError, proxy_settings
@@ -54,6 +55,37 @@ from utils.helper import (
 from utils.image_tokens import count_image_content_tokens, image_output_metadata, image_size_from_bytes
 from utils.log import logger
 from utils.diagnostics import diagnostic_excerpt
+
+
+MISSING_IMAGE_OPTION = object()
+
+
+def is_gif_output_format(value: object) -> bool:
+    return str(value or "").strip().lower() == "gif"
+
+
+def _prompt_option_value(value: object) -> str:
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    return str(value)
+
+
+def validate_gif_request(model: object, output_format: object = None, *, stream: bool = False) -> None:
+    """Reject unsupported GIF requests before upstream image work begins."""
+    if not is_gif_output_format(output_format):
+        return
+    if str(model or "").strip().lower() not in config.gif_models:
+        raise HTTPException(
+            status_code=400,
+            detail={"error": "GIF output is not enabled for this image model"},
+        )
+    if stream:
+        raise HTTPException(
+            status_code=400,
+            detail={"error": "GIF output does not support stream=true"},
+        )
 
 
 def _monitor_image_stage(request: "ConversationRequest", event: str, **data: Any) -> None:
@@ -345,6 +377,7 @@ def save_image_bytes(
         image_data: bytes,
         base_url: str | None = None,
         *,
+        mime_type: str | None = None,
         deadline_monotonic: float | None = None,
 ) -> str:
     last_error: Exception | None = None
@@ -353,6 +386,7 @@ def save_image_bytes(
             return image_storage_service.save(
                 image_data,
                 base_url,
+                mime_type=mime_type,
                 deadline_monotonic=deadline_monotonic,
             ).url
         except ImageFailureError as exc:
@@ -433,13 +467,30 @@ def assistant_history_messages(messages: list[dict[str, Any]]) -> list[str]:
     return [str(item.get("content") or "") for item in messages if item.get("role") == "assistant" and item.get("content")]
 
 
-def build_image_prompt(prompt: str, size: str | None, quality: str = "auto") -> str:
+def build_image_prompt(
+        prompt: str,
+        size: str | None,
+        quality: str = "auto",
+        output_format: object = None,
+        frame_count: object = MISSING_IMAGE_OPTION,
+        frame_duration_ms: object = MISSING_IMAGE_OPTION,
+) -> str:
     hints = []
+    option_hints = []
     if size:
         hints.append(f"输出图片尺寸为 {size}。")
     if quality:
         hints.append(f"输出图片质量为 {quality}。")
-    return f"{prompt.strip()}\n\n{''.join(hints)}" if hints else prompt
+    if is_gif_output_format(output_format):
+        option_hints.append("生成格式为 gif。")
+    if frame_count is not MISSING_IMAGE_OPTION:
+        option_hints.append(f"frame_count: {_prompt_option_value(frame_count)}")
+    if frame_duration_ms is not MISSING_IMAGE_OPTION:
+        option_hints.append(f"frame_duration_ms: {_prompt_option_value(frame_duration_ms)}")
+    suffix = "".join(hints)
+    if option_hints:
+        suffix += ("\n" if suffix else "") + "\n".join(option_hints)
+    return f"{prompt.strip()}\n\n{suffix}" if suffix else prompt
 
 
 def encoding_for_model(model: str):
@@ -490,6 +541,7 @@ def format_image_result(
     message: str = "",
     requested_size: str | None = None,
     deadline_monotonic: float | None = None,
+    output_format: object = None,
 ) -> dict[str, Any]:
     data: list[dict[str, Any]] = []
     image_urls: list[str] = []
@@ -499,10 +551,19 @@ def format_image_result(
             continue
         revised_prompt = str(item.get("revised_prompt") or prompt).strip() or prompt
         image_bytes = base64.b64decode(b64_json)
-        image_bytes = upscale_image_if_needed(image_bytes, requested_size)
+        is_gif = is_gif_output_format(output_format)
+        if not is_gif:
+            image_bytes = upscale_image_if_needed(image_bytes, requested_size)
+        mime_type = str(item.get("mime_type") or "").strip().lower()
+        if is_gif:
+            # Keep the original bytes and derive the stored type from them.
+            # The Codex compatibility path may still return PNG bytes even
+            # when a GIF was requested.
+            mime_type = image_media_type(payload=image_bytes)
         stored_url = save_image_bytes(
             image_bytes,
             base_url,
+            mime_type=mime_type or None,
             deadline_monotonic=deadline_monotonic,
         )
         if stored_url:
@@ -535,6 +596,9 @@ class ConversationRequest:
     size: str | None = None
     quality: str = "auto"
     response_format: str = "b64_json"
+    output_format: str | None = None
+    frame_count: object = MISSING_IMAGE_OPTION
+    frame_duration_ms: object = MISSING_IMAGE_OPTION
     base_url: str | None = None
     message_as_error: bool = False
     progress_callback: Any = None  # Callable[[str], None] | None
@@ -1056,13 +1120,25 @@ def conversation_events(
     images: list[str] | None = None,
     size: str | None = None,
     quality: str = "auto",
+    output_format: object = None,
+    frame_count: object = MISSING_IMAGE_OPTION,
+    frame_duration_ms: object = MISSING_IMAGE_OPTION,
     thinking_effort: str = "",
 ) -> Iterator[dict[str, Any]]:
     normalized = normalize_messages(messages or ([{"role": "user", "content": prompt}] if prompt else []))
     image_model = is_supported_image_model(model)
     history_text = "" if image_model else assistant_history_text(normalized)
     history_messages = [] if image_model else assistant_history_messages(normalized)
-    final_prompt = prompt_with_global_system(build_image_prompt(prompt, size, quality)) if image_model else prompt
+    final_prompt = prompt_with_global_system(
+        build_image_prompt(
+            prompt,
+            size,
+            quality,
+            output_format,
+            frame_count,
+            frame_duration_ms,
+        )
+    ) if image_model else prompt
     payloads = backend.stream_conversation(
         messages=normalized,
         model=model,
@@ -1623,6 +1699,7 @@ def _image_result_output_from_urls(
         int(time.time()),
         requested_size=request.size,
         deadline_monotonic=request.deadline_monotonic or None,
+        output_format=request.output_format,
     )
     data = formatted["data"]
     if not data:
@@ -1660,6 +1737,9 @@ def stream_image_outputs(
                 images=request.images or [],
                 size=request.size,
                 quality=request.quality,
+                output_format=request.output_format,
+                frame_count=request.frame_count,
+                frame_duration_ms=request.frame_duration_ms,
         ):
             last = event
             if event.get("type") == "conversation.delta":
@@ -1958,6 +2038,7 @@ def stream_codex_image_outputs(
         images=request.images or [],
         size=request.size,
         quality=request.quality,
+        output_format=request.output_format,
     ))
     images = _codex_response_images(events)
     failure: ImageFailure | None = None
@@ -2010,6 +2091,7 @@ def stream_codex_image_outputs(
         int(time.time()),
         requested_size=request.size,
         deadline_monotonic=request.deadline_monotonic or None,
+        output_format=request.output_format,
     )
     data = formatted["data"]
     if data:
@@ -2735,6 +2817,7 @@ def _select_image_pool_error(errors: dict[int, Exception]) -> Exception | None:
 
 def stream_image_outputs_with_pool(request: ConversationRequest) -> Iterator[ImageOutput]:
     """并行生成多张图片，每张图片使用独立线程和账号，互不阻塞。"""
+    validate_gif_request(request.model, request.output_format)
     if not is_supported_image_model(request.model):
         _monitor_image_stage(
             request,

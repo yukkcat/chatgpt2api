@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from services.protocol.chat_completion_cache import cache_key, chat_completion_cache, normalize_text_messages
 from services.protocol.conversation import (
     ConversationRequest,
+    MISSING_IMAGE_OPTION,
     ImageOutput,
     collect_image_outputs,
     collect_text,
@@ -20,6 +21,7 @@ from services.protocol.conversation import (
     stream_image_outputs_with_pool,
     stream_text_deltas,
     text_backend,
+    validate_gif_request,
 )
 from services.protocol.reasoning import thinking_effort_from_body
 from services.protocol.web_search_tool import (
@@ -177,7 +179,7 @@ def chat_messages_from_body(body: dict[str, Any]) -> list[dict[str, Any]]:
     raise HTTPException(status_code=400, detail={"error": "messages or prompt is required"})
 
 
-def chat_image_args(body: dict[str, Any]) -> tuple[str, str, int, list[tuple[bytes, str, str]], str | None]:
+def chat_image_args(body: dict[str, Any]) -> tuple[str, str, int, list[tuple[bytes, str, str]], str | None, object, object, object]:
     model = str(body.get("model") or "gpt-image-2").strip() or "gpt-image-2"
     prompt = extract_chat_prompt(body)
     if not prompt:
@@ -187,7 +189,11 @@ def chat_image_args(body: dict[str, Any]) -> tuple[str, str, int, list[tuple[byt
         for idx, (data, mime) in enumerate(extract_chat_image(body), start=1)
     ]
     base_url = str(body.get("base_url") or "").strip() or None
-    return model, prompt, parse_image_count(body.get("n")), images, base_url
+    output_format = body.get("output_format")
+    frame_count = body.get("frame_count", MISSING_IMAGE_OPTION)
+    frame_duration_ms = body.get("frame_duration_ms", MISSING_IMAGE_OPTION)
+    validate_gif_request(model, output_format, stream=bool(body.get("stream")))
+    return model, prompt, parse_image_count(body.get("n")), images, base_url, output_format, frame_count, frame_duration_ms
 
 
 def text_chat_parts(body: dict[str, Any]) -> tuple[str, list[dict[str, Any]]]:
@@ -247,12 +253,15 @@ def image_result_content(result: dict[str, Any]) -> str:
 
 
 def image_chat_response(body: dict[str, Any]) -> dict[str, Any]:
-    model, prompt, n, images, base_url = chat_image_args(body)
+    model, prompt, n, images, base_url, output_format, frame_count, frame_duration_ms = chat_image_args(body)
     result = collect_image_outputs(stream_image_outputs_with_pool(ConversationRequest(
         prompt=prompt,
         model=model,
         n=n,
         response_format="b64_json",
+        output_format=output_format,
+        frame_count=frame_count,
+        frame_duration_ms=frame_duration_ms,
         images=encode_images(images) or None,
         base_url=base_url,
         message_as_error=True,
@@ -278,12 +287,15 @@ def image_chat_response(body: dict[str, Any]) -> dict[str, Any]:
 
 
 def image_chat_events(body: dict[str, Any]) -> Iterator[dict[str, Any]]:
-    model, prompt, n, images, base_url = chat_image_args(body)
+    model, prompt, n, images, base_url, output_format, frame_count, frame_duration_ms = chat_image_args(body)
     image_outputs = stream_image_outputs_with_pool(ConversationRequest(
         prompt=prompt,
         model=model,
         n=n,
         response_format="b64_json",
+        output_format=output_format,
+        frame_count=frame_count,
+        frame_duration_ms=frame_duration_ms,
         images=encode_images(images) or None,
         base_url=base_url,
         message_as_error=True,
@@ -346,6 +358,11 @@ def text_completion_response(model: str, messages: list[dict[str, Any]], thinkin
 def handle(body: dict[str, Any]) -> dict[str, Any] | Iterator[dict[str, Any]]:
     if body.get("stream"):
         if is_image_chat_request(body):
+            validate_gif_request(
+                str(body.get("model") or "gpt-image-2").strip() or "gpt-image-2",
+                body.get("output_format"),
+                stream=True,
+            )
             return image_chat_events(body)
         model, messages = text_chat_parts(body)
         if is_web_search_chat_request(body) and not has_unsupported_tools(body, WEB_SEARCH_TOOL_TYPES):
