@@ -134,6 +134,10 @@ FAILURE_POLICIES: dict[str, FailurePolicy] = {
     "unsupported_model": FailurePolicy(
         "request", None, False, 400, "invalid_request_error",
     ),
+    "image_model_not_found": FailurePolicy(
+        "account", "image_generation", False, 404, "invalid_request_error",
+        verify_account=False,
+    ),
     "image_download_failed": FailurePolicy(
         "delivery", None, False, 502, "server_error",
     ),
@@ -531,6 +535,29 @@ def _classify_structured_failure_codes(
     return None
 
 
+MODEL_NOT_FOUND_DETAIL = "Model not found"
+
+
+def conversation_model_missing(body: Any) -> bool:
+    """判断 404 响应体是否精确表示上游“模型不存在”。
+
+    只接受 `{"detail": "Model not found"}` 这种精确结构，避免把其它 404
+    （会话不存在、路由缺失等）误判为账号级不可用。
+    """
+    detail: Any = None
+    if isinstance(body, Mapping):
+        detail = body.get("detail")
+    elif isinstance(body, str):
+        try:
+            parsed = json.loads(body)
+        except Exception:
+            return False
+        detail = parsed.get("detail") if isinstance(parsed, Mapping) else None
+    else:
+        return False
+    return isinstance(detail, str) and detail.strip() == MODEL_NOT_FOUND_DETAIL
+
+
 def classify_upstream_http_error(exc: UpstreamHTTPError) -> ImageFailure:
     codes = _structured_codes(exc.body)
     context = str(exc.context or "").strip().lower()
@@ -543,6 +570,11 @@ def classify_upstream_http_error(exc: UpstreamHTTPError) -> ImageFailure:
         retry_after=retry_after,
         raw_detail=exc.body,
     )
+
+    # 仅当真实 auto 图片会话返回 HTTP 404 且 JSON detail 精确为 Model not found 时，
+    # 才按“本账号本次不可用”处理：换号重试 + 本地冷却，不清额度、不封号、不扣代理健康分。
+    if credential_scope == "account" and status_code == 404 and conversation_model_missing(exc.body):
+        return image_failure("image_model_not_found", retry_after=retry_after, raw_detail=exc.body)
 
     # The real HTTP status owns the text/failure boundary. Structured fields
     # may refine the reason, but must never turn a non-400 response into text
