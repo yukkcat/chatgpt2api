@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import io
 import json
 import re
 import time
@@ -17,6 +18,7 @@ from typing import Any, Callable, Iterable, Iterator
 import tiktoken
 from curl_cffi.requests import exceptions as curl_exceptions
 from fastapi import HTTPException
+from PIL import Image, ImageOps
 
 from services.account_service import ImageAccountSelectionError, account_service
 from services.config import config
@@ -58,10 +60,24 @@ from utils.diagnostics import diagnostic_excerpt
 
 
 MISSING_IMAGE_OPTION = object()
+SUPPORTED_IMAGE_OUTPUT_FORMATS = ("gif", "png", "jpeg", "webp")
+_IMAGE_OUTPUT_FORMAT_ALIASES = {"jpg": "jpeg"}
 
 
-def is_gif_output_format(value: object) -> bool:
-    return str(value or "").strip().lower() == "gif"
+def normalize_image_output_format(value: object) -> str | None:
+    text = str(value or "").strip().lower()
+    if not text:
+        return None
+    normalized = _IMAGE_OUTPUT_FORMAT_ALIASES.get(text, text)
+    if normalized not in SUPPORTED_IMAGE_OUTPUT_FORMATS:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": f"unsupported output_format: {text}",
+                "supported": [*SUPPORTED_IMAGE_OUTPUT_FORMATS, "jpg"],
+            },
+        )
+    return normalized
 
 
 def _prompt_option_value(value: object) -> str:
@@ -73,8 +89,9 @@ def _prompt_option_value(value: object) -> str:
 
 
 def validate_gif_request(model: object, output_format: object = None, *, stream: bool = False) -> None:
-    """Reject unsupported GIF requests before upstream image work begins."""
-    if not is_gif_output_format(output_format):
+    """Validate output format and GIF-specific constraints before upstream work."""
+    normalized_output_format = normalize_image_output_format(output_format)
+    if normalized_output_format != "gif":
         return
     if str(model or "").strip().lower() not in config.gif_models:
         raise HTTPException(
@@ -481,8 +498,9 @@ def build_image_prompt(
         hints.append(f"输出图片尺寸为 {size}。")
     if quality:
         hints.append(f"输出图片质量为 {quality}。")
-    if is_gif_output_format(output_format):
-        option_hints.append("生成格式为 gif。")
+    normalized_output_format = normalize_image_output_format(output_format)
+    if normalized_output_format:
+        option_hints.append(f"生成格式为 {normalized_output_format}。")
     if frame_count is not MISSING_IMAGE_OPTION:
         option_hints.append(f"frame_count: {_prompt_option_value(frame_count)}")
     if frame_duration_ms is not MISSING_IMAGE_OPTION:
@@ -491,6 +509,38 @@ def build_image_prompt(
     if option_hints:
         suffix += ("\n" if suffix else "") + "\n".join(option_hints)
     return f"{prompt.strip()}\n\n{suffix}" if suffix else prompt
+
+
+def convert_image_bytes(image_data: bytes, output_format: object) -> bytes:
+    """Convert a single raster image to the requested non-GIF format."""
+    normalized_output_format = normalize_image_output_format(output_format)
+    if not normalized_output_format or normalized_output_format == "gif":
+        return image_data
+    try:
+        with Image.open(io.BytesIO(image_data)) as source:
+            source.seek(0)
+            image = ImageOps.exif_transpose(source.copy())
+        output = io.BytesIO()
+        if normalized_output_format == "jpeg":
+            if image.mode in {"RGBA", "LA"} or "transparency" in image.info:
+                rgba = image.convert("RGBA")
+                background = Image.new("RGB", rgba.size, (255, 255, 255))
+                background.paste(rgba, mask=rgba.getchannel("A"))
+                image = background
+            elif image.mode not in {"RGB", "L"}:
+                image = image.convert("RGB")
+            image.save(output, format="JPEG", quality=95, subsampling=0)
+        elif normalized_output_format == "webp":
+            if image.mode == "P" and "transparency" in image.info:
+                image = image.convert("RGBA")
+            image.save(output, format="WEBP", quality=95, method=4)
+        else:
+            image.save(output, format="PNG", optimize=True)
+        return output.getvalue()
+    except Exception as exc:
+        raise ImageDownloadError(
+            f"image output format conversion failed: {normalized_output_format}"
+        ) from exc
 
 
 def encoding_for_model(model: str):
@@ -545,21 +595,18 @@ def format_image_result(
 ) -> dict[str, Any]:
     data: list[dict[str, Any]] = []
     image_urls: list[str] = []
+    normalized_output_format = normalize_image_output_format(output_format)
     for item in items:
         b64_json = str(item.get("b64_json") or "").strip()
         if not b64_json:
             continue
         revised_prompt = str(item.get("revised_prompt") or prompt).strip() or prompt
         image_bytes = base64.b64decode(b64_json)
-        is_gif = is_gif_output_format(output_format)
-        if not is_gif:
+        if normalized_output_format:
+            image_bytes = convert_image_bytes(image_bytes, normalized_output_format)
+        if normalized_output_format != "gif":
             image_bytes = upscale_image_if_needed(image_bytes, requested_size)
-        mime_type = str(item.get("mime_type") or "").strip().lower()
-        if is_gif:
-            # Keep the original bytes and derive the stored type from them.
-            # The Codex compatibility path may still return PNG bytes even
-            # when a GIF was requested.
-            mime_type = image_media_type(payload=image_bytes)
+        mime_type = image_media_type(payload=image_bytes)
         stored_url = save_image_bytes(
             image_bytes,
             base_url,

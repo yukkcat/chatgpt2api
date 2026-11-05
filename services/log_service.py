@@ -294,6 +294,7 @@ IMAGE_TRACE_REQUEST_KEYS = {
     "n",
     "size",
     "quality",
+    "output_format",
     "response_format",
     "stream",
     "partial_images",

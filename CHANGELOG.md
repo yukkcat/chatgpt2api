@@ -3,6 +3,7 @@
 ## Unreleased
 
 + [新增] 图片接口注册 `gpt-image-2.6` 系列模型，设置页支持按模型控制 GIF；生成、编辑、聊天和 Responses 图片入口接入 GIF 参数并保留原始 GIF 字节。
++ [新增] `output_format` 支持 `gif`、`png`、`jpg/jpeg` 和 `webp`，非 GIF 格式会在共享图片结果链路中转换后返回。
 
 ## 3.2.3 - 2026-09-09
 

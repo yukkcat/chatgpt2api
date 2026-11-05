@@ -1092,7 +1092,13 @@ class OpenAIBackendAPI:
             raise RuntimeError("access_token is required for codex image endpoints")
         self._ensure_codex_source_account()
         path = "/backend-api/codex/responses"
-        requested_output_format = "gif" if str(output_format or "").strip().lower() == "gif" else "png"
+        requested_output_format = {
+            "gif": "gif",
+            "png": "png",
+            "jpg": "jpeg",
+            "jpeg": "jpeg",
+            "webp": "webp",
+        }.get(str(output_format or "").strip().lower(), "png")
         payload = {
             "model": CODEX_RESPONSES_MODEL,
             "instructions": CODEX_RESPONSES_INSTRUCTIONS,

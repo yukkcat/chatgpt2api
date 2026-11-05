@@ -37,10 +37,12 @@ the built-in list. No `exact` aliases are added.
 
 The persisted `gif_models` setting controls GIF eligibility per image model.
 It defaults to the three 2.6 aliases and is projected through `/api/settings`.
-GIF requests carry optional `output_format`, `frame_count`, and
-`frame_duration_ms` values through the shared image execution request. GIF
-bytes bypass raster upscaling/re-encoding and are stored with `.gif` and
-`image/gif`; existing `n` and multi-image behavior is unchanged.
+Image requests carry optional `output_format`, `frame_count`, and
+`frame_duration_ms` values through the shared image execution request.
+`output_format` accepts `gif`, `png`, `jpg`/`jpeg`, and `webp`. GIF bytes bypass
+raster upscaling/re-encoding and are stored with `.gif` and `image/gif`; the
+other explicit formats are converted locally before storage. Existing `n` and
+multi-image behavior is unchanged.
 
 The 2.5 identifiers use the existing `auto` upstream Web model slug. They are
 compatibility names and do not force a particular official API image engine or

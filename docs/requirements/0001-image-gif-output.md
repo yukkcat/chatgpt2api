@@ -10,7 +10,7 @@ Status: implementing
 ## Problem and user outcome
 
 Callers need the three gpt-image-2.6 model names to work through the existing
-image interfaces and need a small, explicit GIF request contract. Operators
+image interfaces and need a small, explicit image output format contract. Operators
 must be able to choose which supported image models may produce GIFs. A GIF
 response must remain an animated GIF through the existing URL, Base64, and
 image-storage paths.
@@ -63,11 +63,13 @@ image-storage paths.
   }
   ```
 
-- When `output_format` is `gif`, append the GIF instruction to the derived
-  internal prompt. Append `frame_count` and `frame_duration_ms` only when the
-  corresponding request key is present. Use the supplied values as received;
-  do not validate them, normalize them, or fill omitted fields with defaults.
-  Do not mutate the caller's original prompt value.
+- Accept `output_format` values `gif`, `png`, `jpg`, `jpeg`, and `webp`; treat
+  `jpg` and `jpeg` as the same JPEG target. Append the selected format
+  instruction to the derived internal prompt. Append `frame_count` and
+  `frame_duration_ms` only when the corresponding request key is present. Use
+  the supplied frame values as received; do not validate them, normalize them,
+  or fill omitted fields with defaults. Do not mutate the caller's original
+  prompt value.
 - Reject a GIF request before upstream execution when the selected model is
   absent from `gif_models`. Reject GIF requests with `stream: true` during
   request validation so they do not enter the current single-image SSE flow.
@@ -75,6 +77,9 @@ image-storage paths.
   image upscaling, and other single-frame processing. Store and serve the
   result with a `.gif` extension and `image/gif` media type while reusing the
   existing URL, Base64, local storage, WebDAV, and backup flows.
+- For explicit `png`, `jpg`/`jpeg`, or `webp`, convert the upstream single-frame
+  image locally before storage and response formatting. Store the converted
+  bytes with the matching extension and media type.
 - Keep the existing Responses image result cardinality and all existing `n`
   semantics unchanged.
 
@@ -85,7 +90,7 @@ image-storage paths.
 - No new forced-URL or forced-Base64 setting; keep `image_force_url` and the
   existing response format behavior unchanged.
 - No R2 image-asset storage adapter and no change to Image Asset ownership.
-- No new PNG, JPEG, or WebP encoder selection through `output_format`.
+- No arbitrary output formats beyond `gif`, `png`, `jpg`/`jpeg`, and `webp`.
 - No new Studio Image Task controls or task-lifecycle changes.
 
 ## Domain language
@@ -102,7 +107,7 @@ image-storage paths.
 | Supported image models and routing | Existing model catalogue and backend model resolver | Supported-model set and upstream model slug | Endpoint-local model lists |
 | GIF eligibility | `Config` and `SettingsManagementService` | `/api/settings` projection and runtime accessor | Scope enums or handler-local defaults |
 | Request parsing and prompt hints | Existing image contracts and shared image execution request | Normalized request and derived upstream prompt | Per-endpoint GIF rules or prompt mutation |
-| GIF bytes and media type | `ImageStorageService` and image response adapter | Stored asset, URL, Base64, and MIME projection | Direct writes or raster re-encoding |
+| Image output bytes and media type | Shared image result formatter, `ImageStorageService`, and image response adapter | Converted or preserved asset, URL, Base64, and MIME projection | Direct writes or endpoint-local conversion |
 
 ## Backend Modules and Interfaces
 
@@ -110,8 +115,9 @@ Extend the existing model catalogue, settings contract, runtime configuration,
 image request adapters, shared image execution path, result formatter, and
 ImageStorageService. Do not add a provider, repository, or second image-storage
 owner. GIF eligibility and `stream` rejection happen before upstream image
-execution and return the existing client-error shape. Existing URL/Base64
-response envelopes remain stable.
+execution and return the existing client-error shape. Unsupported output
+formats return the existing client-error shape. Existing URL/Base64 response
+envelopes remain stable.
 
 The model catalogue is the source of selectable image model values. The
 `gif_models` setting stores only those model identifiers. Missing values in
@@ -154,9 +160,11 @@ retry rules.
 - [ ] The shared image execution request carries `output_format`,
   `frame_count`, and `frame_duration_ms` through all existing image entry
   points that use it.
-- [ ] Prompt tests prove that GIF and only-present frame fields are appended,
-  omitted fields receive no defaults, supplied values are not validated or
-  normalized, and the original prompt remains unchanged.
+- [ ] Prompt tests prove that the selected output format and only-present frame fields are appended,
+  omitted fields receive no defaults, supplied frame values are not validated
+  or normalized, and the original prompt remains unchanged.
+- [ ] `gif`, `png`, `jpg`/`jpeg`, and `webp` are accepted; unknown output
+  formats are rejected before upstream execution.
 - [ ] A GIF request for a model outside `gif_models`, and any GIF request with
   `stream: true`, fails before upstream execution.
 - [ ] A multi-frame GIF fixture is returned and stored byte-for-byte unchanged
@@ -164,6 +172,8 @@ retry rules.
   and existing backup behavior remain covered.
 - [ ] GIF processing does not invoke image upscaling or single-frame raster
   conversion.
+- [ ] Explicit PNG, JPEG, and WebP requests return converted bytes with the
+  matching extension and media type through URL and Base64 responses.
 - [ ] Responses keeps its existing single-image behavior, and existing `n` and
   multi-image behavior is unchanged.
 

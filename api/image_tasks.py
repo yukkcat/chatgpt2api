@@ -19,6 +19,7 @@ class ImageGenerationTaskRequest(BaseModel):
     n: int = Field(default=1, ge=1, le=4)
     size: str | None = None
     quality: str = "auto"
+    output_format: str | None = None
 
 
 class ResumePollRequest(BaseModel):
@@ -73,6 +74,7 @@ def create_router() -> APIRouter:
                 n=body.n,
                 size=body.size,
                 quality=body.quality,
+                output_format=body.output_format,
                 base_url=resolve_image_base_url(request),
             )
         except ImageTaskQueueFullError as exc:
@@ -107,6 +109,7 @@ def create_router() -> APIRouter:
                 n=payload.get("n", 1),
                 size=payload["size"],
                 quality=payload["quality"],
+                output_format=payload.get("output_format"),
                 base_url=resolve_image_base_url(request),
                 images=images,
                 masks=masks,
