@@ -14,7 +14,8 @@ type ConfirmDialog = {
     message: string
     confirmText?: string
     cancelText?: string
-  }) => Promise<boolean>
+    checkboxLabel?: string
+  }) => Promise<boolean | { confirmed: boolean; checked: boolean }>
 }
 
 type Toast = {
@@ -263,7 +264,16 @@ export function useGalleryOperationsRuntime(options: GalleryOperationsRuntimeOpt
     if (genboxPushBusyPath.value) return
     genboxPushBusyPath.value = file.path
     try {
-      const result = await galleryApi.pushToGenBox(file.path)
+      const confirmed = await options.confirmDialog.ask({
+        title: '推送到 GenBox',
+        message: '只有你勾选下方选项、且 GenBox 回执确认时，源图才会被删除。',
+        confirmText: '开始推送',
+        cancelText: '取消',
+        checkboxLabel: '推送成功后删除源图（默认不删）',
+      })
+      const selected = typeof confirmed === 'object' && confirmed.confirmed && confirmed.checked
+      if (confirmed === false || (typeof confirmed === 'object' && !confirmed.confirmed)) return
+      const result = await galleryApi.pushToGenBox(file.path, Boolean(selected))
       options.toast.success(result.label, 'Push 成功')
       await options.loadGallery()
     } catch (error) {
