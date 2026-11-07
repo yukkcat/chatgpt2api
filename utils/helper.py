@@ -18,6 +18,7 @@ from curl_cffi.requests.models import STREAM_END
 from fastapi import HTTPException
 from services.proxy_service import proxy_settings
 from utils.log import logger
+from utils.svg import svg_dimensions
 
 WEB_IMAGE_MODELS = (
     "gpt-image-2",
@@ -674,8 +675,11 @@ def build_chat_image_markdown_content(image_result: dict[str, object]) -> str:
             mime_type = str(item.get("mime_type") or "").strip() or "image/png"
             if mime_type == "image/png":
                 try:
-                    if base64.b64decode(b64_json, validate=True).startswith((b"GIF87a", b"GIF89a")):
+                    payload = base64.b64decode(b64_json, validate=True)
+                    if payload.startswith((b"GIF87a", b"GIF89a")):
                         mime_type = "image/gif"
+                    elif svg_dimensions(payload) is not None:
+                        mime_type = "image/svg+xml"
                 except (ValueError, binascii.Error):
                     pass
             markdown_images.append(f"![image_{index}](data:{mime_type};base64,{b64_json})")

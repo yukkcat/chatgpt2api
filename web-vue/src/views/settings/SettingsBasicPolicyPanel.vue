@@ -94,7 +94,7 @@
       </FormField>
     </FormSection>
 
-    <FormSection title="GIF 模型">
+    <FormSection title="GIF / SVG 模型">
       <div class="settings-check-grid settings-check-grid--single">
         <div
           v-for="model in gifModelOptions"

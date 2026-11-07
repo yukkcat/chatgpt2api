@@ -35,12 +35,16 @@ validation and `ModelCatalogService` consume this list; Studio consumes the
 backend catalog. Explicit catalog configuration still takes precedence over
 the built-in list. No `exact` aliases are added.
 
-The persisted `gif_models` setting controls GIF eligibility per image model.
-It defaults to the three 2.6 aliases and is projected through `/api/settings`.
+The persisted `gif_models` setting controls GIF and SVG eligibility per image
+model. It defaults to the three 2.6 aliases and is projected through
+`/api/settings`.
 Image requests carry optional `output_format`, `frame_count`, and
 `frame_duration_ms` values through the shared image execution request.
-`output_format` accepts `gif`, `png`, `jpg`/`jpeg`, and `webp`. GIF bytes bypass
-raster upscaling/re-encoding and are stored with `.gif` and `image/gif`; the
+`output_format` accepts `gif`, `png`, `jpg`/`jpeg`, `webp`, and `svg`. GIF bytes
+bypass raster upscaling/re-encoding and are stored with `.gif` and `image/gif`;
+SVG generation uses the text account pool for generation requests only;
+reference images and streaming are rejected. The result is validated as bounded
+static XML and stored with its original bytes, `.svg`, and `image/svg+xml`. The
 other explicit formats are converted locally before storage. Existing `n` and
 multi-image behavior is unchanged.
 

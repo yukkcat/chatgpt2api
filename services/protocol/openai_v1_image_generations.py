@@ -9,7 +9,7 @@ from services.protocol.conversation import (
     count_text_tokens,
     stream_image_chunks,
     stream_image_outputs_with_pool,
-    validate_gif_request,
+    validate_image_output_request,
 )
 from utils.image_tokens import count_image_output_items_tokens, image_usage
 
@@ -24,7 +24,7 @@ def handle(body: dict[str, Any]) -> dict[str, Any] | Iterator[dict[str, Any]]:
     output_format = body.get("output_format")
     frame_count = body.get("frame_count", MISSING_IMAGE_OPTION)
     frame_duration_ms = body.get("frame_duration_ms", MISSING_IMAGE_OPTION)
-    validate_gif_request(model, output_format, stream=bool(body.get("stream")))
+    validate_image_output_request(model, output_format, stream=bool(body.get("stream")))
     base_url = str(body.get("base_url") or "") or None
     progress_callback = body.get("progress_callback")
     outputs = stream_image_outputs_with_pool(ConversationRequest(

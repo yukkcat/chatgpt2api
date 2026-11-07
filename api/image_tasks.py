@@ -10,6 +10,7 @@ from api.support import require_identity, resolve_image_base_url
 from services.content_filter import check_request
 from services.image_task_service import ImageTaskQueueFullError, image_task_service
 from services.log_service import LoggedCall
+from services.protocol.conversation import validate_image_output_request
 
 
 class ImageGenerationTaskRequest(BaseModel):
@@ -63,6 +64,7 @@ def create_router() -> APIRouter:
         authorization: str | None = Header(default=None),
     ):
         identity = require_identity(authorization)
+        validate_image_output_request(body.model, body.output_format)
         await filter_or_log(LoggedCall(identity, "/api/image-tasks/generations", body.model, "文生图任务", request_text=body.prompt), body.prompt)
         try:
             return await run_in_threadpool(
@@ -94,6 +96,12 @@ def create_router() -> APIRouter:
             raise HTTPException(status_code=400, detail={"error": "client_task_id is required"})
         prompt = str(payload["prompt"])
         model = str(payload["model"])
+        validate_image_output_request(
+            model,
+            payload.get("output_format"),
+            stream=bool(payload.get("stream")),
+            has_references=True,
+        )
         await filter_or_log(LoggedCall(identity, "/api/image-tasks/edits", model, "图生图任务", request_text=prompt), prompt)
         reservation = None
         try:

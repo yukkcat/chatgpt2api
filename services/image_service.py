@@ -39,6 +39,8 @@ def get_image_response(relative_path: str) -> FileResponse | Response:
     }
     if image_storage_service.has_local(relative_path):
         rel = normalize_image_relative_path(relative_path)
+        if Path(rel).suffix.lower() == ".svg":
+            return Response(content=image_storage_service.get_bytes(rel), media_type="image/svg+xml", headers=headers)
         return FileResponse(
             image_local_path(rel, require_file=True),
             media_type=image_media_type(rel),
@@ -93,16 +95,19 @@ def ensure_thumbnail(relative_path: str) -> Path:
     return target
 
 
-def get_thumbnail_response(relative_path: str) -> FileResponse:
+def get_thumbnail_response(relative_path: str) -> FileResponse | Response:
     headers = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, OPTIONS",
         "Access-Control-Allow-Headers": "*",
     }
-    return FileResponse(ensure_thumbnail(relative_path), headers=headers)
+    rel = normalize_image_relative_path(relative_path)
+    if Path(rel).suffix.lower() == ".svg":
+        return Response(content=image_storage_service.get_bytes(rel), media_type="image/svg+xml", headers=headers)
+    return FileResponse(ensure_thumbnail(rel), headers=headers)
 
 
-def get_image_download_response(relative_path: str) -> FileResponse:
+def get_image_download_response(relative_path: str) -> FileResponse | Response:
     cors_headers = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, OPTIONS",
@@ -111,6 +116,9 @@ def get_image_download_response(relative_path: str) -> FileResponse:
     if image_storage_service.has_local(relative_path):
         rel = normalize_image_relative_path(relative_path)
         path = image_local_path(rel, require_file=True)
+        if Path(rel).suffix.lower() == ".svg":
+            headers = {**cors_headers, "Content-Disposition": f'attachment; filename="{path.name}"'}
+            return Response(content=image_storage_service.get_bytes(rel), media_type="image/svg+xml", headers=headers)
         headers = {**cors_headers, "Content-Disposition": f'attachment; filename="{path.name}"'}
         return FileResponse(path, filename=path.name, media_type=image_media_type(rel), headers=headers)
     rel = normalize_image_relative_path(relative_path)

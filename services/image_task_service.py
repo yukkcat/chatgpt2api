@@ -1053,6 +1053,8 @@ class ImageTaskService:
                 raise ValueError("task is not in error state")
             if image_failure(_clean(task.get("error_code"))).code != "image_poll_timeout":
                 raise ValueError("task error is not a timeout error")
+            if _clean(task.get("output_format")).lower() == "svg":
+                raise ValueError("SVG tasks do not support image poll recovery")
             conversation_id = _clean(task.get("conversation_id"))
             if not conversation_id:
                 raise ValueError("task has no conversation_id")

@@ -17,7 +17,7 @@ from services.protocol.conversation import (
     encode_images,
     normalize_messages,
     stream_image_outputs_with_pool,
-    validate_gif_request,
+    validate_image_output_request,
     stream_text_deltas,
     text_backend,
 )
@@ -481,7 +481,12 @@ def response_events(body: dict[str, Any]) -> Iterator[dict[str, Any]]:
     output_format = tool.get("output_format")
     frame_count = tool.get("frame_count", MISSING_IMAGE_OPTION)
     frame_duration_ms = tool.get("frame_duration_ms", MISSING_IMAGE_OPTION)
-    validate_gif_request(model, output_format, stream=bool(body.get("stream")))
+    validate_image_output_request(
+        model,
+        output_format,
+        stream=bool(body.get("stream")),
+        has_references=bool(images),
+    )
     image_outputs = stream_image_outputs_with_pool(ConversationRequest(
         prompt=prompt,
         model=model,
@@ -502,7 +507,7 @@ def response_events(body: dict[str, Any]) -> Iterator[dict[str, Any]]:
 def handle(body: dict[str, Any]) -> dict[str, Any] | Iterator[dict[str, Any]]:
     if body.get("stream") and has_response_image_generation_tool(body):
         tool = response_image_tool(body)
-        validate_gif_request(
+        validate_image_output_request(
             str(body.get("model") or "gpt-image-2").strip() or "gpt-image-2",
             tool.get("output_format"),
             stream=True,

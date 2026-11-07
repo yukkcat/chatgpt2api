@@ -8,6 +8,8 @@ from typing import Any
 
 from PIL import Image
 
+from utils.svg import svg_dimensions
+
 DEFAULT_IMAGE_SIZE = (1024, 1024)
 IMAGE_INPUT_TOKEN_MODEL = "gpt-5.4-mini"
 
@@ -49,6 +51,9 @@ def _model_name(model: str) -> str:
 def image_size_from_bytes(data: bytes) -> tuple[int, int] | None:
     if not data:
         return None
+    svg_size = svg_dimensions(data)
+    if svg_size is not None:
+        return svg_size
     try:
         with Image.open(BytesIO(data)) as image:
             width, height = image.size

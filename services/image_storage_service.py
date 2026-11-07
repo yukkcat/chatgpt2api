@@ -19,11 +19,12 @@ from services.config import DATA_DIR, config
 from services.image_failure import ImageFailureError, image_failure
 from services.json_file import read_json_object, write_json_file
 from services.storage.file_lock import interprocess_lock
+from utils.svg import svg_dimensions
 from utils.timezone import beijing_datetime_from_timestamp, beijing_now, beijing_now_str
 
 IMAGE_INDEX_FILE = DATA_DIR / "image_index.json"
 IMAGE_INDEX_LOCK = Lock()
-IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"}
 IMAGE_SYNC_MERGE_BATCH_SIZE = 64
 IMAGE_MUTATION_BATCH_SIZE = 16
 
@@ -108,6 +109,9 @@ def normalize_image_relative_path(path: str) -> str:
 
 
 def _image_dimensions(payload: bytes) -> tuple[int, int] | None:
+    svg_size = svg_dimensions(payload)
+    if svg_size is not None:
+        return svg_size
     try:
         with Image.open(io.BytesIO(payload)) as image:
             return image.size
@@ -126,12 +130,15 @@ def image_media_type(relative_path: str = "", payload: bytes | None = None) -> s
         return "image/jpeg"
     if data.startswith(b"RIFF") and data[8:12] == b"WEBP":
         return "image/webp"
+    if svg_dimensions(data) is not None:
+        return "image/svg+xml"
     suffix = Path(str(relative_path or "")).suffix.lower()
     return {
         ".jpg": "image/jpeg",
         ".jpeg": "image/jpeg",
         ".webp": "image/webp",
         ".gif": "image/gif",
+        ".svg": "image/svg+xml",
         ".png": "image/png",
     }.get(suffix, "image/png")
 
@@ -438,10 +445,16 @@ class ImageStorageService:
             "image/jpg": ".jpg",
             "image/webp": ".webp",
             "image/gif": ".gif",
+            "image/svg+xml": ".svg",
             "image/png": ".png",
         }.get(str(mime_type or "").strip().lower())
         if extension is None:
-            extension = ".gif" if image_data.startswith((b"GIF87a", b"GIF89a")) else ".png"
+            if image_data.startswith((b"GIF87a", b"GIF89a")):
+                extension = ".gif"
+            elif svg_dimensions(image_data) is not None:
+                extension = ".svg"
+            else:
+                extension = ".png"
         filename = f"{int(time.time())}_{file_hash}{extension}"
         now = beijing_now()
         relative_dir = Path(now.strftime("%Y"), now.strftime("%m"), now.strftime("%d"))
@@ -457,6 +470,11 @@ class ImageStorageService:
     ) -> StoredImage:
         _raise_if_save_deadline_elapsed(deadline_monotonic)
         resolved_mime_type = image_media_type(payload=image_data) if not mime_type else str(mime_type).strip().lower()
+        dimensions = None
+        if resolved_mime_type == "image/svg+xml":
+            dimensions = svg_dimensions(image_data)
+            if dimensions is None:
+                raise ImageStorageError("invalid SVG image payload")
         rel = self.make_relative_path(image_data, resolved_mime_type)
         with self._item_guard(rel):
             # Once the physical mutation starts, finish the catalog commit so a
@@ -483,7 +501,7 @@ class ImageStorageService:
                 finally:
                     client.session.close()
 
-            dimensions = _image_dimensions(image_data)
+            dimensions = dimensions or _image_dimensions(image_data)
             item = {
                 "rel": rel,
                 "path": rel,
@@ -521,11 +539,17 @@ class ImageStorageService:
             raise HTTPException(status_code=404, detail="image not found")
         path = image_local_path(safe_rel)
         if bool(item.get("local")) and path.is_file():
-            return path.read_bytes()
+            payload = path.read_bytes()
+            if Path(safe_rel).suffix.lower() == ".svg" and svg_dimensions(payload) is None:
+                raise HTTPException(status_code=404, detail="image not found")
+            return payload
         if bool(item.get("webdav")):
             client = WebDAVClient(self.settings())
             try:
-                return client.get(safe_rel)
+                payload = client.get(safe_rel)
+                if Path(safe_rel).suffix.lower() == ".svg" and svg_dimensions(payload) is None:
+                    raise HTTPException(status_code=404, detail="image not found")
+                return payload
             finally:
                 client.session.close()
         raise HTTPException(status_code=404, detail="image not found")
@@ -730,7 +754,10 @@ class ImageStorageService:
                         continue
                     dimensions = None
                     try:
-                        dimensions = _image_dimensions(path.read_bytes())
+                        payload = path.read_bytes()
+                        if path.suffix.lower() == ".svg" and svg_dimensions(payload) is None:
+                            continue
+                        dimensions = _image_dimensions(payload)
                     except Exception:
                         dimensions = None
                     indexed[rel] = {
