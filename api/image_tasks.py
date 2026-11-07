@@ -10,7 +10,7 @@ from api.support import require_identity, resolve_image_base_url
 from services.content_filter import check_request
 from services.image_task_service import ImageTaskQueueFullError, image_task_service
 from services.log_service import LoggedCall
-from services.protocol.conversation import validate_image_output_request
+from services.protocol.conversation import MISSING_IMAGE_OPTION, validate_image_output_request
 
 
 class ImageGenerationTaskRequest(BaseModel):
@@ -21,6 +21,8 @@ class ImageGenerationTaskRequest(BaseModel):
     size: str | None = None
     quality: str = "auto"
     output_format: str | None = None
+    frame_count: object = None
+    frame_duration_ms: object = None
 
 
 class ResumePollRequest(BaseModel):
@@ -77,6 +79,16 @@ def create_router() -> APIRouter:
                 size=body.size,
                 quality=body.quality,
                 output_format=body.output_format,
+                frame_count=(
+                    body.frame_count
+                    if "frame_count" in body.model_fields_set
+                    else MISSING_IMAGE_OPTION
+                ),
+                frame_duration_ms=(
+                    body.frame_duration_ms
+                    if "frame_duration_ms" in body.model_fields_set
+                    else MISSING_IMAGE_OPTION
+                ),
                 base_url=resolve_image_base_url(request),
             )
         except ImageTaskQueueFullError as exc:
@@ -118,6 +130,8 @@ def create_router() -> APIRouter:
                 size=payload["size"],
                 quality=payload["quality"],
                 output_format=payload.get("output_format"),
+                frame_count=payload.get("frame_count", MISSING_IMAGE_OPTION),
+                frame_duration_ms=payload.get("frame_duration_ms", MISSING_IMAGE_OPTION),
                 base_url=resolve_image_base_url(request),
                 images=images,
                 masks=masks,

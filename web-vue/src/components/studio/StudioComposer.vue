@@ -149,6 +149,42 @@
                     />
                   </div>
                   <div class="studio-size-section">
+                    <div class="studio-size-label">输出格式</div>
+                    <GroupedSelectMenu
+                      v-model="imageOutputFormatValue"
+                      :options="imageOutputFormatOptions"
+                      selected-indicator="none"
+                      block
+                    />
+                  </div>
+                  <div v-if="props.imageForm.outputFormat === 'gif'" class="studio-size-section">
+                    <div class="studio-size-label">GIF 参数</div>
+                    <div class="studio-frame-fields">
+                      <label class="studio-frame-field">
+                        <span>帧数</span>
+                        <input
+                          v-model="imageFrameCountValue"
+                          type="text"
+                          inputmode="numeric"
+                          autocomplete="off"
+                          placeholder="可选"
+                          :disabled="isSending"
+                        />
+                      </label>
+                      <label class="studio-frame-field">
+                        <span>帧间隔（毫秒）</span>
+                        <input
+                          v-model="imageFrameDurationMsValue"
+                          type="text"
+                          inputmode="numeric"
+                          autocomplete="off"
+                          placeholder="可选"
+                          :disabled="isSending"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                  <div class="studio-size-section">
                     <div class="studio-size-label">质量</div>
                     <div class="studio-choice-grid is-quality">
                       <Button
@@ -307,6 +343,7 @@ const props = defineProps<{
   chatModelOptions: string[]
   imageModelOptions: string[]
   imageHighResolutionEnabled: boolean
+  imageGifEnabled: boolean
   references: StudioReference[]
   isSending: boolean
   isStreaming: boolean
@@ -323,6 +360,9 @@ const emit = defineEmits<{
   'update:imageSize': [size: string]
   'update:imageQuality': [quality: string]
   'update:imageCount': [count: number]
+  'update:imageOutputFormat': [format: string]
+  'update:imageFrameCount': [value: string]
+  'update:imageFrameDurationMs': [value: string]
   submit: []
   stop: []
   'cancel-edit': []
@@ -398,6 +438,24 @@ const imageModelValue = computed({
   set: (value: string | string[]) => emit('update:imageModel', String(Array.isArray(value) ? value[0] : value || '')),
 })
 
+const imageOutputFormatValue = computed({
+  get: () => props.imageForm.outputFormat || 'auto',
+  set: (value: string | string[]) => {
+    const next = String(Array.isArray(value) ? value[0] : value || 'auto')
+    emit('update:imageOutputFormat', next === 'auto' ? '' : next)
+  },
+})
+
+const imageFrameCountValue = computed({
+  get: () => props.imageForm.frameCount,
+  set: (value: string) => emit('update:imageFrameCount', value),
+})
+
+const imageFrameDurationMsValue = computed({
+  get: () => props.imageForm.frameDurationMs,
+  set: (value: string) => emit('update:imageFrameDurationMs', value),
+})
+
 const chatModelSelectOptions = computed(() => props.chatModelOptions.map((model) => ({
   label: model === 'auto' ? '自动模型' : model,
   value: model,
@@ -415,6 +473,15 @@ const imageModelSelectOptions = computed(() => props.imageModelOptions.map((mode
   label: model,
   value: model,
 })))
+
+const imageOutputFormatOptions = computed(() => [
+  { label: '自动', value: 'auto' },
+  { label: 'PNG', value: 'png' },
+  { label: 'JPG', value: 'jpeg' },
+  { label: 'WebP', value: 'webp' },
+  ...(props.imageGifEnabled ? [{ label: 'GIF', value: 'gif' }] : []),
+  ...(props.imageGifEnabled && !props.references.length ? [{ label: 'SVG', value: 'svg' }] : []),
+])
 
 const sizePresets = computed(() => resolveImageSizePresets(props.imageHighResolutionEnabled))
 const selectedPreset = computed(() => sizePresets.value.find((preset) => preset.value === props.imageForm.size))
@@ -436,6 +503,9 @@ const resolutionOptions = computed(() => {
   return order.filter((value) => values.has(value)).map((value) => ({ label: value === 'auto' ? '自动' : value, value }))
 })
 const selectedSizeDetailLabel = computed(() => formatImageSizeLabel(props.imageForm.size))
+const selectedImageOutputFormatLabel = computed(() => (
+  imageOutputFormatOptions.value.find((option) => option.value === imageOutputFormatValue.value)?.label || '自动'
+))
 const canAttachReferences = computed(() => props.mode === 'image' || props.mode === 'chat' || props.mode === 'file')
 const selectedChatModelLabel = computed(() => chatModelSelectOptions.value.find((option) => option.value === props.chatModel)?.label || props.chatModel || '自动模型')
 const selectedReasoningEffortLabel = computed(() => {
@@ -476,8 +546,18 @@ const chatSettingsMenuItems = computed<ComposerMenuItem[]>(() => [
 ])
 const imageSummaryLabel = computed(() => {
   const count = props.imageForm.n > 1 ? ` · ${props.imageForm.n} 张` : ''
-  return `${formatImageSizeLabel(props.imageForm.size)}${count}`
+  const format = selectedImageOutputFormatLabel.value !== '自动'
+    ? ` · ${selectedImageOutputFormatLabel.value}`
+    : ''
+  return `${formatImageSizeLabel(props.imageForm.size)}${format}${count}`
 })
+watch(
+  [() => props.imageForm.outputFormat, () => props.imageGifEnabled, () => props.references.length],
+  ([format, gifEnabled, referenceCount]) => {
+    if (format === 'gif' && !gifEnabled) emit('update:imageOutputFormat', '')
+    if (format === 'svg' && (!gifEnabled || referenceCount > 0)) emit('update:imageOutputFormat', '')
+  },
+)
 const imagePlaceholder = computed(() => props.references.length ? '描述你想如何修改参考图' : '输入你想生成的画面，也可以粘贴或拖入参考图')
 const chatPlaceholder = computed(() => props.references.length ? '描述你想让模型识别或分析的图片' : '输入消息，Enter 发送，Shift+Enter 换行')
 const filePlaceholder = computed(() => {
@@ -1068,6 +1148,40 @@ onBeforeUnmount(() => {
   font-size: 0.75rem;
 }
 
+.studio-frame-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.studio-frame-field {
+  display: grid;
+  min-width: 0;
+  gap: 0.35rem;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.studio-frame-field input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.55rem;
+  background: hsl(var(--background));
+  padding: 0.45rem 0.55rem;
+  color: hsl(var(--foreground));
+  font: inherit;
+  font-weight: 500;
+  outline: none;
+}
+
+.studio-frame-field input:focus {
+  border-color: hsl(var(--ring));
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.18);
+}
+
 .studio-drop-overlay {
   position: absolute;
   inset: 0;
@@ -1134,6 +1248,10 @@ onBeforeUnmount(() => {
   .studio-choice-grid,
   .studio-choice-grid.is-ratio {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .studio-frame-fields {
+    grid-template-columns: 1fr;
   }
 
   .chat-input {

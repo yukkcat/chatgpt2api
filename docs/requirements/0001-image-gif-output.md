@@ -98,7 +98,7 @@ existing URL, Base64, and image-storage paths.
 - No R2 image-asset storage adapter and no change to Image Asset ownership.
 - No arbitrary output formats beyond `gif`, `png`, `jpg`/`jpeg`, `webp`, and
   `svg`.
-- No new Studio Image Task controls or task-lifecycle changes.
+- No change to the Studio Image Task lifecycle; the existing Studio composer may expose controls for the shared image request fields.
 
 ## Domain language
 
@@ -136,8 +136,9 @@ settings.
 Add a per-model GIF/SVG selection control to the existing Settings page.
 Populate the choices from the settings/model projection, reuse the current
 settings load, save, validation, conflict, and error behavior, and keep the
-control usable at the existing desktop and narrow-screen layouts. No new Studio
-interaction is included.
+control usable at the existing desktop and narrow-screen layouts. Extend the
+existing Studio image composer popover with output format and optional GIF
+frame fields, preserving the current Image Task lifecycle and request flow.
 
 ## Persistence impact
 
@@ -162,12 +163,17 @@ introduce new concurrency or retry rules.
 - [ ] The three 2.6 aliases pass supported-model validation, appear in the
   built-in model catalogue, and all route to upstream slug `auto`. No `exact`
   alias or 1K mapping is added.
+- [ ] The model catalogue projects the enabled GIF/SVG model list; Studio only
+  offers GIF for an enabled model and SVG only when no reference image is set.
 - [ ] `gif_models` is persisted, defaults to the three 2.6 aliases, round-trips
   through `/api/settings` GET/PATCH, and allows independent per-model
   selection in the Settings page.
 - [ ] The shared image execution request carries `output_format`,
   `frame_count`, and `frame_duration_ms` through all existing image entry
   points that use it.
+- [ ] Studio's existing image parameter popover exposes output format and,
+  when GIF is selected, optional frame count and frame duration fields; empty
+  frame fields are omitted from the Image Task request.
 - [ ] Prompt tests prove that the selected output format and only-present frame fields are appended,
   omitted fields receive no defaults, supplied frame values are not validated
   or normalized, and the original prompt remains unchanged.

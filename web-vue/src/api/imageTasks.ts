@@ -51,6 +51,9 @@ export interface CreateGenerationTaskInput {
   n?: number
   size?: string
   quality?: string
+  outputFormat?: string
+  frameCount?: unknown
+  frameDurationMs?: unknown
   clientTaskId?: string
 }
 
@@ -341,6 +344,9 @@ function createEditForm(input: CreateEditTaskInput) {
   form.append('quality', input.quality || DEFAULT_IMAGE_QUALITY)
   const size = requestSize(input.size)
   if (size) form.append('size', size)
+  if (input.outputFormat) form.append('output_format', input.outputFormat)
+  if (input.frameCount !== undefined) form.append('frame_count', String(input.frameCount))
+  if (input.frameDurationMs !== undefined) form.append('frame_duration_ms', String(input.frameDurationMs))
 
   const imageUrls = normalizeUrlList(input.imageUrls)
   if (imageUrls.length === 1) {
@@ -373,14 +379,18 @@ export const imageTasksApi = {
   },
 
   createGeneration: async (input: CreateGenerationTaskInput) => {
-    const response = await apiClient.post<Record<string, unknown>, unknown>('/api/image-tasks/generations', {
+    const body: Record<string, unknown> = {
       client_task_id: input.clientTaskId || createClientTaskId('gen'),
       prompt: input.prompt,
       model: input.model || DEFAULT_IMAGE_MODEL,
       n: normalizeImageCount(input.n),
       size: requestSize(input.size),
       quality: input.quality || DEFAULT_IMAGE_QUALITY,
-    })
+    }
+    if (input.outputFormat) body.output_format = input.outputFormat
+    if (input.frameCount !== undefined) body.frame_count = input.frameCount
+    if (input.frameDurationMs !== undefined) body.frame_duration_ms = input.frameDurationMs
+    const response = await apiClient.post<Record<string, unknown>, unknown>('/api/image-tasks/generations', body)
     return parseImageTask(response)
   },
 

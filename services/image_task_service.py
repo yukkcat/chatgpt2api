@@ -36,6 +36,7 @@ from services.log_service import (
     log_service,
 )
 from services.protocol import openai_v1_image_edit, openai_v1_image_generations
+from services.protocol.conversation import MISSING_IMAGE_OPTION
 from services.realtime_monitor_service import realtime_monitor_service
 from services.storage.file_lock import interprocess_lock
 from utils.diagnostics import exception_diagnostic_fields
@@ -385,6 +386,8 @@ class ImageTaskService:
         size: str | None = None,
         quality: str = "auto",
         output_format: str | None = None,
+        frame_count: object = MISSING_IMAGE_OPTION,
+        frame_duration_ms: object = MISSING_IMAGE_OPTION,
         base_url: str = "",
     ) -> dict[str, Any]:
         payload = {
@@ -397,6 +400,10 @@ class ImageTaskService:
             "response_format": "url",
             "base_url": base_url,
         }
+        if frame_count is not MISSING_IMAGE_OPTION:
+            payload["frame_count"] = frame_count
+        if frame_duration_ms is not MISSING_IMAGE_OPTION:
+            payload["frame_duration_ms"] = frame_duration_ms
         return self._submit(identity, client_task_id=client_task_id, mode="generate", payload=payload)
 
     def submit_edit(
@@ -410,6 +417,8 @@ class ImageTaskService:
         size: str | None = None,
         quality: str = "auto",
         output_format: str | None = None,
+        frame_count: object = MISSING_IMAGE_OPTION,
+        frame_duration_ms: object = MISSING_IMAGE_OPTION,
         base_url: str = "",
         images: list[tuple[bytes, str, str]] | None = None,
         masks: list[tuple[bytes, str, str]] | None = None,
@@ -427,6 +436,10 @@ class ImageTaskService:
             "response_format": "url",
             "base_url": base_url,
         }
+        if frame_count is not MISSING_IMAGE_OPTION:
+            payload["frame_count"] = frame_count
+        if frame_duration_ms is not MISSING_IMAGE_OPTION:
+            payload["frame_duration_ms"] = frame_duration_ms
         return self._submit(
             identity,
             client_task_id=client_task_id,

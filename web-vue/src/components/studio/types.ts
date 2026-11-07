@@ -85,6 +85,9 @@ export interface StudioImageForm {
   size: string
   quality: string
   n: number
+  outputFormat: string
+  frameCount: string
+  frameDurationMs: string
 }
 
 export interface StudioPreviewImage {

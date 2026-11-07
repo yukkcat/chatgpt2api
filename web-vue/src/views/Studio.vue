@@ -107,6 +107,7 @@
             :chat-model-options="chatModelOptions"
             :image-model-options="imageModelOptions"
             :image-high-resolution-enabled="imageHighResolutionEnabled"
+            :image-gif-enabled="imageGifEnabled"
             :references="referenceRuntime.references.value"
             :is-sending="isSending"
             :is-streaming="isStreaming"
@@ -115,6 +116,9 @@
             @update:image-size="imageForm.size = $event"
             @update:image-quality="imageForm.quality = $event"
             @update:image-count="imageForm.n = $event"
+            @update:image-output-format="imageForm.outputFormat = $event"
+            @update:image-frame-count="imageForm.frameCount = $event"
+            @update:image-frame-duration-ms="imageForm.frameDurationMs = $event"
             @submit="sendMessage"
             @stop="stopStreaming"
             @cancel-edit="cancelMessageEdit"
@@ -320,6 +324,7 @@ const chatModel = modelFormRuntime.chatModel
 const chatReasoningEffort = modelFormRuntime.chatReasoningEffort
 const imageForm = modelFormRuntime.imageForm
 const imageHighResolutionEnabled = modelFormRuntime.imageHighResolutionEnabled
+const imageGifEnabled = modelFormRuntime.imageGifEnabled
 
 const conversations = ref<StudioConversation[]>(persistedConversationState.conversations)
 const activeConversationId = ref(persistedConversationState.activeConversationId)

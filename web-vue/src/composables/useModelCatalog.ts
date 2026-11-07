@@ -25,6 +25,7 @@ function validateCatalog(payload: ModelCatalogResponse | null | undefined): Mode
     || !Array.isArray(payload.all_models)
     || !payload.defaults
     || !payload.capabilities
+    || (payload.capabilities.gif_models !== undefined && !Array.isArray(payload.capabilities.gif_models))
     || !payload.source
   ) {
     throw new Error('Invalid model catalog response')

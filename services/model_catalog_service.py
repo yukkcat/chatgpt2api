@@ -138,6 +138,11 @@ class ModelCatalogService:
             for model in image_models
             if model == CODEX_IMAGE_MODEL or model.endswith(f"-{CODEX_IMAGE_MODEL}")
         ]
+        gif_models = [
+            model
+            for model in _normalize_list(settings.get("gif_models"))
+            if model in image_models
+        ]
         defaults = {
             "chat_model": "auto" if "auto" in chat_models else chat_models[0],
             "image_model": "gpt-image-2" if "gpt-image-2" in image_models else image_models[0],
@@ -145,6 +150,7 @@ class ModelCatalogService:
         capabilities = {
             "image_upscale": bool(settings.get("image_upscale_enabled")),
             "high_resolution_image_models": high_resolution_models,
+            "gif_models": gif_models,
         }
         source = {"chat": chat_source, "image": image_source}
         revision_payload = {
@@ -165,6 +171,7 @@ class ModelCatalogService:
             capabilities=ModelCatalogCapabilities(
                 image_upscale=capabilities["image_upscale"],
                 high_resolution_image_models=tuple(high_resolution_models),
+                gif_models=tuple(gif_models),
             ),
             source=ModelCatalogSource(**source),
         )
