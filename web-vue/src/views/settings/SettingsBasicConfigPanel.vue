@@ -42,6 +42,13 @@
           <SettingsNumberInput :field="imageAccountConcurrencyField" />
         </FormField>
 
+        <FormField label="单次图片数量上限">
+          <template #label-extra>
+            <HelpTip text="控制单次图片请求允许生成的最大数量。默认 4，最小 1，不限制可填写的最大值。" />
+          </template>
+          <SettingsNumberInput :field="imageMaxNField" />
+        </FormField>
+
         <FormField label="账号批量任务并发">
           <template #label-extra>
             <HelpTip text="控制账号批量任务的最大并发数。刷新 AT、同步账号与额度、导入核验和后台复查按账号占用并发；启用、禁用、重置、删除和批量保存按整个批次占用一个并发。默认 30，可设置为 1–100；图片生成并发单独设置。" />
@@ -116,6 +123,7 @@ const props = defineProps<{
   imagePollInitialWaitField: NumberSettingField
   imagePollIntervalField: NumberSettingField
   imageAccountConcurrencyField: NumberSettingField
+  imageMaxNField: NumberSettingField
   accountProcessingConcurrencyField: NumberSettingField
 }>()
 

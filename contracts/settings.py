@@ -191,6 +191,7 @@ class _SettingsEditableFields(_StrictModel):
     image_poll_initial_wait_secs: float = _numeric_field("image_poll_initial_wait_secs")
     image_poll_interval_secs: float = _numeric_field("image_poll_interval_secs")
     image_account_concurrency: int = _numeric_field("image_account_concurrency")
+    image_max_n: int = _numeric_field("image_max_n")
     account_processing_concurrency: int = _numeric_field("account_processing_concurrency")
     image_account_retry_enabled: bool = True
     image_upscale_enabled: bool = False

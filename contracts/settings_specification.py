@@ -41,6 +41,7 @@ NUMERIC_SETTING_SPECS = MappingProxyType({
         kind="float",
     ),
     "image_account_concurrency": NumericSettingSpec(1, 1, 3),
+    "image_max_n": NumericSettingSpec(4, 1),
     "account_processing_concurrency": NumericSettingSpec(30, 1, 100),
     "image_max_account_attempts": NumericSettingSpec(4, 2),
     "image_settle_secs": NumericSettingSpec(5.0, 0.5, unit="seconds", kind="float"),

@@ -47,10 +47,10 @@ class ImageTaskRow(BaseModel):
     stage_label: str
     created_at: str
     updated_at: str
-    requested_count: int = Field(ge=1, le=4)
-    succeeded_count: int = Field(ge=0, le=4)
-    failed_count: int = Field(ge=0, le=4)
-    pending_count: int = Field(ge=0, le=4)
+    requested_count: int = Field(ge=1)
+    succeeded_count: int = Field(ge=0)
+    failed_count: int = Field(ge=0)
+    pending_count: int = Field(ge=0)
     duration_ms: int | None = Field(default=None, ge=0)
     elapsed_ms: int | None = Field(default=None, ge=0)
     error_code: str

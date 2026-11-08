@@ -151,6 +151,7 @@ class ModelCatalogService:
             "image_upscale": bool(settings.get("image_upscale_enabled")),
             "high_resolution_image_models": high_resolution_models,
             "gif_models": gif_models,
+            "image_max_n": config.image_max_n,
         }
         source = {"chat": chat_source, "image": image_source}
         revision_payload = {
@@ -172,6 +173,7 @@ class ModelCatalogService:
                 image_upscale=capabilities["image_upscale"],
                 high_resolution_image_models=tuple(high_resolution_models),
                 gif_models=tuple(gif_models),
+                image_max_n=capabilities["image_max_n"],
             ),
             source=ModelCatalogSource(**source),
         )

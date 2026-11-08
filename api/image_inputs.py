@@ -17,6 +17,8 @@ from fastapi import HTTPException, Request
 from fastapi.concurrency import run_in_threadpool
 from starlette.datastructures import UploadFile
 
+from utils.helper import parse_image_count
+
 ImageInput = tuple[bytes, str, str]
 ImageSource = str | UploadFile | ImageInput
 
@@ -57,14 +59,8 @@ def _parse_bool(value: object) -> bool | None:
 
 
 def _parse_count(value: object) -> int:
-    """解析生成数量：保持图片接口的 1 到 4 限制。"""
-    try:
-        count = int(value or 1)
-    except (TypeError, ValueError) as exc:
-        raise HTTPException(status_code=400, detail={"error": "n must be an integer"}) from exc
-    if count < 1 or count > 4:
-        raise HTTPException(status_code=400, detail={"error": "n must be between 1 and 4"})
-    return count
+    """解析生成数量：使用设置中的最小值 1 和最大值。"""
+    return parse_image_count(value)
 
 
 def _payload_from_fields(fields: dict[str, Any]) -> dict[str, Any]:

@@ -26,13 +26,13 @@ from services.protocol import (
     openai_search,
 )
 from services.protocol.conversation import validate_image_output_request
-from utils.helper import has_response_image_generation_tool, is_image_chat_request
+from utils.helper import has_response_image_generation_tool, is_image_chat_request, parse_image_count
 
 
 class ImageGenerationRequest(BaseModel):
     prompt: str = Field(..., min_length=1)
     model: str = "gpt-image-2"
-    n: int = Field(default=1, ge=1, le=4)
+    n: int = Field(default=1, ge=1)
     size: str | None = None
     quality: str = "auto"
     response_format: str = "b64_json"
@@ -142,6 +142,7 @@ def create_router() -> APIRouter:
     ):
         identity = require_identity(authorization)
         payload = body.model_dump(mode="python")
+        payload["n"] = parse_image_count(body.n)
         for field in ("output_format", "frame_count", "frame_duration_ms"):
             if field not in body.model_fields_set:
                 payload.pop(field, None)

@@ -651,12 +651,19 @@ def extract_chat_prompt(body: dict[str, object]) -> str:
 
 
 def parse_image_count(raw_value: object) -> int:
+    from services.config import config
+
+    missing = raw_value is None or (isinstance(raw_value, str) and not raw_value.strip())
     try:
-        value = int(raw_value or 1)
+        value = 1 if missing else int(raw_value)
     except (TypeError, ValueError) as exc:
         raise HTTPException(status_code=400, detail={"error": "n must be an integer"}) from exc
-    if value < 1 or value > 4:
-        raise HTTPException(status_code=400, detail={"error": "n must be between 1 and 4"})
+    maximum = config.image_max_n
+    if value < 1 or value > maximum:
+        raise HTTPException(
+            status_code=400,
+            detail={"error": f"n must be between 1 and {maximum}"},
+        )
     return value
 
 

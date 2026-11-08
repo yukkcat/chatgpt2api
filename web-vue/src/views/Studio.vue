@@ -108,6 +108,7 @@
             :image-model-options="imageModelOptions"
             :image-high-resolution-enabled="imageHighResolutionEnabled"
             :image-gif-enabled="imageGifEnabled"
+            :image-max-n="imageMaxN"
             :references="referenceRuntime.references.value"
             :is-sending="isSending"
             :is-streaming="isStreaming"
@@ -325,6 +326,7 @@ const chatReasoningEffort = modelFormRuntime.chatReasoningEffort
 const imageForm = modelFormRuntime.imageForm
 const imageHighResolutionEnabled = modelFormRuntime.imageHighResolutionEnabled
 const imageGifEnabled = modelFormRuntime.imageGifEnabled
+const imageMaxN = modelFormRuntime.imageMaxN
 
 const conversations = ref<StudioConversation[]>(persistedConversationState.conversations)
 const activeConversationId = ref(persistedConversationState.activeConversationId)
@@ -757,7 +759,9 @@ function applyPromptTemplate(prompt: PromptLibraryItem) {
   if (composeMode.value === 'image') {
     if (prompt.image_model) imageForm.model = prompt.image_model
     if (prompt.image_size) imageForm.size = prompt.image_size
-    if (prompt.image_count && prompt.image_count > 0) imageForm.n = prompt.image_count
+    if (prompt.image_count && prompt.image_count > 0) {
+      imageForm.n = Math.min(imageMaxN.value, Math.trunc(prompt.image_count))
+    }
   }
   isPromptPickerOpen.value = false
 }

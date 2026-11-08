@@ -185,6 +185,17 @@ export const IMAGE_COUNT_OPTIONS = [
   { label: '4 张', value: 4 },
 ]
 
+export function imageCountOptions(maxCount?: number) {
+  const max = Number.isFinite(Number(maxCount)) ? Math.max(1, Math.trunc(Number(maxCount))) : 4
+  // Keep the quick-choice grid bounded for very large configured values; the
+  // adjacent number input still accepts any integer at or above 1.
+  const quickMax = Math.min(max, 20)
+  const values = Array.from({ length: quickMax }, (_, index) => index + 1)
+  if (max > quickMax) values.push(max)
+  return values
+    .map((value) => ({ label: `${value} 张`, value }))
+}
+
 function cleanString(value: unknown, fallback = '') {
   const text = String(value ?? '').trim()
   return text || fallback
@@ -192,7 +203,7 @@ function cleanString(value: unknown, fallback = '') {
 
 export function normalizeImageCount(value: unknown) {
   const count = Number.isFinite(Number(value)) ? Math.trunc(Number(value)) : 1
-  return Math.min(4, Math.max(1, count))
+  return Math.max(1, count)
 }
 
 export function createClientTaskId(prefix = 'img') {
@@ -278,7 +289,6 @@ function parseImageTask(value: unknown, path = 'response'): ImageTask {
     ? raw.results.map((asset, index) => parseTaskAsset(asset, `${path}.results[${index}]`))
     : imageTaskContractError(`${path}.results`, 'array')
   const requestedCount = expectInteger(raw.requested_count, `${path}.requested_count`, 1)
-  if (requestedCount > 4) imageTaskContractError(`${path}.requested_count`, 'integer between 1 and 4')
   const succeededCount = expectInteger(raw.succeeded_count, `${path}.succeeded_count`)
   const failedCount = expectInteger(raw.failed_count, `${path}.failed_count`)
   const pendingCount = expectInteger(raw.pending_count, `${path}.pending_count`)

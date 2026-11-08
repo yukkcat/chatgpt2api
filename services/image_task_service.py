@@ -202,7 +202,10 @@ def _image_count(value: object) -> int:
         count = int(value or 1)
     except (TypeError, ValueError):
         count = 1
-    return min(4, max(1, count))
+    # Requests are validated at the API boundary.  Task records must preserve
+    # the requested count when the setting is later lowered, so historical
+    # tasks are never projected with a truncated count.
+    return max(1, count)
 
 
 def _owner_id(identity: dict[str, object]) -> str:

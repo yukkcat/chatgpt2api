@@ -399,7 +399,7 @@ function computeImageSlotCount(message: StudioMessage, task: ImageTask | undefin
   if (task) return task.requested_count
   const messageCount = Number(message.imageCount)
   const count = Math.max(1, Number.isFinite(messageCount) ? messageCount : 0)
-  return Math.min(4, Math.max(1, Math.trunc(count)))
+  return Math.max(1, Math.trunc(count))
 }
 
 function buildImagePreviewStyle(

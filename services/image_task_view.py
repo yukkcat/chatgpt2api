@@ -43,7 +43,7 @@ def _text(value: object, default: str = "") -> str:
 
 def _image_count(value: object, default: int = 1) -> int:
     try:
-        return min(4, max(1, int(value)))
+        return max(1, int(value))
     except (TypeError, ValueError):
         return default
 

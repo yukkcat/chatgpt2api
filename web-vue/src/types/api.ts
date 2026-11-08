@@ -75,6 +75,7 @@ export interface Settings {
   image_poll_initial_wait_secs: number
   image_poll_interval_secs: number
   image_account_concurrency: number
+  image_max_n: number
   account_processing_concurrency: number
   image_account_retry_enabled: boolean
   image_upscale_enabled: boolean

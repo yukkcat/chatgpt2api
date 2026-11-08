@@ -11,13 +11,14 @@ from services.content_filter import check_request
 from services.image_task_service import ImageTaskQueueFullError, image_task_service
 from services.log_service import LoggedCall
 from services.protocol.conversation import MISSING_IMAGE_OPTION, validate_image_output_request
+from utils.helper import parse_image_count
 
 
 class ImageGenerationTaskRequest(BaseModel):
     client_task_id: str = Field(..., min_length=1)
     prompt: str = Field(..., min_length=1)
     model: str = "gpt-image-2"
-    n: int = Field(default=1, ge=1, le=4)
+    n: int = Field(default=1, ge=1)
     size: str | None = None
     quality: str = "auto"
     output_format: str | None = None
@@ -66,6 +67,7 @@ def create_router() -> APIRouter:
         authorization: str | None = Header(default=None),
     ):
         identity = require_identity(authorization)
+        n = parse_image_count(body.n)
         validate_image_output_request(body.model, body.output_format)
         await filter_or_log(LoggedCall(identity, "/api/image-tasks/generations", body.model, "文生图任务", request_text=body.prompt), body.prompt)
         try:
@@ -75,7 +77,7 @@ def create_router() -> APIRouter:
                 client_task_id=body.client_task_id,
                 prompt=body.prompt,
                 model=body.model,
-                n=body.n,
+                n=n,
                 size=body.size,
                 quality=body.quality,
                 output_format=body.output_format,

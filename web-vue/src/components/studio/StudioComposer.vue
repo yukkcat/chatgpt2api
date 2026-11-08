@@ -204,7 +204,7 @@
                     <div class="studio-size-label">数量</div>
                     <div class="studio-choice-grid is-count">
                       <Button
-                        v-for="option in IMAGE_COUNT_OPTIONS"
+                        v-for="option in imageCountOptions(props.imageMaxN)"
                         :key="option.value"
                         size="sm"
                         :variant="imageForm.n === option.value ? 'primary' : 'outline'"
@@ -214,6 +214,16 @@
                       >
                         {{ option.label }}
                       </Button>
+                      <input
+                        v-model.number="imageCountValue"
+                        type="number"
+                        min="1"
+                        :max="props.imageMaxN"
+                        step="1"
+                        class="studio-count-input"
+                        aria-label="图片数量"
+                        :disabled="isSending"
+                      />
                     </div>
                   </div>
                   <div class="studio-size-section">
@@ -320,7 +330,7 @@ import { GroupedSelectMenu } from 'nanocat-ui'
 import StudioToolbarSelectButton from '@/components/studio/StudioToolbarSelectButton.vue'
 import {
   DEFAULT_IMAGE_SIZE,
-  IMAGE_COUNT_OPTIONS,
+  imageCountOptions,
   IMAGE_QUALITY_OPTIONS,
   formatImageSizeLabel,
   resolveImageSizePresets,
@@ -344,6 +354,7 @@ const props = defineProps<{
   imageModelOptions: string[]
   imageHighResolutionEnabled: boolean
   imageGifEnabled: boolean
+  imageMaxN?: number
   references: StudioReference[]
   isSending: boolean
   isStreaming: boolean
@@ -454,6 +465,19 @@ const imageFrameCountValue = computed({
 const imageFrameDurationMsValue = computed({
   get: () => props.imageForm.frameDurationMs,
   set: (value: string) => emit('update:imageFrameDurationMs', value),
+})
+
+const imageCountValue = computed({
+  get: () => props.imageForm.n,
+  set: (value: number | string) => {
+    const count = Number(value)
+    if (Number.isFinite(count)) {
+      const maximum = Number.isFinite(Number(props.imageMaxN))
+        ? Math.max(1, Math.trunc(Number(props.imageMaxN)))
+        : Number.POSITIVE_INFINITY
+      emit('update:imageCount', Math.min(maximum, Math.max(1, Math.trunc(count))))
+    }
+  },
 })
 
 const chatModelSelectOptions = computed(() => props.chatModelOptions.map((model) => ({
@@ -1140,6 +1164,18 @@ onBeforeUnmount(() => {
 
 .studio-choice-button {
   min-width: 0;
+}
+
+.studio-count-input {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.55rem;
+  background: hsl(var(--background));
+  padding: 0.45rem 0.55rem;
+  color: hsl(var(--foreground));
+  font-size: 0.8rem;
+  text-align: center;
 }
 
 .studio-size-current {
