@@ -42,6 +42,11 @@
       :columns="2"
     />
 
+    <div class="flex items-center justify-between gap-3 text-xs">
+      <span class="text-muted-foreground">记忆</span>
+      <AccountMemoryStatus :item="item" />
+    </div>
+
     <AccountActionButtons
       class="mt-auto"
       :item="item"
@@ -53,6 +58,7 @@
       @toggle-enabled="emit('toggle-enabled', item)"
       @sync-account="emit('sync-account', item)"
       @refresh-access-token="emit('refresh-access-token', item)"
+      @memory-action="emit('memory-action', item, $event)"
       @remove="emit('remove', item)"
     />
   </article>
@@ -62,8 +68,9 @@
 import { Checkbox, KeyValueList, MetaChip, StatusDetailPill } from 'nanocat-ui'
 
 import AccountActionButtons from '@/components/ai/AccountActionButtons.vue'
-import type { Account } from '@/api/accounts'
+import type { Account, AccountMemoryAction } from '@/api/accounts'
 import AccountCredentialStatus from './AccountCredentialStatus.vue'
+import AccountMemoryStatus from './AccountMemoryStatus.vue'
 import {
   accountDetailItems,
   accountPrimaryText,
@@ -97,6 +104,7 @@ const emit = defineEmits<{
   (e: 'toggle-enabled', item: Account): void
   (e: 'sync-account', item: Account): void
   (e: 'refresh-access-token', item: Account): void
+  (e: 'memory-action', item: Account, action: AccountMemoryAction): void
   (e: 'remove', item: Account): void
 }>()
 </script>

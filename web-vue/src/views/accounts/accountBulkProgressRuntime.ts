@@ -5,7 +5,7 @@ import type {
   AccountOperationProgress,
 } from '@/api/accounts'
 
-export type AccountBulkProgressKind = 'sync' | 'credentials' | 'mutation' | 'import'
+export type AccountBulkProgressKind = 'sync' | 'credentials' | 'memory' | 'mutation' | 'import'
 
 export interface AccountOperationTimelineEvent extends AccountOperationEvent {
   key: string

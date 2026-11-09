@@ -27,6 +27,17 @@ The route source is
 Each page owns its responsive composition and has one explicit scroll owner per
 scrolling region.
 
+Accounts also renders backend-projected memory state and actions. Its existing
+filter toolbar, scoped selection, account menus and operation drawer handle
+single and batch memory refresh/enable/disable/clear. The switch-state filter
+participates in selection snapshots and server-side all-matching
+selection. Clear actions use existing dangerous menu styling and an irreversible
+confirmation; the target snapshot is retained while confirmation is open.
+Clear outcomes and times are rendered separately inside the existing memory
+HoverCard, without an extra badge or table column. They describe historical
+operations, not a permanently empty account. List rendering does not fetch
+upstream settings or memory contents.
+
 ## Data path
 
 ```mermaid

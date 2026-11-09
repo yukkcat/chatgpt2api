@@ -20,6 +20,7 @@ type AccountPageLifecycleRuntimeOptions = {
   keyword: Ref<string>
   statusFilter: Ref<string>
   groupFilter: Ref<string>
+  memoryFilter: Ref<string>
   pageSizeDefault: number
   pageSizeOptions: readonly number[]
   reloadTimerKey: string
@@ -81,7 +82,7 @@ export function useAccountPageLifecycleRuntime(options: AccountPageLifecycleRunt
   }
 
   watch(
-    [options.keyword, options.statusFilter, options.groupFilter],
+    [options.keyword, options.statusFilter, options.groupFilter, options.memoryFilter],
     () => {
       options.clearSelection()
       if (options.currentPage.value !== 1) {

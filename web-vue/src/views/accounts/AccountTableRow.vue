@@ -35,6 +35,9 @@
       />
     </td>
     <td class="py-3 pr-5 align-middle">
+      <AccountMemoryStatus :item="item" />
+    </td>
+    <td class="py-3 pr-5 align-middle">
       <p class="max-w-[16rem] truncate text-sm font-medium text-foreground">{{ accountPrimaryText(item) }}</p>
       <p class="mt-1 max-w-[16rem] truncate font-mono text-xs text-muted-foreground">{{ accountSecondaryText(item) }}</p>
     </td>
@@ -66,6 +69,7 @@
         @toggle-enabled="emit('toggle-enabled', item)"
         @sync-account="emit('sync-account', item)"
         @refresh-access-token="emit('refresh-access-token', item)"
+        @memory-action="emit('memory-action', item, $event)"
         @remove="emit('remove', item)"
       />
     </td>
@@ -77,8 +81,9 @@ import { Checkbox, StatusDetailPill } from 'nanocat-ui'
 
 import AccountActionButtons from '@/components/ai/AccountActionButtons.vue'
 import QuotaBadge from '@/components/ai/QuotaBadge.vue'
-import type { Account } from '@/api/accounts'
+import type { Account, AccountMemoryAction } from '@/api/accounts'
 import AccountCredentialStatus from './AccountCredentialStatus.vue'
+import AccountMemoryStatus from './AccountMemoryStatus.vue'
 import {
   accountCreatedText,
   accountPrimaryText,
@@ -113,6 +118,7 @@ const emit = defineEmits<{
   (e: 'toggle-enabled', item: Account): void
   (e: 'sync-account', item: Account): void
   (e: 'refresh-access-token', item: Account): void
+  (e: 'memory-action', item: Account, action: AccountMemoryAction): void
   (e: 'remove', item: Account): void
 }>()
 </script>

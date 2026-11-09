@@ -32,6 +32,13 @@
               selected-indicator="none"
               aria-label="账号组筛选"
             />
+            <GroupedSelectMenu
+              v-model="memoryFilter"
+              :options="memoryFilterOptions"
+              placeholder="记忆状态"
+              selected-indicator="none"
+              aria-label="记忆状态筛选"
+            />
           </FilterToolbar>
 
           <div class="accounts-toolbar-view">
@@ -120,9 +127,9 @@
         loading-title="正在加载账号"
         loading-description="读取账号列表、分组和分页状态。"
         :show-empty="!loading && visibleAccounts.length === 0"
-        :empty-colspan="10"
+        :empty-colspan="11"
         :scroll-class="isWorkspaceLayout ? 'max-h-[min(36rem,60dvh)] lg:max-h-none' : ''"
-        table-class="min-w-[980px] w-full"
+        table-class="min-w-[1060px] w-full"
         head-class="tracking-[0.16em]"
       >
         <template #head>
@@ -139,6 +146,7 @@
               <th class="py-2.5 pr-5">AT / RT</th>
               <th class="py-2.5 pr-5">来源 / 套餐</th>
               <th class="py-2.5 pr-5">状态</th>
+              <th class="py-2.5 pr-5 whitespace-nowrap">记忆</th>
               <th class="py-2.5 pr-5">账户信息</th>
               <th class="py-2.5 pr-5">创建时间</th>
               <th class="py-2.5 pr-5">图片额度</th>
@@ -171,6 +179,7 @@
               @toggle-enabled="toggleEnabled"
               @sync-account="syncAccount"
               @refresh-access-token="refreshAccessToken"
+              @memory-action="runMemoryAction"
               @remove="removeAccount"
             />
       </TableShell>
@@ -205,6 +214,7 @@
           @toggle-enabled="toggleEnabled"
           @sync-account="syncAccount"
           @refresh-access-token="refreshAccessToken"
+          @memory-action="runMemoryAction"
           @remove="removeAccount"
         />
       </div>
@@ -823,8 +833,10 @@ const {
   keyword,
   statusFilter,
   groupFilter,
+  memoryFilter,
   statusFilterOptions,
   groupFilterOptions,
+  memoryFilterOptions,
   editingId,
   accounts,
   accountListTotal,
@@ -938,6 +950,7 @@ const {
   refreshAccessToken,
   removeAccount,
   runBulkAction,
+  runMemoryAction,
   bindSelectedAccountsToGroup,
   exportAccounts,
 } = useAccountsPage()

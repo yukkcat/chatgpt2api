@@ -18,6 +18,19 @@ _Avoid_: User Key, frontend-derived token state, login retention setting
 The set of upstream accounts eligible for selection under the current model, status, quota, and policy filters.
 _Avoid_: User pool
 
+**Upstream Account Memory Snapshot**:
+The last confirmed upstream `m3m` setting and its confirmation time. Its
+`enabled`, `disabled`, or `unknown` state is independent of the latest memory
+operation outcome. Disabling memory does not delete previously saved memories.
+_Avoid_: Deleted memory, live memory status, local Studio conversation history
+
+**Upstream Account Memory Clear Record**:
+The latest saved-memory clearing outcome, attempt time and last confirmed
+success time. It is independent of the Memory Snapshot and remains historical:
+new memories may be saved after a successful clear. AccountService stores only
+the outcome metadata, never the upstream memory contents, in the Account Repository.
+_Avoid_: Current empty memory, disabling memory, deleting local Studio history
+
 **Account Processing Concurrency**:
 The process-wide capacity limit shared by Upstream Account batch tasks. Remote maintenance, including AT renewal, account and quota synchronization, import verification, and background checks, consumes one slot per active account. A local atomic batch mutation, including import save, enable, disable, reset, delete, and group binding, consumes one slot for the complete batch.
 _Avoid_: Image generation concurrency, import batch size

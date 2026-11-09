@@ -39,7 +39,7 @@ from services.account_operation_events import (
 from services.account_import_job import RemoteImportJobConflictError
 from services.account_test_service import account_test_service
 from services.account_service import account_service
-from services.account_view import account_detail, account_row, account_status_category
+from services.account_view import account_detail, account_memory_state, account_row, account_status_category
 from services.config import config
 from services.cpa_service import cpa_config, cpa_import_service, list_remote_files
 from services.log_service import LoggedCall
@@ -73,6 +73,7 @@ class AccountSelectionScope(BaseModel):
     keyword: str = ""
     status: str = "all"
     group_id: str = "all"
+    memory_state: Literal["all", "enabled", "disabled", "unknown"] = "all"
 
 
 class AccountSelectionPreviewRequest(BaseModel):
@@ -105,6 +106,10 @@ class AccountOperationRequest(BaseModel):
     account_ids: list[str] = Field(default_factory=list)
     access_tokens: list[str] = Field(default_factory=list)
     selection: AccountSelectionScope | None = None
+
+
+class AccountMemoryRequest(AccountOperationRequest):
+    action: Literal["enable", "disable", "refresh", "clear"]
 
 
 class AccountExportRequest(BaseModel):
@@ -900,7 +905,7 @@ def _account_operation_progress_for_api(
             result_counts["synced"] = synced
     elif "refreshed" in result:
         result_counts["refreshed"] = max(0, int(result.get("refreshed") or 0))
-    for key in ("updated", "removed", "added"):
+    for key in ("updated", "removed", "added", "confirmed", "pending"):
         if key in result:
             result_counts[key] = max(0, int(result.get(key) or 0))
     payload["result"] = _account_mutation_payload(
@@ -972,11 +977,13 @@ def _account_matches_filters(
         keyword: str,
         status: str,
         group_id: str,
+        memory_state: str = "all",
 ) -> bool:
     return (
         _account_matches_keyword(account, keyword)
         and _status_matches_filter(account, status)
         and _account_matches_group(account, group_id)
+        and (memory_state == "all" or account_memory_state(account) == memory_state)
     )
 
 
@@ -986,6 +993,7 @@ def _filtered_accounts(
         keyword: str,
         status: str,
         group_id: str,
+        memory_state: str = "all",
 ) -> list[dict[str, Any]]:
     return [
         account
@@ -995,6 +1003,7 @@ def _filtered_accounts(
             keyword=keyword,
             status=status,
             group_id=group_id,
+            memory_state=memory_state,
         )
     ]
 
@@ -1009,6 +1018,7 @@ def _account_selection_members(
             keyword=selection.keyword,
             status=selection.status,
             group_id=selection.group_id,
+            memory_state=selection.memory_state,
         )
 
     members: list[tuple[str, str]] = []
@@ -1093,6 +1103,7 @@ def _accounts_page(
         keyword: str,
         status: str,
         group_id: str,
+        memory_state: str = "all",
 ) -> dict[str, Any]:
     items = account_service.list_accounts()
     filtered = _filtered_accounts(
@@ -1100,6 +1111,7 @@ def _accounts_page(
         keyword=keyword,
         status=status,
         group_id=group_id,
+        memory_state=memory_state,
     )
     safe_page = max(1, page)
     safe_page_size = max(1, min(page_size, 500))
@@ -1212,6 +1224,7 @@ def create_router() -> APIRouter:
             keyword: str = "",
             status: str = "all",
             group_id: str = "all",
+            memory_state: Literal["all", "enabled", "disabled", "unknown"] = "all",
             authorization: str | None = Header(default=None),
     ):
         require_admin(authorization)
@@ -1221,6 +1234,7 @@ def create_router() -> APIRouter:
             keyword=keyword,
             status=status,
             group_id=group_id,
+            memory_state=memory_state,
         )
 
     @router.post("/api/accounts/selection-preview")
@@ -1711,6 +1725,97 @@ def create_router() -> APIRouter:
                 )
 
         _schedule_account_operation(_do_refresh_access_tokens())
+        return {
+            "progress_id": progress_id,
+            "target_ids": target_ids,
+            "errors": _account_not_found_errors(missing_ids),
+        }
+
+    @router.post("/api/accounts/memory")
+    async def manage_account_memory(
+        body: AccountMemoryRequest,
+        authorization: str | None = Header(default=None),
+    ):
+        """Manage memory for a fixed, explicitly selected account scope."""
+        require_admin(authorization)
+        targets, missing_ids = _account_selection_targets(
+            body.selection,
+            body.account_ids,
+            body.access_tokens,
+            default_all=False,
+        )
+        if not targets:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "no valid accounts selected",
+                    "errors": _account_not_found_errors(missing_ids),
+                },
+            )
+
+        progress_id = str(uuid.uuid4())
+        (
+            _access_tokens,
+            target_ids,
+            id_by_token_hint,
+            sensitive_values,
+            proxy_values,
+        ) = _selected_refresh_context(targets)
+        action = f"{body.action}_memory"
+        _init_account_mutation_progress(
+            progress_id,
+            total=len(target_ids) + len(missing_ids),
+            missing_ids=missing_ids,
+            action=action,
+        )
+        action_label = {"enable": "开启记忆", "disable": "关闭记忆", "refresh": "刷新记忆状态", "clear": "清空记忆"}[body.action]
+        account_service.update_refresh_progress_stage(
+            progress_id,
+            "queued",
+            f"正在准备{action_label}",
+        )
+        enabled = {"enable": True, "disable": False, "refresh": None, "clear": None}[body.action]
+
+        async def _do_manage_account_memory() -> None:
+            try:
+                raw_result = await run_in_threadpool(
+                    account_service.manage_account_memory,
+                    target_ids,
+                    enabled=enabled,
+                    clear=body.action == "clear",
+                    progress_id=progress_id,
+                    finalize_progress=False,
+                )
+                result = _account_mutation_payload(
+                    confirmed=max(0, int(raw_result.get("confirmed") or 0)),
+                    pending=max(0, int(raw_result.get("pending") or 0)),
+                    skipped=max(0, int(raw_result.get("skipped") or 0)),
+                    updated_ids=list(raw_result.get("updated_ids") or []),
+                    removed_ids=[],
+                    errors=[
+                        *_account_not_found_errors(missing_ids),
+                        *_sanitize_refresh_errors(
+                            raw_result.get("errors"),
+                            id_by_token_hint=id_by_token_hint,
+                            sensitive_values=sensitive_values,
+                            proxy_values=proxy_values,
+                        ),
+                    ],
+                    events=normalize_account_operation_events(
+                        raw_result.get("events"),
+                        sensitive_values=sensitive_values,
+                        proxy_values=proxy_values,
+                    ),
+                    include_items=False,
+                )
+                account_service.finish_refresh_progress(progress_id, result)
+            except asyncio.CancelledError:
+                account_service.finish_refresh_progress(progress_id, error="memory operation cancelled")
+                raise
+            except Exception:
+                account_service.finish_refresh_progress(progress_id, error="memory operation failed")
+
+        _schedule_account_operation(_do_manage_account_memory())
         return {
             "progress_id": progress_id,
             "target_ids": target_ids,

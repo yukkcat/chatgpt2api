@@ -101,6 +101,7 @@ def project_account_operation_presentation(
     )
     processed = _count(progress.get("processed"))
     total = _count(progress.get("total"))
+    pending = 0
 
     if imported is not None:
         failed = _count(imported.get("failed"))
@@ -113,7 +114,13 @@ def project_account_operation_presentation(
     elif result is not None:
         failed = len(result.get("errors") or []) if isinstance(result.get("errors"), list) else 0
         summary_items = []
-        if "synced" in result:
+        if "confirmed" in result:
+            pending = _count(result.get("pending"))
+            summary_items.extend([
+                _summary_item("confirmed", "已确认", _count(result.get("confirmed"))),
+                _summary_item("pending", "待验证", pending, tone="warning" if pending else ""),
+            ])
+        elif "synced" in result:
             summary_items.append(_summary_item("synced", "同步", _count(result.get("synced"))))
         elif "refreshed" in result:
             summary_items.append(_summary_item(
@@ -128,15 +135,16 @@ def project_account_operation_presentation(
         summary_items.extend([
             _summary_item("failed", "失败", failed, tone="danger" if failed else ""),
             _summary_item("skipped", "跳过", _count(result.get("skipped"))),
-            _summary_item(
+        ])
+        if "confirmed" not in result:
+            summary_items.append(_summary_item(
                 "removed",
                 "移除",
                 len(result.get("removed_ids") or [])
                 if isinstance(result.get("removed_ids"), list)
                 else _count(result.get("removed")),
                 tone="warning" if result.get("removed_ids") or _count(result.get("removed")) else "",
-            ),
-        ])
+            ))
     else:
         failed = sum(
             1
@@ -157,7 +165,7 @@ def project_account_operation_presentation(
     elif not done:
         status_label = str(progress.get("stage_label") or "处理中").strip() or "处理中"
         tone = "info"
-    elif failed:
+    elif failed or pending:
         status_label = "部分完成"
         tone = "warning"
     else:
@@ -176,7 +184,7 @@ def project_account_operation_presentation(
             for item in summary_items
             if _count(item.get("value")) > 0
         ]
-        prefix = "任务部分完成" if failed else "任务完成"
+        prefix = "任务部分完成" if failed or pending else "任务完成"
         message = f"{prefix} · {' · '.join(parts)}" if parts else prefix
 
     return {

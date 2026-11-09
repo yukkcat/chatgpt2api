@@ -2,6 +2,8 @@ import { computed, ref, toRef } from 'vue'
 import { accountsApi } from '@/api/accounts'
 import type {
   Account,
+  AccountMemoryAction,
+  AccountMemoryFilter,
 } from '@/api/accounts'
 import { usePageRuntime } from '@/composables/usePageRuntime'
 import { usePagedQuery } from '@/composables/usePageQuery'
@@ -37,6 +39,7 @@ export function useAccountsPage() {
   const keyword = ref('')
   const statusFilter = ref<AccountStatusFilter>('all')
   const groupFilter = ref('all')
+  const memoryFilter = ref<AccountMemoryFilter>('all')
   const pageSize = ref(DEFAULT_PAGE_SIZE)
   const accounts = ref<Account[]>([])
   const accountAllTotal = ref(0)
@@ -56,6 +59,7 @@ export function useAccountsPage() {
       keyword: keyword.value.trim(),
       status: statusFilter.value,
       group_id: groupFilter.value,
+      memory_state: memoryFilter.value,
     }),
     resolvePage: (res) => res.page,
     resolvePageCount: (res) => {
@@ -86,6 +90,13 @@ export function useAccountsPage() {
     { label: '禁用', value: 'disabled' },
   ] as const
 
+  const memoryFilterOptions = [
+    { label: '记忆：全部', value: 'all' },
+    { label: '记忆：开启', value: 'enabled' },
+    { label: '记忆：关闭', value: 'disabled' },
+    { label: '记忆：未确认', value: 'unknown' },
+  ] as const
+
   const groupFilterOptions = computed(() => [
     { label: '全部账号组', value: 'all' },
     { label: '未分组', value: '__ungrouped__' },
@@ -103,6 +114,7 @@ export function useAccountsPage() {
     keyword,
     status: statusFilter,
     groupId: groupFilter,
+    memoryState: memoryFilter,
   })
   const selectedCount = accountSelection.selectedCount
   const scopedSelectionActive = accountSelection.scopedSelectionActive
@@ -340,6 +352,11 @@ export function useAccountsPage() {
     [item.id],
     { [item.id]: item.email || item.display_name || item.id },
   )
+  const runMemoryAction = (item: Account, action: AccountMemoryAction) => runBulkAction(
+    action,
+    [item.id],
+    { [item.id]: item.email || item.display_name || item.id },
+  )
 
   const pageLifecycle = useAccountPageLifecycleRuntime({
     runtime: pageRuntime,
@@ -349,6 +366,7 @@ export function useAccountsPage() {
     keyword,
     statusFilter,
     groupFilter,
+    memoryFilter,
     pageSizeDefault: DEFAULT_PAGE_SIZE,
     pageSizeOptions: ACCOUNT_PAGE_SIZE_OPTIONS,
     reloadTimerKey: LIST_RELOAD_TIMER_KEY,
@@ -397,8 +415,10 @@ export function useAccountsPage() {
     keyword,
     statusFilter,
     groupFilter,
+    memoryFilter,
     statusFilterOptions,
     groupFilterOptions,
+    memoryFilterOptions,
     editingId,
     accounts,
     accountListTotal,
@@ -513,6 +533,7 @@ export function useAccountsPage() {
     refreshAccessToken,
     removeAccount,
     runBulkAction,
+    runMemoryAction,
     bindSelectedAccountsToGroup,
     exportAccounts,
   }

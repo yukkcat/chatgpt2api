@@ -13,6 +13,10 @@ export type AccountRefreshTokenStatus = 'valid' | 'missing' | 'invalid'
 export type AccountCredentialAvailability = 'usable' | 'recoverable' | 'unavailable'
 export type AccountPresentationTone = 'neutral' | 'success' | 'warning' | 'error' | 'info'
 export type AccountGroupProxyMode = AccountProxyMode | 'profile'
+export type AccountMemoryState = 'enabled' | 'disabled' | 'unknown'
+export type AccountMemoryFilter = 'all' | AccountMemoryState
+export type AccountMemoryClearStatus = 'never' | 'verified' | 'pending' | 'failed'
+export type AccountMemoryAction = 'enable_memory' | 'disable_memory' | 'refresh_memory' | 'clear_memory'
 
 export interface Account {
   id: string
@@ -47,6 +51,22 @@ export interface Account {
   credential_availability: AccountCredentialAvailability
   credential_availability_label: string
   credential_availability_tone: AccountPresentationTone
+  memory_state: AccountMemoryState
+  memory_label: string
+  memory_tone: AccountPresentationTone
+  memory_checked_at: number | null
+  memory_operation_status: 'verified' | 'pending' | 'failed' | ''
+  memory_operation_label: string
+  memory_operation_tone: AccountPresentationTone
+  memory_operation_error: string
+  memory_operation_at?: number | null
+  memory_clear_status: AccountMemoryClearStatus
+  memory_clear_label: string
+  memory_clear_tone: AccountPresentationTone
+  memory_clear_at: number | null
+  memory_cleared_at: number | null
+  memory_clear_error: string
+  memory_actions: { key: AccountMemoryAction; label: string }[]
   refresh_token_invalid_at?: number | null
   last_token_refresh_at?: number | null
   last_token_refresh_error?: string | null
@@ -160,6 +180,8 @@ export interface AccountMutationResponse {
   skipped?: number
   synced?: number
   refreshed?: number
+  confirmed?: number
+  pending?: number
   updated?: number
   removed?: number
   updated_ids?: string[]
@@ -235,6 +257,8 @@ export interface AccountOperationProgress {
     added?: number
     synced?: number
     refreshed?: number
+    confirmed?: number
+    pending?: number
     skipped?: number
     updated?: number
     removed?: number
@@ -252,6 +276,7 @@ export type AccountListParams = {
   keyword?: string
   status?: 'all' | AccountStatusCategory
   group_id?: string
+  memory_state?: AccountMemoryFilter
 }
 
 export type AccountSelectionScope = {
@@ -261,6 +286,7 @@ export type AccountSelectionScope = {
   keyword?: string
   status?: 'all' | AccountStatusCategory
   group_id?: string
+  memory_state?: AccountMemoryFilter
 }
 
 export type AccountSelectionTarget = readonly string[] | AccountSelectionScope
@@ -352,6 +378,8 @@ function mutationProgress(
       added: response.added,
       synced: response.synced,
       refreshed: response.refreshed,
+      confirmed: response.confirmed,
+      pending: response.pending,
       skipped: response.skipped,
       updated: response.updated,
       removed: response.removed,
@@ -400,7 +428,7 @@ function mutationErrorTexts(errors: AccountMutationError[] | undefined): string[
 }
 
 function mapAccountsResponse(response: BackendAccountsResponse): AccountsResponse {
-  const accounts = Array.isArray(response.items) ? response.items : []
+  const accounts = Array.isArray(response.items) ? response.items.map(validateAccountMemoryProjection) : []
   return {
     accounts,
     total: Number.isFinite(Number(response.total)) ? Number(response.total) : accounts.length,
@@ -408,6 +436,35 @@ function mapAccountsResponse(response: BackendAccountsResponse): AccountsRespons
     page: Number.isFinite(Number(response.page)) ? Number(response.page) : undefined,
     page_size: Number.isFinite(Number(response.page_size)) ? Number(response.page_size) : undefined,
   }
+}
+
+function validateAccountMemoryProjection<T extends Account>(account: T): T {
+  const tones: readonly string[] = ['neutral', 'success', 'warning', 'error', 'info']
+  if (
+    !['enabled', 'disabled', 'unknown'].includes(account.memory_state)
+    || !cleanString(account.memory_label)
+    || !tones.includes(account.memory_tone)
+    || !(account.memory_checked_at === null || Number.isFinite(account.memory_checked_at))
+    || !['', 'verified', 'pending', 'failed'].includes(account.memory_operation_status)
+    || typeof account.memory_operation_label !== 'string'
+    || !tones.includes(account.memory_operation_tone)
+    || typeof account.memory_operation_error !== 'string'
+    || !['never', 'verified', 'pending', 'failed'].includes(account.memory_clear_status)
+    || !cleanString(account.memory_clear_label)
+    || !tones.includes(account.memory_clear_tone)
+    || !(account.memory_clear_at === null || Number.isFinite(account.memory_clear_at))
+    || !(account.memory_cleared_at === null || Number.isFinite(account.memory_cleared_at))
+    || typeof account.memory_clear_error !== 'string'
+    || !Array.isArray(account.memory_actions)
+    || account.memory_actions.some((action) => (
+      !action
+      || !['enable_memory', 'disable_memory', 'refresh_memory', 'clear_memory'].includes(action.key)
+      || !cleanString(action.label)
+    ))
+  ) {
+    throw new Error('账号响应缺少有效的记忆状态投影')
+  }
+  return account
 }
 
 export function accountOperationPollDelayMs(elapsedMs: number) {
@@ -422,6 +479,7 @@ async function pollAccountOperation(
   endpoint:
     | '/api/accounts/sync'
     | '/api/accounts/refresh-access-token'
+    | '/api/accounts/memory'
     | '/api/accounts/batch-update'
     | '/api/accounts',
   target: AccountSelectionTarget,
@@ -548,7 +606,7 @@ export const accountsApi = {
     const response = await apiClient.get<never, { item: AccountDetail }>(
       `/api/accounts/${encodeURIComponent(cleanString(accountId))}`,
     )
-    return response.item
+    return validateAccountMemoryProjection(response.item)
   },
 
   testAccount: (accountId: string, payload: AccountTestPayload) =>
@@ -766,6 +824,16 @@ export const accountsApi = {
     onProgress?: (progress: AccountOperationProgress) => void,
     targetCount?: number,
   ) => pollAccountOperation('/api/accounts/refresh-access-token', target, onProgress, { targetCount }),
+
+  memoryWithProgress: (
+    target: AccountSelectionTarget,
+    action: 'enable' | 'disable' | 'refresh' | 'clear',
+    onProgress?: (progress: AccountOperationProgress) => void,
+    targetCount?: number,
+  ) => pollAccountOperation('/api/accounts/memory', target, onProgress, {
+    targetCount,
+    extraPayload: { action },
+  }),
 
   previewSelection: (selection: AccountSelectionScope) =>
     apiClient.post<

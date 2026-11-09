@@ -54,6 +54,22 @@ export function accountRowSignature(item: Account): string {
     item.last_token_refresh_at,
     item.last_token_refresh_error,
     item.last_token_refresh_error_at,
+    item.memory_state,
+    item.memory_label,
+    item.memory_tone,
+    item.memory_checked_at,
+    item.memory_operation_status,
+    item.memory_operation_label,
+    item.memory_operation_tone,
+    item.memory_operation_error,
+    item.memory_operation_at,
+    item.memory_clear_status,
+    item.memory_clear_label,
+    item.memory_clear_tone,
+    item.memory_clear_at,
+    item.memory_cleared_at,
+    item.memory_clear_error,
+    item.memory_actions?.map((action) => `${action.key}:${action.label}`).join(','),
   ].map(signatureValue).join('|')
 }
 

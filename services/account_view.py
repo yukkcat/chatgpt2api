@@ -216,6 +216,77 @@ def account_status_category(account: dict[str, Any]) -> AccountStatusCategory:
     )
 
 
+def account_memory_state(account: dict[str, Any]) -> Literal["enabled", "disabled", "unknown"]:
+    value = account.get("memory_enabled")
+    if value is True:
+        return "enabled"
+    if value is False:
+        return "disabled"
+    return "unknown"
+
+
+def account_memory_clear_status(account: dict[str, Any]) -> Literal["never", "verified", "pending", "failed"]:
+    """Project the latest clear attempt, not whether memories currently exist."""
+    status = _text(account.get("memory_clear_status"))
+    if status == "verified":
+        return "verified"
+    if status == "pending":
+        return "pending"
+    if status == "failed":
+        return "failed"
+    return "never"
+
+
+def _memory(account: dict[str, Any], credential_lifecycle: dict[str, Any]) -> dict[str, Any]:
+    state = account_memory_state(account)
+    label, tone = {
+        "enabled": ("开启", "success"),
+        "disabled": ("关闭", "neutral"),
+        "unknown": ("未确认", "neutral"),
+    }[state]
+    operation = _text(account.get("memory_operation_status"))
+    if operation not in {"verified", "pending", "failed"}:
+        operation = ""
+    operation_label, operation_tone = {
+        "verified": ("", "success"),
+        "pending": ("待验证", "warning"),
+        "failed": ("操作失败", "error"),
+    }.get(operation, ("", "neutral"))
+    clear_status = account_memory_clear_status(account)
+    clear_label, clear_tone = {
+        "never": ("未操作", "neutral"),
+        "verified": ("清空成功", "success"),
+        "pending": ("待验证", "warning"),
+        "failed": ("清空失败", "error"),
+    }[clear_status]
+    actions = []
+    if credential_lifecycle["credential_availability"] != "unavailable":
+        if state != "enabled":
+            actions.append({"key": "enable_memory", "label": "开启记忆"})
+        if state != "disabled":
+            actions.append({"key": "disable_memory", "label": "关闭记忆"})
+        actions.append({"key": "refresh_memory", "label": "刷新记忆状态"})
+        actions.append({"key": "clear_memory", "label": "清空记忆"})
+    return {
+        "memory_state": state,
+        "memory_label": label,
+        "memory_tone": tone,
+        "memory_checked_at": _timestamp_seconds(account.get("memory_checked_at")),
+        "memory_operation_status": operation,
+        "memory_operation_label": operation_label,
+        "memory_operation_tone": operation_tone,
+        "memory_operation_error": _diagnostic(account.get("memory_operation_error"), account),
+        "memory_operation_at": _timestamp_seconds(account.get("memory_operation_at")),
+        "memory_clear_status": clear_status,
+        "memory_clear_label": clear_label,
+        "memory_clear_tone": clear_tone,
+        "memory_clear_at": _timestamp_seconds(account.get("memory_clear_at")),
+        "memory_cleared_at": _timestamp_seconds(account.get("memory_cleared_at")),
+        "memory_clear_error": _diagnostic(account.get("memory_clear_error"), account),
+        "memory_actions": actions,
+    }
+
+
 def _proxy(account: dict[str, Any]) -> tuple[str, str, str, str]:
     projection = project_proxy_assignment(
         account.get("proxy"),
@@ -290,6 +361,7 @@ def account_row(
         "enabled_action_label": "停用账号" if enabled_action == "disable" else "恢复启用",
         "available": bool(available),
         **credential_lifecycle,
+        **_memory(account, credential_lifecycle),
         "quota_remaining": quota_remaining,
         "quota_unknown": quota_unknown,
         "quota_unlimited": bool(unlimited_quota),

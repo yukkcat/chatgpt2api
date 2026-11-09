@@ -32,6 +32,37 @@
 
 图表默认周期和自动刷新间隔属于浏览器交互偏好，由 Dashboard 页面 Module 通过 `localStorage` 持有，不进入后端系统设置或 Application Database。每次重新进入概览页面时，五张图读取同一个默认周期；进入页面后仍可分别切换。浏览器标签页仅从隐藏恢复可见时继续现有选择，不重置图表周期。
 
+## 账号记忆状态
+
+账号列表投影提供 `memory_state`（`enabled`、`disabled`、`unknown`）、
+`memory_label`、`memory_tone`、`memory_checked_at`，以及 `memory_actions`
+允许的操作。页面直接渲染标签、色调和动作，不根据凭据或原始布尔值反算。
+`memory_label` 分别为“开启”“关闭”“未确认”；开启使用 `success`，关闭和未确认使用
+`neutral`。旧账号及未查询账号显示为未确认。状态和时间表示最后一次确认的快照，不代表实时查询。
+
+`memory_operation_status`、`memory_operation_label`、`memory_operation_tone`
+和安全的 `memory_operation_error` 描述最近操作；待验证或失败不覆盖之前确认的
+状态。关闭记忆只修改上游 `m3m` 开关，不删除已有记忆。
+
+清空结果独立投影为 `memory_clear_status`（`never`、`verified`、`pending`、`failed`）、
+`memory_clear_label`、`memory_clear_tone` 和经过脱敏的 `memory_clear_error`。
+标签分别为“未操作”“清空成功”“待验证”“清空失败”；色调分别为
+`neutral`、`success`、`warning`、`error`。`memory_clear_at` 表示最近清空尝试时间，
+`memory_cleared_at` 表示最近确认成功时间。失败或后续待验证不会抹除过去成功时间。
+这些字段只记录历史操作结果，不能据此断定账号当前没有记忆；后续仍可能产生新记忆。
+清空不修改记忆开关，也不覆盖开关操作结果，后端不保存或返回记忆内容。
+
+`GET /api/accounts` 和选择范围均接受 `memory_state`（`all | enabled | disabled | unknown`）
+筛选；列表数量、分页、预览、跨页全选及筛选导出共用后端条件。
+`POST /api/accounts/memory` 接收现有
+选择范围和 `action: enable | disable | refresh | clear`，单个账号也走同一路径。
+操作启动时固定目标 ID，结果在现有进度契约中提供 `confirmed`、`pending`、
+失败和跳过计数；仅收到上游接受响应不能视为已确认成功。
+清空后读取上游记忆列表，只在明确为空且 token 数为 0 时确认成功，其余接受结果保持待验证。
+`refresh` 对待验证的清空记录只执行回读，不重发清空请求；成功后保留原清空尝试时间，
+更新最近成功时间。界面复用已有确认框、单个与批量菜单和操作进度，清空前明确提示不可恢复；
+清空记录放在记忆状态悬浮详情中，与开关状态分开展示。
+
 ## 调用和图片结果
 
 `CallOutcome` 的当前值为 `success`、`failed`、`rate_limited`、`text_review`、`partial_success` 和 `unknown`。日志、实时监控和概览读取同一套后端结果投影；它们可以显示不同粒度，但不能各自重新分类。

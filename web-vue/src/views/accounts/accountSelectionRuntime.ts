@@ -2,6 +2,7 @@ import { computed, ref, type ComputedRef, type Ref } from 'vue'
 
 import type {
   Account,
+  AccountMemoryFilter,
   AccountSelectionPreview,
   AccountSelectionScope,
   AccountStatusCategory,
@@ -15,15 +16,16 @@ type AccountSelectionRuntimeOptions = {
   keyword: Ref<string>
   status: Ref<'all' | AccountStatusCategory>
   groupId: Ref<string>
+  memoryState: Ref<AccountMemoryFilter>
 }
 
-type FilterSnapshot = Pick<AccountSelectionScope, 'keyword' | 'status' | 'group_id'>
+type FilterSnapshot = Pick<AccountSelectionScope, 'keyword' | 'status' | 'group_id' | 'memory_state'>
 
 export function useAccountSelectionRuntime(options: AccountSelectionRuntimeOptions) {
   const selectionMode = ref<'explicit' | 'filter' | 'all'>('explicit')
   const selectedIds = ref<string[]>([])
   const excludedIds = ref<string[]>([])
-  const filterSnapshot = ref<FilterSnapshot>({ keyword: '', status: 'all', group_id: 'all' })
+  const filterSnapshot = ref<FilterSnapshot>({ keyword: '', status: 'all', group_id: 'all', memory_state: 'all' })
   const selectionRevision = ref(0)
   const authoritativeSelectedCount = ref<number | null>(null)
 
@@ -70,6 +72,7 @@ export function useAccountSelectionRuntime(options: AccountSelectionRuntimeOptio
     return filterSnapshot.value.keyword === options.keyword.value.trim()
       && filterSnapshot.value.status === options.status.value
       && filterSnapshot.value.group_id === options.groupId.value
+      && filterSnapshot.value.memory_state === options.memoryState.value
   })
 
   function pruneToCurrentAccounts() {
@@ -129,6 +132,7 @@ export function useAccountSelectionRuntime(options: AccountSelectionRuntimeOptio
       keyword: options.keyword.value.trim(),
       status: options.status.value,
       group_id: options.groupId.value,
+      memory_state: options.memoryState.value,
     }
     authoritativeSelectedCount.value = options.total.value
     selectionRevision.value += 1

@@ -26,7 +26,7 @@
 import { computed } from 'vue'
 import { Button } from 'nanocat-ui'
 import type { ActionMenuItem } from 'nanocat-ui'
-import type { Account } from '@/api/accounts'
+import type { Account, AccountMemoryAction } from '@/api/accounts'
 import FloatingActionMenu from './FloatingActionMenu.vue'
 import { actionMenuGroups } from './menuItems'
 
@@ -49,6 +49,7 @@ const emit = defineEmits<{
   (e: 'toggle-enabled'): void
   (e: 'sync-account'): void
   (e: 'refresh-access-token'): void
+  (e: 'memory-action', action: AccountMemoryAction): void
   (e: 'remove'): void
 }>()
 
@@ -79,6 +80,12 @@ const menuItems = computed<ActionMenuItem[]>(() => actionMenuGroups(
       disabled: props.busy,
     },
   ],
+  (props.item.memory_actions || []).map((action) => ({
+    key: action.key,
+    label: action.label,
+    danger: action.key === 'clear_memory',
+    disabled: props.busy,
+  })),
   [
     {
       key: 'toggle-enabled',
@@ -97,6 +104,8 @@ const menuItems = computed<ActionMenuItem[]>(() => actionMenuGroups(
 ))
 
 function handleSelect(key: string) {
+  const memoryAction = props.item.memory_actions?.find((action) => action.key === key)
+  if (memoryAction) emit('memory-action', memoryAction.key)
   if (key === 'test') emit('test')
   if (key === 'toggle-enabled') emit('toggle-enabled')
   if (key === 'sync-account') emit('sync-account')

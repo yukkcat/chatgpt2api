@@ -53,6 +53,27 @@ compatibility names and do not force a particular official API image engine or
 quality entitlement. Existing `gpt-image-2` and Codex routing and the default
 image model remain unchanged.
 
+### Upstream Account memory
+
+`POST /api/accounts/memory` starts an administrator-only `enable`, `disable`,
+`refresh`, or `clear` operation using existing selection and progress interfaces.
+The `memory_state` filter is shared by listing,
+pagination, selection preview and filtered batch/export membership. Empty selections are rejected and target IDs
+are fixed before the background worker starts.
+
+`AccountService.manage_account_memory` owns credentials, shared processing
+capacity, per-account mutation and stored snapshots. `OpenAIBackendAPI` owns
+the upstream `m3m` and saved-memory clearing protocols and verification.
+`account_view` independently projects the switch snapshot, clear record and
+allowed actions; `account_operation_events` distinguishes confirmed,
+pending verification and failed results. Metadata remains in the Account
+Repository without storing memory contents; progress retains the existing
+process-memory lifecycle. Account-local mutual exclusion applies within one
+process, while credential and operation compare-and-swap guards reject stale
+metadata writes. It does not serialize upstream calls across processes.
+See [critical-flows.md](critical-flows.md#upstream-account-memory-maintenance)
+for verification and protocol evidence.
+
 ## Domain and persistence ownership
 
 | Domain | Owning Module | Stable Interface/output | Persistence |

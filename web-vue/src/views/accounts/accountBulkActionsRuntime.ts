@@ -3,6 +3,7 @@ import type { Ref } from 'vue'
 import {
   accountsApi,
   type AccountGroup,
+  type AccountMemoryAction,
   type AccountOperationProgress,
   type AccountSelectionScope,
   type AccountSelectionTarget,
@@ -12,9 +13,9 @@ import { useConfirmDialog } from '@/composables/useConfirmDialog'
 import { useToast } from '@/composables/useToast'
 import type { useAccountBulkProgressRuntime } from './accountBulkProgressRuntime'
 
-export type AccountBulkAction = 'sync' | 'refresh-access-token' | 'enable' | 'disable' | 'delete'
-type AccountCredentialAction = Extract<AccountBulkAction, 'sync' | 'refresh-access-token'>
-type AccountMutationAction = Exclude<AccountBulkAction, AccountCredentialAction>
+export type AccountBulkAction = 'sync' | 'refresh-access-token' | 'enable' | 'disable' | 'delete' | AccountMemoryAction
+type AccountRemoteAction = Extract<AccountBulkAction, 'sync' | 'refresh-access-token' | AccountMemoryAction>
+type AccountMutationAction = Exclude<AccountBulkAction, AccountRemoteAction>
 
 type AccountSelectionAdapter = {
   selectedIds: Ref<string[]>
@@ -58,39 +59,55 @@ function accountLabel(accountId: string, labels?: Readonly<Record<string, string
   return String(labels?.[accountId] || '').trim() || accountId
 }
 
-function credentialActionMeta(action: AccountCredentialAction) {
-  return action === 'sync'
-    ? { title: '批量同步账号与额度', verb: '同步', kind: 'sync' as const }
-    : { title: '批量刷新 AT', verb: '刷新 AT', kind: 'credentials' as const }
+function remoteActionMeta(action: AccountRemoteAction) {
+  return {
+    sync: { title: '批量同步账号与额度', singleTitle: '同步账号与额度', verb: '同步账号与额度', kind: 'sync' as const },
+    'refresh-access-token': { title: '批量刷新 AT', singleTitle: '刷新 AT', verb: '刷新 AT', kind: 'credentials' as const },
+    enable_memory: { title: '批量开启记忆', singleTitle: '开启记忆', verb: '开启记忆', kind: 'memory' as const },
+    disable_memory: { title: '批量关闭记忆', singleTitle: '关闭记忆', verb: '关闭记忆', kind: 'memory' as const },
+    refresh_memory: { title: '批量刷新记忆状态', singleTitle: '刷新记忆状态', verb: '刷新记忆状态', kind: 'memory' as const },
+    clear_memory: { title: '批量清空记忆', singleTitle: '清空记忆', verb: '清空记忆', kind: 'memory' as const },
+  }[action]
 }
 
 export function useAccountBulkActionsRuntime(options: AccountBulkActionsRuntimeOptions) {
   const toast = useToast()
   const confirmDialog = useConfirmDialog()
 
-  async function runCredentialActionWithProgress(
-    action: AccountCredentialAction,
+  async function runRemoteActionWithProgress(
+    action: AccountRemoteAction,
     target: AccountSelectionTarget,
     targetCount: number,
     useSelectionScope: boolean,
   ) {
-    const meta = credentialActionMeta(action)
+    const meta = remoteActionMeta(action)
+    const title = !useSelectionScope && targetCount === 1 ? meta.singleTitle : meta.title
+    const message = useSelectionScope
+      ? `即将对当前筛选条件下选中的 ${targetCount} 个账号${meta.verb}，是否继续？`
+      : `即将对 ${targetCount} 个账号${meta.verb}，是否继续？`
     const confirmed = await confirmDialog.ask({
-      title: meta.title,
-      message: useSelectionScope
-        ? `即将${meta.verb}当前筛选条件下选中的 ${targetCount} 个账号，是否继续？`
-        : `即将${meta.verb} ${targetCount} 个账号，后端会按账号批量任务并发执行。是否继续？`,
-      confirmText: `开始${meta.verb}`,
+      title,
+      message: action === 'clear_memory'
+        ? `${message}此操作将永久删除已保存的记忆，无法恢复，不会切换记忆开关。`
+        : action === 'disable_memory' ? `${message}关闭记忆不会删除已有记忆。` : message,
+      confirmText: action === 'clear_memory' ? '永久清空记忆' : `开始${meta.verb}`,
       cancelText: '取消',
     })
     if (!confirmed) return
 
-    await options.bulkProgress.start(meta.title, targetCount, meta.kind)
+    await options.bulkProgress.start(title, targetCount, meta.kind)
 
     try {
-      const request = action === 'sync'
+      const request: typeof accountsApi.syncAccountsWithProgress = action === 'sync'
         ? accountsApi.syncAccountsWithProgress
-        : accountsApi.refreshAccessTokensWithProgress
+        : action === 'refresh-access-token'
+          ? accountsApi.refreshAccessTokensWithProgress
+          : (requestTarget, onProgress, count) => accountsApi.memoryWithProgress(
+            requestTarget,
+            { enable_memory: 'enable', disable_memory: 'disable', refresh_memory: 'refresh', clear_memory: 'clear' }[action] as 'enable' | 'disable' | 'refresh' | 'clear',
+            onProgress,
+            count,
+          )
       const result = await request(target, (progress) => {
         options.bulkProgress.update({
           ...progress,
@@ -120,7 +137,7 @@ export function useAccountBulkActionsRuntime(options: AccountBulkActionsRuntimeO
         Number(options.bulkProgress.refreshProgress.value?.processed || 0),
         options.normalizeErrorMessage(error),
       )
-      options.setError(`${meta.title}失败`, error, false)
+      options.setError(`${title}失败`, error, false)
       await options.loadData({ silentErrorToast: true })
     } finally {
       options.bulkProgress.end()
@@ -136,16 +153,17 @@ export function useAccountBulkActionsRuntime(options: AccountBulkActionsRuntimeO
     if (useSelectionScope && !await options.reconcileSelection()) return
     const targetIds = uniqueIds(ids || options.accountSelection.selectedIds.value)
     const targetCount = useSelectionScope ? options.accountSelection.selectedCount.value : targetIds.length
+    const scope = options.accountSelection.selectionScope.value
     const target: AccountSelectionTarget = useSelectionScope
-      ? options.accountSelection.selectionScope.value
+      ? { ...scope, account_ids: [...(scope.account_ids || [])], excluded_account_ids: [...(scope.excluded_account_ids || [])] }
       : targetIds
     if (!targetCount) {
       toast.warning('请先选择账号')
       return
     }
 
-    if (action === 'sync' || action === 'refresh-access-token') {
-      await runCredentialActionWithProgress(action, target, targetCount, useSelectionScope)
+    if (action === 'sync' || action === 'refresh-access-token' || action === 'enable_memory' || action === 'disable_memory' || action === 'refresh_memory' || action === 'clear_memory') {
+      await runRemoteActionWithProgress(action, target, targetCount, useSelectionScope)
       return
     }
 

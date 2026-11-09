@@ -43,6 +43,46 @@ sequenceDiagram
 sources finish through `RemoteAccountImportJob.finish`; source adapters do not
 implement a second save lifecycle. The UI owns polling and presentation only.
 
+## Upstream Account memory maintenance
+
+The Accounts runtime sends an explicit or scoped selection and an enable,
+disable, refresh or clear action to `POST /api/accounts/memory`. The route resolves
+a fixed list of management IDs and schedules `AccountService.manage_account_memory` through
+the existing background operation lifecycle. The service obtains credentials
+and account-processing capacity, calls `OpenAIBackendAPI`, and persists only
+the relevant account metadata under credential and operation compare-and-swap
+guards. In-process mutual exclusion covers switch and clear operations on the
+same account; it does not provide cross-process upstream serialization.
+A PATCH is followed by a settings read; accepted updates without verification
+remain pending, while confirmed values update the switch snapshot.
+
+Clearing sends `DELETE /backend-api/settings/clear_account_user_memory` with
+JSON `{}` and reads `GET /backend-api/memories?include_memory_entries=true`
+with cache bypass. Only an explicit empty `memories` list and
+`memory_num_tokens=0` confirm success. Other accepted outcomes remain pending.
+The clear record is independent of the switch snapshot and does not store
+memory contents. Refreshing a pending clear performs verification only, never
+another DELETE; confirmation updates the last-success time while retaining the
+original attempt time. Failed verification preserves the switch snapshot and
+past clear-success time. A historical clear does not imply that no memories
+were saved afterward.
+
+The clearing protocol is supported by `clearUserMemory`, `deleteWithPayload`
+and `getMemories` in the
+[third-party archive of the ChatGPT frontend source](https://github.com/0xdevalias/chatgpt-source-watch/blob/88970f48f28e18a41341e446374f9727187dff08/unpacked/_next/static/chunks/pages/_app.js#L80875)
+from April 26, 2024. The archive's content commit explicitly identifies that
+date. This is historical protocol evidence, not official public API documentation.
+The archive establishes the base `/memories` route. Current single-account
+verification of both switch values, the clearing request and the
+`include_memory_entries=true` read-back is recorded in the
+[requirement verification evidence](../requirements/0002-account-memory-controls.md#acceptance-criteria-and-verification-matrix).
+
+The switch snapshot feeds the shared account filter; clear history is shown
+only in memory details.
+Vue polls the generic operation endpoint
+and renders backend-produced events and counters. Process restart loses the
+existing in-memory progress and does not replay upstream changes.
+
 ## Studio Image Task
 
 ```mermaid

@@ -50,6 +50,10 @@ const BIND_ACCOUNT_GROUP_ACTION_PREFIX = 'bind_group:'
 const accountBulkActions = new Set<AccountBulkAction>([
   'sync',
   'refresh-access-token',
+  'enable_memory',
+  'disable_memory',
+  'refresh_memory',
+  'clear_memory',
   'enable',
   'disable',
   'delete',
@@ -144,6 +148,12 @@ export function useAccountActionMenuRuntime(options: AccountActionMenuRuntimeOpt
     [
       { key: 'refresh-access-token', label: '批量刷新 AT', disabled: options.selectedCount.value === 0 },
       { key: 'sync', label: '批量同步账号与额度', disabled: options.selectedCount.value === 0 },
+    ],
+    [
+      { key: 'enable_memory', label: '批量开启记忆', disabled: options.selectedCount.value === 0 },
+      { key: 'disable_memory', label: '批量关闭记忆', disabled: options.selectedCount.value === 0 },
+      { key: 'refresh_memory', label: '刷新记忆状态', disabled: options.selectedCount.value === 0 },
+      { key: 'clear_memory', label: '批量清空记忆', danger: true, disabled: options.selectedCount.value === 0 },
     ],
     bindAccountGroupBatchItems.value,
     [
