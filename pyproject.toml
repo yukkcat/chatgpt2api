@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "chatgpt2api"
-version = "3.2.7"
+version = "3.2.8"
 description = "Add your description here"
 readme = "README.md"
 license = "AGPL-3.0-only"

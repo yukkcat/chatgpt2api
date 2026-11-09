@@ -187,13 +187,7 @@ export const IMAGE_COUNT_OPTIONS = [
 
 export function imageCountOptions(maxCount?: number) {
   const max = Number.isFinite(Number(maxCount)) ? Math.max(1, Math.trunc(Number(maxCount))) : 4
-  // Keep the quick-choice grid bounded for very large configured values; the
-  // adjacent number input still accepts any integer at or above 1.
-  const quickMax = Math.min(max, 20)
-  const values = Array.from({ length: quickMax }, (_, index) => index + 1)
-  if (max > quickMax) values.push(max)
-  return values
-    .map((value) => ({ label: `${value} 张`, value }))
+  return IMAGE_COUNT_OPTIONS.filter((option) => option.value <= max)
 }
 
 function cleanString(value: unknown, fallback = '') {

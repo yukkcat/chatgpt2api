@@ -157,29 +157,36 @@
                       block
                     />
                   </div>
-                  <div v-if="props.imageForm.outputFormat === 'gif'" class="studio-size-section">
+                  <div v-if="props.imageGifEnabled && props.imageForm.outputFormat === 'gif'" class="studio-size-section">
                     <div class="studio-size-label">GIF 参数</div>
+                    <p class="studio-format-hint">帧数和帧间隔仅在选择 GIF 输出时生效。</p>
                     <div class="studio-frame-fields">
                       <label class="studio-frame-field">
                         <span>帧数</span>
-                        <input
-                          v-model="imageFrameCountValue"
+                        <Input
+                          :model-value="imageFrameCountValue"
                           type="text"
                           inputmode="numeric"
                           autocomplete="off"
                           placeholder="可选"
                           :disabled="isSending"
+                          block
+                          root-class="studio-frame-input"
+                          @update:model-value="imageFrameCountValue = String($event)"
                         />
                       </label>
                       <label class="studio-frame-field">
                         <span>帧间隔（毫秒）</span>
-                        <input
-                          v-model="imageFrameDurationMsValue"
+                        <Input
+                          :model-value="imageFrameDurationMsValue"
                           type="text"
                           inputmode="numeric"
                           autocomplete="off"
                           placeholder="可选"
                           :disabled="isSending"
+                          block
+                          root-class="studio-frame-input"
+                          @update:model-value="imageFrameDurationMsValue = String($event)"
                         />
                       </label>
                     </div>
@@ -214,17 +221,26 @@
                       >
                         {{ option.label }}
                       </Button>
-                      <input
-                        v-model.number="imageCountValue"
+                    </div>
+                    <label class="studio-count-field">
+                      <span>自定义数量</span>
+                      <Input
+                        :model-value="imageCountDraft"
                         type="number"
+                        inputmode="numeric"
                         min="1"
                         :max="props.imageMaxN"
                         step="1"
-                        class="studio-count-input"
                         aria-label="图片数量"
                         :disabled="isSending"
+                        block
+                        root-class="studio-count-input"
+                        @update:model-value="imageCountDraft = String($event)"
+                        @blur="commitImageCount"
+                        @keydown.enter.stop.prevent="commitImageCount"
                       />
-                    </div>
+                    </label>
+                    <p class="studio-size-current">可填写 1–{{ props.imageMaxN }} 张，上限可在系统设置中调整。</p>
                   </div>
                   <div class="studio-size-section">
                     <div class="studio-size-label">比例</div>
@@ -323,7 +339,7 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { Button } from 'nanocat-ui'
+import { Button, Input } from 'nanocat-ui'
 import type { ActionMenuItem } from 'nanocat-ui'
 import FloatingActionMenu from '@/components/ai/FloatingActionMenu.vue'
 import { GroupedSelectMenu } from 'nanocat-ui'
@@ -332,6 +348,7 @@ import {
   DEFAULT_IMAGE_SIZE,
   imageCountOptions,
   IMAGE_QUALITY_OPTIONS,
+  normalizeImageCount,
   formatImageSizeLabel,
   resolveImageSizePresets,
   type ImageSizeResolution,
@@ -354,7 +371,7 @@ const props = defineProps<{
   imageModelOptions: string[]
   imageHighResolutionEnabled: boolean
   imageGifEnabled: boolean
-  imageMaxN?: number
+  imageMaxN: number
   references: StudioReference[]
   isSending: boolean
   isStreaming: boolean
@@ -392,6 +409,7 @@ const fileInputRef = ref<HTMLInputElement | null>(null)
 const settingsAnchorRef = ref<HTMLElement | null>(null)
 const isDragging = ref(false)
 const settingsOpen = ref(false)
+const imageCountDraft = ref(String(props.imageForm.n))
 let textareaResizeFrame = 0
 let composerResizeObserver: ResizeObserver | null = null
 
@@ -467,18 +485,11 @@ const imageFrameDurationMsValue = computed({
   set: (value: string) => emit('update:imageFrameDurationMs', value),
 })
 
-const imageCountValue = computed({
-  get: () => props.imageForm.n,
-  set: (value: number | string) => {
-    const count = Number(value)
-    if (Number.isFinite(count)) {
-      const maximum = Number.isFinite(Number(props.imageMaxN))
-        ? Math.max(1, Math.trunc(Number(props.imageMaxN)))
-        : Number.POSITIVE_INFINITY
-      emit('update:imageCount', Math.min(maximum, Math.max(1, Math.trunc(count))))
-    }
-  },
-})
+function commitImageCount(event: Event) {
+  const count = Math.min(props.imageMaxN, normalizeImageCount(imageCountDraft.value))
+  imageCountDraft.value = String(count)
+  emit('update:imageCount', count)
+}
 
 const chatModelSelectOptions = computed(() => props.chatModelOptions.map((model) => ({
   label: model === 'auto' ? '自动模型' : model,
@@ -574,6 +585,9 @@ const imageSummaryLabel = computed(() => {
     ? ` · ${selectedImageOutputFormatLabel.value}`
     : ''
   return `${formatImageSizeLabel(props.imageForm.size)}${format}${count}`
+})
+watch(() => props.imageForm.n, (count) => {
+  imageCountDraft.value = String(count)
 })
 watch(
   [() => props.imageForm.outputFormat, () => props.imageGifEnabled, () => props.references.length],
@@ -748,8 +762,10 @@ function isImageFile(file: File) {
 
 function handleOutsideClick(event: MouseEvent) {
   if (!settingsOpen.value) return
-  const target = event.target as Node
+  const target = event.target
+  if (!(target instanceof Element)) return
   if (settingsAnchorRef.value?.contains(target)) return
+  if (target.closest('.grouped-select-menu')) return
   closeFloatingMenus()
 }
 
@@ -1152,6 +1168,13 @@ onBeforeUnmount(() => {
   font-weight: 700;
 }
 
+.studio-format-hint {
+  margin: -0.2rem 0 0.55rem;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
 .studio-choice-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1166,15 +1189,17 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 
+.studio-count-field {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.55rem;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.75rem;
+}
+
 .studio-count-input {
-  min-width: 0;
-  width: 100%;
-  border: 1px solid hsl(var(--border));
-  border-radius: 0.55rem;
-  background: hsl(var(--background));
-  padding: 0.45rem 0.55rem;
-  color: hsl(var(--foreground));
-  font-size: 0.8rem;
   text-align: center;
 }
 
@@ -1199,23 +1224,8 @@ onBeforeUnmount(() => {
   font-weight: 700;
 }
 
-.studio-frame-field input {
-  width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-  border: 1px solid hsl(var(--border));
-  border-radius: 0.55rem;
-  background: hsl(var(--background));
-  padding: 0.45rem 0.55rem;
-  color: hsl(var(--foreground));
-  font: inherit;
+.studio-frame-input {
   font-weight: 500;
-  outline: none;
-}
-
-.studio-frame-field input:focus {
-  border-color: hsl(var(--ring));
-  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.18);
 }
 
 .studio-drop-overlay {
