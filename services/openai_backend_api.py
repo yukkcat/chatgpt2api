@@ -46,7 +46,7 @@ from utils.helper import UpstreamHTTPError, ensure_ok, iter_sse_payloads, new_uu
 from utils.diagnostics import diagnostic_excerpt
 from utils.log import logger
 from utils.pow import build_legacy_requirements_token, build_proof_token, parse_pow_resources
-from utils.turnstile import solve_turnstile_token
+from services.sentinel_solver_client import solve_turnstile, solver_user_agent
 
 
 @dataclass
@@ -197,6 +197,9 @@ class EditableFileExportResult:
     zip_path: Path
 
 
+IMAGE_CREATION_MENTION = "@创建图像"
+
+
 class OpenAIBackendAPI:
     """ChatGPT Web 后端封装。
 
@@ -324,18 +327,29 @@ class OpenAIBackendAPI:
             value = str(account.get(key) or "").strip()
             if value:
                 fp[key] = value
+        solver_ua = solver_user_agent()
+        if solver_ua:
+            fp["user-agent"] = solver_ua
         fp.setdefault(
             "user-agent",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-            "(KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0",
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
         )
-        fp.setdefault("impersonate", "chrome110")
+        fp.setdefault("impersonate", "chrome120")
         fp.setdefault("oai-device-id", new_uuid())
         fp.setdefault("oai-session-id", new_uuid())
-        fp.setdefault("sec-ch-ua", '"Microsoft Edge";v="143", "Chromium";v="143", "Not A(Brand";v="24"')
+        fp.setdefault("sec-ch-ua", '"Not;A=Brand";v="8", "Chromium";v="150", "Google Chrome";v="150"')
         fp.setdefault("sec-ch-ua-mobile", "?0")
-        fp.setdefault("sec-ch-ua-platform", '"Windows"')
+        fp.setdefault("sec-ch-ua-platform", '"Linux"')
         return fp
+
+    def _runtime_timezone_info(self) -> tuple[str, int]:
+        """动态获取当前出口 IP 所在的时区名称与 JS 偏移分钟数。"""
+        proxy_url = ""
+        if self.proxy_profile and hasattr(self.proxy_profile, "proxy_url"):
+            proxy_url = str(self.proxy_profile.proxy_url or "").strip()
+        from utils.ip_timezone import get_runtime_timezone_info
+        return get_runtime_timezone_info(proxy_url)
 
     def _headers(self, path: str, extra: Optional[Dict[str, str]] = None) -> Dict[str, str]:
         """构造请求头，并补上 web 端要求的 target path/route。"""
@@ -643,6 +657,7 @@ class OpenAIBackendAPI:
 
     def _get_conversation_init(self) -> Dict[str, Any]:
         path = "/backend-api/conversation/init"
+        _, tz_offset_min = self._runtime_timezone_info()
         response = self.session.post(
             self.base_url + path,
             headers=self._headers(path, {"Content-Type": "application/json"}),
@@ -650,7 +665,7 @@ class OpenAIBackendAPI:
                 "gizmo_id": None,
                 "requested_default_model": None,
                 "conversation_id": None,
-                "timezone_offset_min": -480,
+                "timezone_offset_min": tz_offset_min,
             },
             timeout=20,
         )
@@ -660,7 +675,8 @@ class OpenAIBackendAPI:
 
     def _get_default_account(self) -> Dict[str, Any]:
         path = "/backend-api/accounts/check/v4-2023-04-27"
-        response = self.session.get(self.base_url + path + "?timezone_offset_min=-480", headers=self._headers(path),
+        _, tz_offset_min = self._runtime_timezone_info()
+        response = self.session.get(self.base_url + path + f"?timezone_offset_min={tz_offset_min}", headers=self._headers(path),
                                     timeout=20)
         if response.status_code != 200:
             self._raise_on_error(response, path)
@@ -768,18 +784,20 @@ class OpenAIBackendAPI:
         proof_token = ""
         proof_info = data.get("proofofwork") or {}
         if proof_info.get("required"):
+            tz_name, _ = self._runtime_timezone_info()
             proof_token = build_proof_token(
                 proof_info.get("seed", ""),
                 proof_info.get("difficulty", ""),
                 self.user_agent,
                 script_sources=self.pow_script_sources,
                 data_build=self.pow_data_build,
+                tz_name=tz_name,
             )
 
         turnstile_token = ""
         turnstile_info = data.get("turnstile") or {}
         if turnstile_info.get("required") and turnstile_info.get("dx"):
-            turnstile_token = solve_turnstile_token(turnstile_info["dx"], source_p) or ""
+            turnstile_token = solve_turnstile(turnstile_info["dx"], source_p) or ""
 
         return ChatRequirements(
             token=data.get("token", ""),
@@ -884,6 +902,7 @@ class OpenAIBackendAPI:
             thinking_effort: str = "",
     ) -> Dict[str, Any]:
         """把标准 messages 构造成 web 对话请求体。"""
+        runtime_tz, tz_offset_min = self._runtime_timezone_info()
         payload = {
             "action": "next",
             "messages": self._api_messages_to_conversation_messages(messages),
@@ -900,8 +919,8 @@ class OpenAIBackendAPI:
             "suggestions": [],
             "supported_encodings": [],
             "system_hints": [],
-            "timezone": timezone,
-            "timezone_offset_min": -480,
+            "timezone": timezone or runtime_tz,
+            "timezone_offset_min": tz_offset_min,
             "variant_purpose": "comparison_implicit",
             "websocket_request_id": new_uuid(),
             "client_contextual_info": {
@@ -922,29 +941,32 @@ class OpenAIBackendAPI:
     def _image_model_slug(self, model: str) -> str:
         """把标准图片模型名映射到底层 model slug。"""
         _, base_model = split_image_model(model)
-        if not base_model:
+        if not base_model or base_model in ("gpt-image-2", "gpt-image-2.5"):
             return "auto"
-        if base_model == "gpt-image-2":
-            return "gpt-5-3"
         if base_model == CODEX_IMAGE_MODEL:
             return base_model
         return "auto"
 
-    def _image_headers(self, path: str, requirements: ChatRequirements, conduit_token: str = "", accept: str = "*/*") -> \
+    def _image_headers(self, path: str, requirements: ChatRequirements, conduit_token: str = "", accept: str = "*/*", trace_id: str = "") -> \
             Dict[str, str]:
-        """构造图片链路请求头。"""
-        headers = {
-            "Content-Type": "application/json",
-            "Accept": accept,
-            "OpenAI-Sentinel-Chat-Requirements-Token": requirements.token,
-        }
+        """构造图片链路请求头（与真实浏览器保持一致，不包含内部 target-route）。"""
+        headers = dict(self.session.headers)
+        if self.access_token:
+            headers["Authorization"] = f"Bearer {self.access_token}"
+        headers["Content-Type"] = "application/json"
+        headers["Accept"] = accept
+        headers["OpenAI-Sentinel-Chat-Requirements-Token"] = requirements.token
         if requirements.proof_token:
             headers["OpenAI-Sentinel-Proof-Token"] = requirements.proof_token
+        if requirements.turnstile_token:
+            headers["OpenAI-Sentinel-Turnstile-Token"] = requirements.turnstile_token
         if conduit_token:
             headers["X-Conduit-Token"] = conduit_token
-        if accept == "text/event-stream":
-            headers["X-Oai-Turn-Trace-Id"] = new_uuid()
-        return self._headers(path, headers)
+        if accept == "text/event-stream" or trace_id:
+            headers["X-Oai-Turn-Trace-Id"] = trace_id or new_uuid()
+        headers.pop("X-OpenAI-Target-Path", None)
+        headers.pop("X-OpenAI-Target-Route", None)
+        return headers
 
     def _codex_responses_headers(self) -> Dict[str, str]:
         return {
@@ -1296,31 +1318,47 @@ class OpenAIBackendAPI:
             retry_after = int(retry_after_header) if str(retry_after_header or "").isdigit() else None
             raise UpstreamHTTPError(path, error.code, body, retry_after=retry_after) from error
 
-    def _prepare_image_conversation(self, prompt: str, requirements: ChatRequirements, model: str) -> str:
+    def _prepare_image_conversation(
+        self,
+        prompt: str,
+        requirements: ChatRequirements,
+        model: str,
+        trace_id: str = "",
+        msg_id: str = "",
+    ) -> str:
         """为图片生成准备 conduit token。"""
         path = "/backend-api/f/conversation/prepare"
+        tz_name, tz_offset_min = self._runtime_timezone_info()
+        mention_text = f"{IMAGE_CREATION_MENTION} {prompt}"
+        msg_id = msg_id or new_uuid()
         payload = {
             "action": "next",
-            "fork_from_shared_post": False,
-            "parent_message_id": new_uuid(),
+            "is_do_not_remember": False,
             "model": self._image_model_slug(model),
-            "client_prepare_state": "success",
-            "timezone_offset_min": -480,
-            "timezone": "Asia/Shanghai",
-            "conversation_mode": {"kind": "primary_assistant"},
+            "parent_message_id": "client-created-root",
             "system_hints": ["picture_v2"],
-            "partial_query": {
-                "id": new_uuid(),
-                "author": {"role": "user"},
-                "content": {"content_type": "text", "parts": [prompt]},
+            "timezone": tz_name,
+            "timezone_offset_min": tz_offset_min,
+            "client_contextual_info": {
+                "app_name": "chatgpt.com",
+                "app_surface": "codex_browser",
+                "has_web_push_capabilities": True,
+                "web_push_notification_permission": "default",
             },
-            "supports_buffering": True,
+            "local_function_names": ["local.continue_in_work"],
             "supported_encodings": ["v1"],
-            "client_contextual_info": {"app_name": "chatgpt.com"},
+            "client_prepare_state": "sent",
+            "partial_query": {
+                "id": msg_id,
+                "author": {"role": "user"},
+                "content": {"content_type": "text", "parts": [mention_text]},
+            },
+            "client_prepare_dispatch": "debounced",
+            "client_prepare_source": "composer_editor_state",
         }
         response = self.session.post(
             self.base_url + path,
-            headers=self._image_headers(path, requirements),
+            headers=self._image_headers(path, requirements, trace_id=trace_id),
             json=payload,
             timeout=60,
         )
@@ -1401,26 +1439,46 @@ class OpenAIBackendAPI:
             "height": height,
         }
 
-    def _start_image_generation(self, prompt: str, requirements: ChatRequirements, conduit_token: str, model: str,
-                                references: Optional[list[Dict[str, Any]]] = None) -> requests.Response:
+    def _start_image_generation(
+        self,
+        prompt: str,
+        requirements: ChatRequirements,
+        conduit_token: str,
+        model: str,
+        references: Optional[list[Dict[str, Any]]] = None,
+        trace_id: str = "",
+        msg_id: str = "",
+    ) -> requests.Response:
         """启动图片生成或编辑的 SSE 请求。"""
         references = references or []
-        parts = [{
-            "content_type": "image_asset_pointer",
-            "asset_pointer": f"file-service://{item['file_id']}",
-            "width": item["width"],
-            "height": item["height"],
-            "size_bytes": item["file_size"],
-        } for item in references]
-        parts.append(prompt)
-        content = {"content_type": "multimodal_text", "parts": parts} if references else {"content_type": "text",
-                                                                                          "parts": [prompt]}
-        metadata = {
+        mention_text = f"{IMAGE_CREATION_MENTION} {prompt}"
+        parts: list[Any] = []
+        if references:
+            parts = [{
+                "content_type": "image_asset_pointer",
+                "asset_pointer": f"file-service://{item['file_id']}",
+                "width": item["width"],
+                "height": item["height"],
+                "size_bytes": item["file_size"],
+            } for item in references]
+            parts.append(mention_text)
+            content = {"content_type": "multimodal_text", "parts": parts}
+        else:
+            content = {"content_type": "text", "parts": [mention_text]}
+        metadata: Dict[str, Any] = {
             "developer_mode_connector_ids": [],
             "selected_github_repos": [],
             "selected_all_github_repos": False,
             "system_hints": ["picture_v2"],
-            "serialization_metadata": {"custom_symbol_offsets": []},
+            "serialization_metadata": {
+                "render_format": "markdown",
+                "custom_symbol_offsets": [{
+                    "id": "picture_v2",
+                    "symbol": "ecosystemMention",
+                    "startIndex": 0,
+                    "endIndex": len(IMAGE_CREATION_MENTION),
+                }],
+            },
         }
         if references:
             metadata["attachments"] = [{
@@ -1431,44 +1489,43 @@ class OpenAIBackendAPI:
                 "width": item["width"],
                 "height": item["height"],
             } for item in references]
+        tz_name, tz_offset_min = self._runtime_timezone_info()
+        msg_id = msg_id or new_uuid()
         payload = {
+            "turn_attribution": {"turn_trigger": "composer"},
             "action": "next",
+            "is_do_not_remember": False,
             "messages": [{
-                "id": new_uuid(),
-                "author": {"role": "user"},
+                "id": msg_id,
+                "author": {"metadata": {}, "name": None, "role": "user"},
+                "channel": None,
                 "create_time": time.time(),
+                "end_turn": None,
                 "content": content,
                 "metadata": metadata,
+                "recipient": "all",
+                "status": "finished_successfully",
+                "update_time": None,
+                "weight": 1,
             }],
-            "parent_message_id": new_uuid(),
+            "parent_message_id": "client-created-root",
             "model": self._image_model_slug(model),
-            "client_prepare_state": "sent",
-            "timezone_offset_min": -480,
-            "timezone": "Asia/Shanghai",
-            "conversation_mode": {"kind": "primary_assistant"},
-            "enable_message_followups": True,
             "system_hints": ["picture_v2"],
-            "supports_buffering": True,
-            "supported_encodings": ["v1"],
+            "timezone_offset_min": tz_offset_min,
+            "timezone": tz_name,
             "client_contextual_info": {
-                "is_dark_mode": False,
-                "time_since_loaded": 1200,
-                "page_height": 1072,
-                "page_width": 1724,
-                "pixel_ratio": 1.2,
-                "screen_height": 1440,
-                "screen_width": 2560,
                 "app_name": "chatgpt.com",
+                "app_surface": "codex_browser",
+                "has_web_push_capabilities": True,
+                "web_push_notification_permission": "default",
             },
-            "paragen_cot_summary_display_override": "allow",
-            "force_parallel_switch": "auto",
+            "local_function_names": ["local.continue_in_work"],
+            "supported_encodings": ["v1"],
+            "genui_state_snapshots": [],
+            "client_prepare_state": "success",
         }
         path = "/backend-api/f/conversation"
         timeout_secs = config.image_stream_timeout_secs
-        # Keep the transport/curl deadline slightly above the logical SSE
-        # deadline.  Otherwise curl_cffi can raise curl(28) first and bypass
-        # the stream-timeout recovery probe that fetches conversation/task
-        # diagnostics.
         transport_timeout_secs = max(timeout_secs + 30, timeout_secs * 1.1)
         curl_options = getattr(self.session, "curl_options", None)
         previous_total_timeout = None
@@ -1480,7 +1537,7 @@ class OpenAIBackendAPI:
         try:
             response = self.session.post(
                 self.base_url + path,
-                headers=self._image_headers(path, requirements, conduit_token, "text/event-stream"),
+                headers=self._image_headers(path, requirements, conduit_token, "text/event-stream", trace_id=trace_id),
                 json=payload,
                 timeout=transport_timeout_secs,
                 stream=True,
@@ -1491,6 +1548,26 @@ class OpenAIBackendAPI:
                     curl_options[CurlOpt.TIMEOUT_MS] = previous_total_timeout
                 else:
                     curl_options.pop(CurlOpt.TIMEOUT_MS, None)
+        if not (200 <= response.status_code < 300):
+            # 流式响应在错误时必须通过 iter_content 读取，才能完整获取到
+            # `{"detail":"Model not found"}` 供异常分类器进行精准切号和冷却。
+            err_body: Any = None
+            try:
+                raw_bytes = b"".join(response.iter_content())
+                err_body = json.loads(raw_bytes.decode("utf-8", errors="ignore"))
+            except Exception:
+                try:
+                    err_body = response.text or ""
+                except Exception:
+                    err_body = ""
+            retry_after_header = response.headers.get("Retry-After") if hasattr(response, "headers") else None
+            retry_after = int(retry_after_header) if str(retry_after_header or "").isdigit() else None
+            raise UpstreamHTTPError(
+                path,
+                response.status_code,
+                err_body,
+                retry_after=retry_after,
+            )
         ensure_ok(response, path)
         self._record_http_timing("image_generation_stream", response)
         return response
@@ -1498,8 +1575,10 @@ class OpenAIBackendAPI:
     def _get_conversation(self, conversation_id: str, timeout_secs: float = 60) -> Dict[str, Any]:
         """获取完整 conversation 详情。"""
         path = f"/backend-api/conversation/{conversation_id}"
-        response = self.session.get(self.base_url + path, headers=self._headers(path, {"Accept": "application/json"}),
-                                    timeout=timeout_secs)
+        headers = self._headers(path, {"Accept": "application/json"})
+        headers.pop("X-OpenAI-Target-Path", None)
+        headers.pop("X-OpenAI-Target-Route", None)
+        response = self.session.get(self.base_url + path, headers=headers, timeout=timeout_secs)
         ensure_ok(response, path)
         return response.json()
 
@@ -1760,6 +1839,7 @@ class OpenAIBackendAPI:
     ) -> Dict[str, Any]:
         data, file_name, mime_type, width, height = self._decode_editable_base64_image(base64_image, index)
         path = "/backend-api/files"
+        _, tz_offset_min = self._runtime_timezone_info()
         response = self.session.post(
             self.base_url + path,
             headers=self._headers(path, {"Accept": "*/*", "Content-Type": "application/json"}),
@@ -1767,7 +1847,7 @@ class OpenAIBackendAPI:
                 "file_name": file_name,
                 "file_size": len(data),
                 "use_case": "multimodal",
-                "timezone_offset_min": -480,
+                "timezone_offset_min": tz_offset_min,
                 "reset_rate_limits": False,
                 "store_in_library": True,
                 "library_persistence_mode": "opportunistic",
@@ -1840,14 +1920,15 @@ class OpenAIBackendAPI:
             deadline: float | None = None,
     ) -> str:
         path = "/backend-api/f/conversation/prepare"
+        tz_name, tz_offset_min = self._runtime_timezone_info()
         payload: Dict[str, Any] = {
             "action": "next",
             "fork_from_shared_post": False,
             "parent_message_id": "client-created-root",
             "model": EDITABLE_FILE_MODEL,
             "client_prepare_state": "success",
-            "timezone_offset_min": -480,
-            "timezone": "Asia/Shanghai",
+            "timezone_offset_min": tz_offset_min,
+            "timezone": tz_name,
             "conversation_mode": {"kind": "primary_assistant"},
             "system_hints": [],
             "partial_query": {"id": new_uuid(), "author": {"role": "user"}, "content": {"content_type": "text", "parts": [prompt]}},
@@ -1916,6 +1997,7 @@ class OpenAIBackendAPI:
         else:
             message["content"] = {"content_type": "text", "parts": [prompt]}
         path = "/backend-api/f/conversation"
+        tz_name, tz_offset_min = self._runtime_timezone_info()
         response = self.session.post(
             self.base_url + path,
             headers=self._image_headers(path, requirements, conduit_token, "text/event-stream"),
@@ -1925,8 +2007,8 @@ class OpenAIBackendAPI:
                 "parent_message_id": "client-created-root",
                 "model": EDITABLE_FILE_MODEL,
                 "client_prepare_state": "sent",
-                "timezone_offset_min": -480,
-                "timezone": "Asia/Shanghai",
+                "timezone_offset_min": tz_offset_min,
+                "timezone": tz_name,
                 "conversation_mode": {"kind": "primary_assistant"},
                 "enable_message_followups": True,
                 "system_hints": [],
@@ -2506,6 +2588,7 @@ class OpenAIBackendAPI:
             timeout_secs: float,
     ) -> str:
         path = "/backend-api/f/conversation/prepare"
+        tz_name, tz_offset_min = self._runtime_timezone_info()
         response = self.session.post(
             self.base_url + path,
             headers=self._headers(path, {"Accept": "*/*", "Content-Type": "application/json", "X-Conduit-Token": "no-token"}),
@@ -2515,8 +2598,8 @@ class OpenAIBackendAPI:
                 "parent_message_id": "client-created-root",
                 "model": model,
                 "client_prepare_state": "success",
-                "timezone_offset_min": -480,
-                "timezone": "Asia/Shanghai",
+                "timezone_offset_min": tz_offset_min,
+                "timezone": tz_name,
                 "conversation_mode": {"kind": "primary_assistant"},
                 "system_hints": ["search"],
                 "partial_query": {"id": new_uuid(), "author": {"role": "user"}, "content": {"content_type": "text", "parts": [prompt]}},
@@ -2544,6 +2627,7 @@ class OpenAIBackendAPI:
             deadline=deadline,
         )
         path = "/backend-api/f/conversation"
+        tz_name, tz_offset_min = self._runtime_timezone_info()
         response = self.session.post(
             self.base_url + path,
             headers=self._image_headers(path, requirements, conduit_token, "text/event-stream"),
@@ -2565,8 +2649,8 @@ class OpenAIBackendAPI:
                 "parent_message_id": "client-created-root",
                 "model": model,
                 "client_prepare_state": "success",
-                "timezone_offset_min": -480,
-                "timezone": "Asia/Shanghai",
+                "timezone_offset_min": tz_offset_min,
+                "timezone": tz_name,
                 "conversation_mode": {"kind": "primary_assistant"},
                 "enable_message_followups": True,
                 "system_hints": [],
@@ -3350,7 +3434,10 @@ class OpenAIBackendAPI:
     def _get_file_download_url(self, file_id: str) -> str:
         """获取文件下载地址。"""
         path = f"/backend-api/files/{file_id}/download"
-        response = self.session.get(self.base_url + path, headers=self._headers(path, {"Accept": "application/json"}),
+        headers = self._headers(path, {"Accept": "application/json"})
+        headers.pop("X-OpenAI-Target-Path", None)
+        headers.pop("X-OpenAI-Target-Route", None)
+        response = self.session.get(self.base_url + path, headers=headers,
                                     timeout=60)
         ensure_ok(response, path)
         data = response.json()
@@ -3359,7 +3446,10 @@ class OpenAIBackendAPI:
     def _get_attachment_download_url(self, conversation_id: str, attachment_id: str) -> str:
         """通过 conversation 附件接口获取下载地址。"""
         path = f"/backend-api/conversation/{conversation_id}/attachment/{attachment_id}/download"
-        response = self.session.get(self.base_url + path, headers=self._headers(path, {"Accept": "application/json"}),
+        headers = self._headers(path, {"Accept": "application/json"})
+        headers.pop("X-OpenAI-Target-Path", None)
+        headers.pop("X-OpenAI-Target-Route", None)
+        response = self.session.get(self.base_url + path, headers=headers,
                                     timeout=60)
         ensure_ok(response, path)
         data = response.json()
@@ -3382,9 +3472,12 @@ class OpenAIBackendAPI:
         - 任务列表，每个任务包含 image_gen_message 等字段。
         """
         path = "/backend-api/tasks"
+        headers = self._headers(path, {"Accept": "application/json"})
+        headers.pop("X-OpenAI-Target-Path", None)
+        headers.pop("X-OpenAI-Target-Route", None)
         response = self.session.get(
             self.base_url + path,
-            headers=self._headers(path, {"Accept": "application/json"}),
+            headers=headers,
             timeout=timeout_secs,
         )
         ensure_ok(response, path)
@@ -3746,9 +3839,11 @@ class OpenAIBackendAPI:
         self._report_progress("getting_token")
         requirements = self._get_chat_requirements()
         self._report_progress("preparing_conversation")
-        conduit_token = self._prepare_image_conversation(prompt, requirements, model)
+        trace_id = new_uuid()
+        msg_id = new_uuid()
+        conduit_token = self._prepare_image_conversation(prompt, requirements, model, trace_id=trace_id, msg_id=msg_id)
         self._report_progress("starting_generation")
-        response = self._start_image_generation(prompt, requirements, conduit_token, model, references)
+        response = self._start_image_generation(prompt, requirements, conduit_token, model, references, trace_id=trace_id, msg_id=msg_id)
         self._report_progress("generating")
         try:
             for payload in self._iter_timed_sse_payloads(
@@ -3768,15 +3863,21 @@ class OpenAIBackendAPI:
 
     def _bootstrap(self, timeout_secs: float = 30.0) -> None:
         """预热首页，并提取 PoW 相关脚本引用。"""
-        response = self.session.get(
-            self.base_url + "/",
-            headers=self._bootstrap_headers(),
-            timeout=timeout_secs,
-        )
-        ensure_ok(response, "bootstrap", credential_scope="public")
-        self.pow_script_sources, self.pow_data_build = parse_pow_resources(response.text)
-        if not self.pow_script_sources:
-            self.pow_script_sources = [DEFAULT_POW_SCRIPT]
+        # 注意：绝不能带 Authorization 访问 chatgpt.com/，否则 Cloudflare 会直接下发 403 质询
+        auth = self.session.headers.pop("Authorization", None)
+        try:
+            response = self.session.get(
+                self.base_url + "/",
+                headers=self._bootstrap_headers(),
+                timeout=timeout_secs,
+            )
+            ensure_ok(response, "bootstrap", credential_scope="public")
+            self.pow_script_sources, self.pow_data_build = parse_pow_resources(response.text)
+            if not self.pow_script_sources:
+                self.pow_script_sources = [DEFAULT_POW_SCRIPT]
+        finally:
+            if auth:
+                self.session.headers["Authorization"] = auth
 
     def _get_chat_requirements(
             self,
@@ -3795,7 +3896,13 @@ class OpenAIBackendAPI:
             )
 
         base = "/backend-api/sentinel/chat-requirements" if self.access_token else "/backend-anon/sentinel/chat-requirements"
-        p_token = build_legacy_requirements_token(self.user_agent, self.pow_script_sources, self.pow_data_build)
+        tz_name, _ = self._runtime_timezone_info()
+        p_token = build_legacy_requirements_token(
+            self.user_agent,
+            self.pow_script_sources,
+            self.pow_data_build,
+            tz_name=tz_name,
+        )
 
         prepare_path = base + "/prepare"
         response = self.session.post(
@@ -3819,12 +3926,13 @@ class OpenAIBackendAPI:
                 self.user_agent,
                 script_sources=self.pow_script_sources,
                 data_build=self.pow_data_build,
+                tz_name=tz_name,
             )
 
         turnstile_token = ""
         turnstile_info = prepare_data.get("turnstile") or {}
         if turnstile_info.get("required") and turnstile_info.get("dx"):
-            turnstile_token = solve_turnstile_token(turnstile_info["dx"], p_token) or ""
+            turnstile_token = solve_turnstile(turnstile_info["dx"], p_token) or ""
 
         finalize_path = base + "/finalize"
         response = self.session.post(
@@ -3832,13 +3940,23 @@ class OpenAIBackendAPI:
             headers=self._headers(finalize_path, {"Content-Type": "application/json"}),
             json={
                 "prepare_token": prepare_data.get("prepare_token", ""),
-                "proof_token": proof_token,
-                "turnstile_token": turnstile_token,
+                **({"proofofwork": proof_token} if proof_token else {}),
+                **({"turnstile": turnstile_token} if turnstile_token else {}),
             },
             timeout=request_timeout(),
         )
         ensure_ok(response, "chat_requirements_finalize")
         data = response.json()
+
+        # finalize 下发的 oai-sc cookie 会把当前会话标记为受限，导致后续
+        # f/conversation 返回 404 {"detail":"Model not found"}。
+        # 这里在拿到 requirements token 后立即清除它。
+        try:
+            for cookie in list(self.session.cookies.jar):
+                if cookie.name == "oai-sc":
+                    self.session.cookies.jar.clear(cookie.domain, cookie.path, cookie.name)
+        except Exception:
+            pass
 
         token = data.get("token", "")
         if not token:
@@ -3854,9 +3972,10 @@ class OpenAIBackendAPI:
         )
 
     def _chat_target(self) -> tuple[str, str]:
+        tz_name, _ = self._runtime_timezone_info()
         if self.access_token:
-            return "/backend-api/conversation", "Asia/Shanghai"
-        return "/backend-anon/conversation", "America/Los_Angeles"
+            return "/backend-api/conversation", tz_name
+        return "/backend-anon/conversation", tz_name
 
     def list_models(self) -> Dict[str, Any]:
         """返回当前模式下可用模型，格式对齐 OpenAI `/v1/models`。"""

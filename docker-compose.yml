@@ -1,4 +1,21 @@
 services:
+  sentinel-solver:
+    build:
+      context: ./sentinel_solver
+      dockerfile: Dockerfile
+    image: ${CHATGPT2API_SOLVER_IMAGE:-ghcr.io/yukkcat/chatgpt2api-sentinel-solver:latest}
+    container_name: chatgpt2api-sentinel-solver
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${SENTINEL_SOLVER_PORT:-35780}:35780"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=35780
+      - SENTINEL_SOLVER_KEY=${SENTINEL_SOLVER_KEY:-}
+      - SENTINEL_SOLVER_PROXY=${SENTINEL_SOLVER_PROXY:-}
+      - SENTINEL_SOLVER_TIMEZONE=${TZ:-Asia/Shanghai}
+      - SENTINEL_SOLVER_HEADLESS=true
+
   app:
     image: ${CHATGPT2API_IMAGE:-ghcr.io/yukkcat/chatgpt2api:latest}
     container_name: chatgpt2api
@@ -15,6 +32,8 @@ services:
       CHATGPT2API_BASE_URL: ${CHATGPT2API_BASE_URL:-}
       CHATGPT2API_THREAD_TOKENS: ${CHATGPT2API_THREAD_TOKENS:-120}
       TZ: ${TZ:-Asia/Shanghai}
+      SENTINEL_SOLVER_URL: ${SENTINEL_SOLVER_URL:-http://sentinel-solver:35780}
+      SENTINEL_SOLVER_KEY: ${SENTINEL_SOLVER_KEY:-}
 
 volumes:
   chatgpt2api-runtime:
