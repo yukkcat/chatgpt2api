@@ -17,6 +17,16 @@
                 </Checkbox>
               </div>
             </div>
+            <div class="settings-check-item">
+              <div class="settings-check-control">
+                <Checkbox
+                  v-model="settings.genbox_push.delete_source_after_push"
+                  :disabled="!settings.genbox_push.enabled || fieldReadOnly('genbox_push.delete_source_after_push')"
+                >
+                  自动推送成功后删除源图（需 GenBox 回执确认）
+                </Checkbox>
+              </div>
+            </div>
           </div>
           <FormField label="无限画布地址">
             <Input

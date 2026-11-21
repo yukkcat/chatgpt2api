@@ -140,7 +140,11 @@ def shutdown_genbox_push_service() -> None:
 
 def _run_auto_push(rel: str, *, metadata: Mapping[str, Any] | None = None) -> None:
     try:
-        push_gallery_image(rel, metadata=metadata)
+        push_gallery_image(
+            rel,
+            metadata=metadata,
+            delete_source_after_push=bool((_auto_push_settings() or {}).get("delete_source_after_push")),
+        )
         logger.info({"event": "genbox_auto_push_succeeded", "path": rel})
     except GenBoxPushError as exc:
         logger.warning({"event": "genbox_auto_push_failed", "path": rel, "code": exc.code})
@@ -230,7 +234,12 @@ def _validate_receipt(value: Mapping[str, Any], source_id: str, sha256: str) -> 
     return str(status)
 
 
-def push_gallery_image(relative_path: str, *, metadata: Mapping[str, Any] | None = None) -> dict[str, object]:
+def push_gallery_image(
+    relative_path: str,
+    *,
+    metadata: Mapping[str, Any] | None = None,
+    delete_source_after_push: bool = False,
+) -> dict[str, object]:
     settings = _settings()
     rel = normalize_image_relative_path(relative_path)
     payload = image_storage_service.get_bytes(rel)
@@ -284,4 +293,11 @@ def push_gallery_image(relative_path: str, *, metadata: Mapping[str, Any] | None
     projected = genbox_push_state(state)
     if projected is None:
         raise RuntimeError("stored GenBox push state is invalid")
-    return {"path": rel, **projected, "source_retained": True}
+    safe_to_delete = bool(delete_source_after_push and _json_object(response).get("safe_to_delete_source") is True)
+    removed = False
+    if safe_to_delete and status in {"imported", "already-imported"}:
+        current_payload = image_storage_service.get_bytes(rel)
+        if hashlib.sha256(current_payload).hexdigest() != sha256:
+            return {"path": rel, **projected, "source_retained": True}
+        removed = image_storage_service.delete(rel)
+    return {"path": rel, **projected, "source_retained": not removed}

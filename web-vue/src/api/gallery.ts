@@ -177,8 +177,9 @@ export const galleryApi = {
   cleanupExpired: () =>
     apiClient.post<never, GalleryCleanupResult>('/api/images/retention-cleanup'),
 
-  pushToGenBox: (path: string) =>
-    apiClient.post<{ path: string }, GalleryGenBoxPushResult>('/api/images/genbox-push', {
+  pushToGenBox: (path: string, deleteSourceAfterPush = false) =>
+    apiClient.post<{ path: string; delete_source_after_push: boolean }, GalleryGenBoxPushResult>('/api/images/genbox-push', {
       path,
+      delete_source_after_push: deleteSourceAfterPush,
     }),
 }

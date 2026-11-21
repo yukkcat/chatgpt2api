@@ -61,6 +61,7 @@ export interface SettingsGenBoxPush {
   has_push_key: boolean
   timeout_secs: number
   auto_push_after_studio: boolean
+  delete_source_after_push: boolean
 }
 
 export interface Settings {
